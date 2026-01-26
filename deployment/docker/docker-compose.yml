@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:16-alpine
+    container_name: edge-cloud-postgres
+    environment:
+      POSTGRES_DB: edge_cloud
+      POSTGRES_USER: edge_user
+      POSTGRES_PASSWORD: edge_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+  # Redis 缓存
+  redis:
+    image: redis:7-alpine
+    container_name: edge-cloud-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+  # InfluxDB 时序数据库
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: edge-cloud-influxdb
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: password
+      DOCKER_INFLUXDB_INIT_BUCKET: edge_metrics
+      DOCKER_INFLUXDB_INIT_ORG: edge_org
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: edge-cloud-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+  # MLflow 模型管理
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.9.0
+    container_name: edge-cloud-mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      BACKEND_STORE_URI: postgresql://edge_user:edge_pass@postgres:5432/mlflow
+      DEFAULT_ARTIFACT_ROOT: /mlflow/artifacts
+    volumes:
+      - mlflow_data:/mlflow/artifacts
+    depends_on:
+      - postgres
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+  # EMQX MQTT Broker
+  emqx:
+    image: emqx/emqx:5.5.0
+    container_name: edge-cloud-emqx
+    environment:
+      EMQX_NAME: emqx
+    ports:
+      - "1883:1883"     # MQTT
+      - "8083:8083"     # WebSocket
+      - "18083:18083"   # Dashboard
+    volumes:
+      - emqx_data:/opt/emqx/data
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+  # Grafana 监控
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: edge-cloud-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  influxdb_data:
+  minio_data:
+  mlflow_data:
+  emqx_data:
+  grafana_data:
+
+networks:
+  edge-cloud-network:
+    driver: bridge

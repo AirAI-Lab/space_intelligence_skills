@@ -1,0 +1,64 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build
+build/
+dist/
+target/
+*.egg-info/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+vendor/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Data
+data/
+models/
+runs/
+*.ckpt
+*.pth
+*.pt
+*.engine
+
+# Database
+*.db
+*.sqlite
+
+# Temporary
+tmp/
+temp/
+*.tmp

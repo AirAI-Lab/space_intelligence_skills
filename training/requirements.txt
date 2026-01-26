@@ -1,0 +1,38 @@
+# edge_infer_cloud - 训练框架依赖
+
+# PyTorch
+torch>=2.1.0
+torchvision>=0.16.0
+
+# Ultralytics YOLO
+ultralytics>=8.1.0
+
+# 数据处理
+numpy>=1.24.0
+opencv-python>=4.8.0
+pillow>=10.0.0
+
+# 配置文件解析
+pyyaml>=6.0
+
+# MLflow
+mlflow>=2.9.0
+
+# TensorRT (可选，在训练容器中安装)
+# nvidia-tensorrt>=8.6.0
+
+# ONNX
+onnx>=1.15.0
+onnxruntime>=1.16.0
+
+# 日志
+loguru>=0.7.0
+
+# API
+fastapi>=0.104.0
+uvicorn>=0.24.0
+python-multipart>=0.0.6
+
+# 工具
+tqdm>=4.66.0
+tabulate>=0.9.0
