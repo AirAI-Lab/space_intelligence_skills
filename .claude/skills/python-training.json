@@ -1,0 +1,24 @@
+{
+  "name": "python-training",
+  "description": "Python 训练服务构建和测试",
+  "steps": [
+    {
+      "description": "构建训练服务镜像",
+      "action": "docker-compose build training"
+    },
+    {
+      "description": "启动训练服务",
+      "action": "docker-compose up -d training"
+    },
+    {
+      "description": "验证训练服务健康",
+      "action": "curl -s http://localhost:5002/health"
+    },
+    {
+      "description": "检查 Python 依赖",
+      "action": "docker exec edge_cloud_training pip list | grep -E '(torch|ultralytics|mlflow)'"
+    }
+  ],
+  "tools": ["Bash"],
+  "workingDirectory": "deployment/docker"
+}

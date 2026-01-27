@@ -1,0 +1,24 @@
+{
+  "name": "java-compile-fix",
+  "description": "自动修复 Java 后端编译错误",
+  "steps": [
+    {
+      "description": "读取编译错误",
+      "action": "docker-compose build backend 2>&1 | grep -E '(ERROR|error:)' | tail -20"
+    },
+    {
+      "description": "分析错误原因",
+      "action": "根据错误信息定位问题文件和行号"
+    },
+    {
+      "description": "应用修复",
+      "action": "使用 Read 和 Edit 工具修复代码"
+    },
+    {
+      "description": "验证修复",
+      "action": "docker-compose build backend --no-cache"
+    }
+  ],
+  "tools": ["Read", "Edit", "Bash"],
+  "workingDirectory": "backend"
+}

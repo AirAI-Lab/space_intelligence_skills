@@ -1,0 +1,24 @@
+{
+  "name": "docker-rebuild",
+  "description": "Docker 服务重建和验证",
+  "steps": [
+    {
+      "description": "停止并删除容器",
+      "action": "docker-compose down"
+    },
+    {
+      "description": "清理旧镜像",
+      "action": "docker-compose build --no-cache"
+    },
+    {
+      "description": "启动服务",
+      "action": "docker-compose up -d"
+    },
+    {
+      "description": "检查服务状态",
+      "action": "docker-compose ps && docker logs --tail 50"
+    }
+  ],
+  "tools": ["Bash"],
+  "workingDirectory": "deployment/docker"
+}

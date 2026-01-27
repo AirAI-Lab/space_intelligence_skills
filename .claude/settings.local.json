@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker:*)",
+      "Bash(nvidia-smi:*)",
+      "Bash(curl:*)",
+      "Bash(tree:*)",
+      "Read(//d/**)",
+      "Bash(dir:*)",
+      "Bash(python:*)",
+      "Bash(docker-compose up:*)",
+      "Bash(docker-compose down:*)",
+      "Bash(mvn clean compile:*)",
+      "Bash(where mvn:*)",
+      "Bash(powershell:*)",
+      "Bash(ls:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(docker-compose:*)",
+      "Bash(mvn:*)",
+      "Bash(java:*)"
+    ],
+    "additionalDirectories": [
+      "D:\\github\\edge_infer\\src\\mqtt",
+      "D:\\github"
+    ]
+  }
+}
