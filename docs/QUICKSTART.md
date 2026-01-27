@@ -31,16 +31,48 @@ git clone https://github.com/SnakeJenny/edge_infer_cloud.git
 cd edge_infer_cloud
 ```
 
-### 第二步：启动服务
+### 第二步：创建数据卷目录
+
+```powershell
+# Windows PowerShell
+New-Item -ItemType Directory -Path "D:\docker\volumes\edge_cloud" -Force
+New-Item -ItemType Directory -Path "D:\docker\volumes\edge_cloud\postgres_data" -Force
+New-Item -ItemType Directory -Path "D:\docker\volumes\edge_cloud\redis_data" -Force
+New-Item -ItemType Directory -Path "D:\docker\volumes\edge_cloud\influxdb_data" -Force
+New-Item -ItemType Directory -Path "D:\docker\volumes\edge_cloud\minio_data" -Force
+New-Item -ItemType Directory -Path "D:\docker\volumes\edge_cloud\mlflow_data" -Force
+New-Item -ItemType Directory -Path "D:\docker\volumes\edge_cloud\emqx_data" -Force
+```
+
+### 第三步：配置环境变量
+
+```powershell
+# 复制环境变量模板
+cd deployment\docker
+Copy-Item .env.example .env
+
+# 使用记事本编辑 .env 文件
+notepad .env
+```
+
+**重要配置项：**
+```bash
+# 确认数据卷路径正确
+VOLUME_BASE_PATH=D:/docker/volumes/edge_cloud
+
+# 生产环境请修改密码
+SPRING_DATASOURCE_PASSWORD=edge_pass_change_me
+INFLUXDB_PASSWORD=influx_admin_pass_change_me
+MINIO_SECRET_KEY=minioadmin_change_me
+```
+
+### 第四步：启动服务
 
 #### 选项 A：仅启动管理平台（无 GPU 训练）
 
 ```powershell
-# 进入部署目录
-cd deployment\docker
-
-# 启动所有服务
-docker-compose up -d
+# 启动所有服务（除训练服务）
+docker-compose up -d postgres redis emqx influxdb minio mlflow backend frontend
 
 # 等待服务启动
 Start-Sleep -Seconds 30
@@ -59,7 +91,7 @@ docker-compose --profile gpu up -d
 Start-Sleep -Seconds 60
 ```
 
-### 第三步：验证安装
+### 第五步：验证安装
 
 ```powershell
 # 检查容器状态
@@ -69,7 +101,7 @@ docker-compose ps
 curl http://localhost:8081/actuator/health
 ```
 
-### 第四步：访问服务
+### 第六步：访问服务
 
 | 服务 | 地址 | 用户名 | 密码 | 说明 |
 |------|------|--------|------|------|
@@ -81,7 +113,7 @@ curl http://localhost:8081/actuator/health
 | MLflow | http://localhost:5001 | - | - | 模型管理（英文） |
 | SeaweedFS | http://localhost:8888 | - | - | 文件存储（英文） |
 
-> **提示**：MLflow 和 SeaweedFS 为国际开源项目，无官方中文版。建议通过中文导航门户访问所有服务。
+> **提示**：MLflow 和 SeaweedFS 为国际开源项目，无官方中文版。建议通过中文导航门户访问。
 
 ---
 
@@ -132,24 +164,7 @@ docker-compose up -d --build
 
 ## 故障排查
 
-### 问题 1：EMQX 登录密码错误
-
-**解决方案：清除 EMQX 数据卷**
-
-```powershell
-# 停止 EMQX
-docker-compose down emqx
-
-# 删除 EMQX 数据卷
-docker volume rm docker_emqx_data
-
-# 重新启动
-docker-compose up -d emqx
-
-# 使用新凭证登录：admin / admin123456
-```
-
-### 问题 2：端口冲突
+### 问题 1：端口冲突
 
 ```powershell
 # 检查端口占用
@@ -159,7 +174,7 @@ netstat -ano | findstr :8081
 # 解决方法：修改 docker-compose.yml 中的端口映射
 ```
 
-### 问题 3：GPU 不可用
+### 问题 2：GPU 不可用
 
 ```powershell
 # 检查 NVIDIA 驱动
@@ -173,18 +188,18 @@ docker run --rm --gpus all nvcr.io/nvidia/cuda:12.5.0-base-ubuntu22.04 nvidia-sm
 # Settings → Resources → WSL Integration
 ```
 
-### 问题 4：容器启动失败
+### 问题 3：容器启动失败
 
 ```powershell
 # 查看详细日志
 docker-compose logs backend
 docker-compose logs training
 
-# 检查数据卷
-docker volume ls
+# 检查数据卷权限
+ls -la D:/docker/volumes/edge_cloud
 ```
 
-### 问题 5：数据库连接失败
+### 问题 4：数据库连接失败
 
 ```powershell
 # 检查 PostgreSQL 容器状态
@@ -254,12 +269,11 @@ python -m edge_train.cli --help
 
 ## 下一步
 
-- 阅读 [设备管理指南](02_device_management.md)
-- 阅读 [数据管理指南](03_data_management.md)
-- 阅读 [模型训练指南](04_training.md)
-- 查看 [开源协议合规性文档](../LICENSE_COMPLIANCE.md)
+- 阅读 [用户手册](./user_manual/01_quick_start.md)
+- 查看 [API 文档](./api.md)
+- 了解 [架构设计](./architecture.md)
 
 ## 获取帮助
 
 - GitHub Issues: https://github.com/SnakeJenny/edge_infer_cloud/issues
-- 中文导航门户: http://localhost:8889
+- 文档: https://docs.edgeinfer.cloud

@@ -245,7 +245,7 @@ const addDevice = async () => {
 }
 
 // 编辑设备
-const editDevice = (device: any) => {
+const editDevice = (_device: any) => {
   // TODO: 实现编辑功能
   ElMessage.info('编辑功能待实现')
 }

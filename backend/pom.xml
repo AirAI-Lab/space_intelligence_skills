@@ -50,6 +50,13 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
+        <!-- SpringDoc OpenAPI (Swagger UI) - Apache 2.0 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+
         <!-- PostgreSQL Driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -70,11 +77,11 @@
             <version>1.2.5</version>
         </dependency>
 
-        <!-- MinIO Client -->
+        <!-- AWS S3 SDK（用于 SeaweedFS S3 API - Apache 2.0） -->
         <dependency>
-            <groupId>io.minio</groupId>
-            <artifactId>minio</artifactId>
-            <version>8.5.7</version>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.21.0</version>
         </dependency>
 
         <!-- Jackson for JSON -->

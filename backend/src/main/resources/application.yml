@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: edge-infer-cloud
+
+server:
+  port: 8080
+  shutdown: graceful
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/edge_cloud}
+    username: ${SPRING_DATASOURCE_USERNAME:edge_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:edge_pass}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  redis:
+    host: ${SPRING_REDIS_HOST:redis}
+    port: ${SPRING_REDIS_PORT:6379}

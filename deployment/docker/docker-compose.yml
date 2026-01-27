@@ -1,14 +1,15 @@
 version: '3.8'
 
 services:
-  # PostgreSQL 数据库
+  # PostgreSQL + TimescaleDB 时序数据库（免费 + MIT/Apache协议）
   postgres:
-    image: postgres:16-alpine
-    container_name: edge-cloud-postgres
+    image: timescale/timescaledb:latest-pg16
+    container_name: edge_cloud_postgres
     environment:
       POSTGRES_DB: edge_cloud
       POSTGRES_USER: edge_user
       POSTGRES_PASSWORD: edge_pass
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
       - "5432:5432"
     volumes:
@@ -16,11 +17,20 @@ services:
     networks:
       - edge-cloud-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edge_user -d edge_cloud"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # 启用TimescaleDB扩展
+    command: >
+      postgres
+      -c shared_preload_libraries='timescaledb'
 
-  # Redis 缓存
+  # Redis 缓存（BSD协议 - 完全免费）
   redis:
     image: redis:7-alpine
-    container_name: edge-cloud-redis
+    container_name: edge_cloud_redis
     ports:
       - "6379:6379"
     volumes:
@@ -29,97 +39,190 @@ services:
       - edge-cloud-network
     restart: unless-stopped
 
-  # InfluxDB 时序数据库
-  influxdb:
-    image: influxdb:2.7-alpine
-    container_name: edge-cloud-influxdb
-    environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: password
-      DOCKER_INFLUXDB_INIT_BUCKET: edge_metrics
-      DOCKER_INFLUXDB_INIT_ORG: edge_org
+  # 中文导航门户
+  portal:
+    image: nginx:alpine
+    container_name: edge_cloud_portal
     ports:
-      - "8086:8086"
+      - "8889:80"
     volumes:
-      - influxdb_data:/var/lib/influxdb2
+      - ./portal.html:/usr/share/nginx/html/index.html:ro
     networks:
       - edge-cloud-network
     restart: unless-stopped
 
-  # MinIO 对象存储
-  minio:
-    image: minio/minio:latest
-    container_name: edge-cloud-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - minio_data:/data
-    networks:
-      - edge-cloud-network
-    restart: unless-stopped
-
-  # MLflow 模型管理
-  mlflow:
-    image: ghcr.io/mlflow/mlflow:v2.9.0
-    container_name: edge-cloud-mlflow
-    ports:
-      - "5000:5000"
-    environment:
-      BACKEND_STORE_URI: postgresql://edge_user:edge_pass@postgres:5432/mlflow
-      DEFAULT_ARTIFACT_ROOT: /mlflow/artifacts
-    volumes:
-      - mlflow_data:/mlflow/artifacts
-    depends_on:
-      - postgres
-    networks:
-      - edge-cloud-network
-    restart: unless-stopped
-
-  # EMQX MQTT Broker
+  # EMQX MQTT Broker（Apache 2.0 - 完全免费）
   emqx:
     image: emqx/emqx:5.5.0
-    container_name: edge-cloud-emqx
+    container_name: edge_cloud_emqx
     environment:
       EMQX_NAME: emqx
+      # 设置默认管理员账号密码
+      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: admin123456
     ports:
-      - "1883:1883"     # MQTT
-      - "8083:8083"     # WebSocket
-      - "18083:18083"   # Dashboard
+      - "1883:1883"
+      - "8083:8083"
+      - "18083:18083"
     volumes:
       - emqx_data:/opt/emqx/data
     networks:
       - edge-cloud-network
     restart: unless-stopped
 
-  # Grafana 监控
-  grafana:
-    image: grafana/grafana:10.2.0
-    container_name: edge-cloud-grafana
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
+  # MLflow 模型管理（Apache 2.0 - 完全免费）
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.9.0
+    container_name: edge_cloud_mlflow
     ports:
-      - "3001:3000"
+      - "5001:5000"
+    environment:
+      BACKEND_STORE_URI: /mlflow/data
+      DEFAULT_ARTIFACT_ROOT: /mlflow/artifacts
     volumes:
-      - grafana_data:/var/lib/grafana
+      - mlflow_data:/mlflow
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow/data --default-artifact-root /mlflow/artifacts
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  # SeaweedFS 对象存储（Apache 2.0 - 完全免费，商业化友好）
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: edge_cloud_seaweedfs
+    ports:
+      - "8333:8333"  # S3 API
+      - "8080:8080"  # 主服务
+      - "8888:8888"  # UI界面
+    volumes:
+      - seaweedfs_data:/data
+    environment:
+      - GOCACHE=/tmp
+    command: server -dir=/data -s3 -volume.max=100
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8333/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # 前端服务 (Vue3 + TypeScript)
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: ../deployment/docker/frontend.Dockerfile
+    container_name: edge_cloud_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8081/api/v1
+      - VITE_WS_URL=ws://localhost:8081/ws
+    depends_on:
+      - backend
     networks:
       - edge-cloud-network
     restart: unless-stopped
 
+  # 后端 API 服务 (Spring Boot 3.x)
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: ../deployment/docker/backend.Dockerfile
+    container_name: edge_cloud_backend
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/edge_cloud
+      - SPRING_DATASOURCE_USERNAME=edge_user
+      - SPRING_DATASOURCE_PASSWORD=edge_pass
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_MQTT_BROKER_URL=tcp://emqx:1883
+      # TimescaleDB配置（替代InfluxDB）
+      - TIMESTRIDE_ENABLED=true
+      - TIMESTRIDE_URI=jdbc:postgresql://postgres:5432/edge_cloud_timeseries
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      # SeaweedFS S3存储配置（Apache 2.0，商业化友好）
+      - FILE_STORAGE_TYPE=s3
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=admin123456
+      - S3_BUCKET=edge-cloud-files
+      - S3_PATH_STYLE_ACCESS=true
+    depends_on:
+      - postgres
+      - redis
+      - emqx
+      - seaweedfs
+    volumes:
+      - file_storage_data:/app/data/files
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+
+  # 训练服务 (PyTorch + YOLO + CUDA) - 需要使用 --profile gpu 启动
+  training:
+    build:
+      context: ../../training
+      dockerfile: ../deployment/docker/training.Dockerfile
+    container_name: edge_cloud_training
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      # 后端 API 配置
+      - BACKEND_API_URL=http://backend:8081
+      # S3 存储配置
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=admin123456
+      - S3_BUCKET=edge-cloud
+      # MQTT 配置
+      - MQTT_BROKER_URL=tcp://emqx:1883
+      - MQTT_USERNAME=admin
+      - MQTT_PASSWORD=admin123456
+      # GPU 配置
+      - USE_GPU=true
+    volumes:
+      - ../../data/runs:/app/runs
+      - ../../data/models:/app/models
+      - ../../data/shared_models:/shared:ro
+      - training_work:/app/work
+    ports:
+      - "5002:5002"
+    deploy:
+      resources:
+        limits:
+          cpus: '6'
+          memory: 16G
+        reservations:
+          memory: 8G
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+    profiles:
+      - gpu
+
 volumes:
   postgres_data:
   redis_data:
-  influxdb_data:
-  minio_data:
   mlflow_data:
   emqx_data:
-  grafana_data:
+  seaweedfs_data:
+  file_storage_data:
+  training_work:
+  # 移除的volumes: influxdb_data, minio_data, grafana_data
 
 networks:
   edge-cloud-network:

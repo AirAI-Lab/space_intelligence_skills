@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edge Infer Cloud - 云边协同管理平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+                "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .service-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .service-card h3 {
+            color: #667eea;
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .service-card .icon {
+            font-size: 1.5em;
+        }
+
+        .service-card p {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .service-card .credentials {
+            background: #f7f7f7;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+
+        .service-card .credentials strong {
+            color: #333;
+        }
+
+        .service-card a {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            transition: opacity 0.3s;
+        }
+
+        .service-card a:hover {
+            opacity: 0.9;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: auto;
+        }
+
+        .status.online {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status.warning {
+            background: #ff9800;
+            color: white;
+        }
+
+        .info-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .info-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .info-section table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .info-section th,
+        .info-section td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-section th {
+            background: #f7f7f7;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .license-safe {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            padding: 20px;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Edge Infer Cloud</h1>
+            <p>云边协同管理平台 - 服务导航门户</p>
+        </div>
+
+        <div class="services">
+            <!-- 主平台 -->
+            <div class="service-card">
+                <h3>
+                    <span class="icon">🌐</span>
+                    主管理平台
+                    <span class="status online">运行中</span>
+                </h3>
+                <p>云边协同管理平台主界面，支持设备管理、模型部署、任务监控等功能</p>
+                <a href="http://localhost:3000" target="_blank">打开平台 →</a>
+            </div>
+
+            <!-- EMQX Dashboard -->
+            <div class="service-card">
+                <h3>
+                    <span class="icon">📡</span>
+                    EMQX 消息队列
+                    <span class="status online">运行中</span>
+                </h3>
+                <p>MQTT 消息代理服务，用于设备与云端的实时通信</p>
+                <div class="credentials">
+                    <strong>用户名:</strong> admin<br>
+                    <strong>密码:</strong> admin123456
+                </div>
+                <a href="http://localhost:18083" target="_blank">打开管理面板 →</a>
+            </div>
+
+            <!-- MLflow -->
+            <div class="service-card">
+                <h3>
+                    <span class="icon">🧠</span>
+                    MLflow 模型管理
+                    <span class="status online">运行中</span>
+                </h3>
+                <p>机器学习模型的生命周期管理，包括实验跟踪、模型注册和部署</p>
+                <p style="font-size: 0.9em; color: #ff9800;">⚠️ 英文界面 - 开源项目暂无中文版</p>
+                <a href="http://localhost:5001" target="_blank">打开 MLflow →</a>
+            </div>
+
+            <!-- SeaweedFS -->
+            <div class="service-card">
+                <h3>
+                    <span class="icon">📁</span>
+                    SeaweedFS 文件存储
+                    <span class="status online">运行中</span>
+                </h3>
+                <p>S3 兼容的对象存储服务，用于存储模型文件、数据集等</p>
+                <p style="font-size: 0.9em; color: #ff9800;">⚠️ 英文界面 - 开源项目暂无中文版</p>
+                <a href="http://localhost:8888" target="_blank">打开存储管理 →</a>
+            </div>
+
+            <!-- API 文档 -->
+            <div class="service-card">
+                <h3>
+                    <span class="icon">📚</span>
+                    API 接口文档
+                    <span class="status online">运行中</span>
+                </h3>
+                <p>后端 REST API 接口文档，支持在线调试和测试</p>
+                <a href="http://localhost:8081/swagger-ui.html" target="_blank">打开 API 文档 →</a>
+            </div>
+
+            <!-- 后端健康检查 -->
+            <div class="service-card">
+                <h3>
+                    <span class="icon">💚</span>
+                    后端服务状态
+                    <span class="status online">运行中</span>
+                </h3>
+                <p>后端服务健康检查端点，查看系统运行状态</p>
+                <a href="http://localhost:8081/actuator/health" target="_blank">检查健康状态 →</a>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h2>📋 开源协议合规性说明</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>组件</th>
+                        <th>协议</th>
+                        <th>商业化风险</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>前端 (Vue 3)</td>
+                        <td>MIT</td>
+                        <td><span class="license-safe">✅ 完全安全</span></td>
+                    </tr>
+                    <tr>
+                        <td>后端 (Spring Boot)</td>
+                        <td>Apache 2.0</td>
+                        <td><span class="license-safe">✅ 完全安全</span></td>
+                    </tr>
+                    <tr>
+                        <td>数据库 (PostgreSQL + TimescaleDB)</td>
+                        <td>MIT</td>
+                        <td><span class="license-safe">✅ 完全安全</span></td>
+                    </tr>
+                    <tr>
+                        <td>缓存 (Redis)</td>
+                        <td>BSD</td>
+                        <td><span class="license-safe">✅ 完全安全</span></td>
+                    </tr>
+                    <tr>
+                        <td>消息队列 (EMQX)</td>
+                        <td>Apache 2.0</td>
+                        <td><span class="license-safe">✅ 完全安全</span></td>
+                    </tr>
+                    <tr>
+                        <td>文件存储 (SeaweedFS)</td>
+                        <td>Apache 2.0</td>
+                        <td><span class="license-safe">✅ 完全安全</span></td>
+                    </tr>
+                    <tr>
+                        <td>模型管理 (MLflow)</td>
+                        <td>Apache 2.0</td>
+                        <td><span class="license-safe">✅ 完全安全</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 Edge Infer Cloud | 所有组件均使用商业化友好的开源协议</p>
+            <p>如需技术支持，请联系开发团队</p>
+        </div>
+    </div>
+</body>
+</html>
