@@ -422,4 +422,268 @@ public class OtaService {
 
         return dto;
     }
+
+    // ==================== 回滚相关方法 ====================
+
+    /**
+     * 发送回滚命令到设备
+     */
+    @Transactional
+    public void sendRollbackCommand(String deviceId, String taskId, String previousModelId) {
+        try {
+            // 准备 MQTT/HTTP 回滚消息
+            Map<String, Object> message = new HashMap<>();
+            message.put("task_id", taskId);
+            message.put("action", "rollback");
+            message.put("previous_model_id", previousModelId);
+
+            // 发送消息到设备
+            String topic = "device/" + deviceId + "/ota/rollback";
+            mqttService.publish(topic, message);
+
+            // 更新设备状态
+            Device device = deviceRepository.findById(deviceId).orElse(null);
+            if (device != null) {
+                device.setStatus(Device.DeviceStatus.UPGRADING);
+                deviceRepository.save(device);
+            }
+
+            log.info("回滚命令已发送: deviceId={}, previousModelId={}", deviceId, previousModelId);
+
+        } catch (Exception e) {
+            log.error("发送回滚命令失败: deviceId={}", deviceId, e);
+            throw new RuntimeException("发送回滚命令失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 处理设备回滚完成
+     */
+    @Transactional
+    public void handleRollbackComplete(String deviceId, String taskId, boolean success) {
+        DeviceUpgradeStatus status = deviceUpgradeStatusRepository
+                .findByTaskIdAndDeviceId(taskId, deviceId)
+                .orElse(null);
+
+        if (status != null) {
+            if (success) {
+                status.setStatus(DeviceUpgradeStatus.UpgradeStatus.ROLLED_BACK);
+            } else {
+                status.setStatus(DeviceUpgradeStatus.UpgradeStatus.FAILED);
+                status.setErrorMessage("回滚失败");
+            }
+            deviceUpgradeStatusRepository.save(status);
+        }
+
+        // 更新设备状态
+        Device device = deviceRepository.findById(deviceId).orElse(null);
+        if (device != null) {
+            if (success) {
+                device.setStatus(Device.DeviceStatus.ONLINE);
+            } else {
+                device.setStatus(Device.DeviceStatus.ERROR);
+            }
+            deviceRepository.save(device);
+        }
+
+        log.info("设备回滚处理完成: deviceId={}, success={}", deviceId, success);
+    }
+
+    /**
+     * 重试失败的设备
+     */
+    @Transactional
+    public OtaTaskDTO retryFailedDevices(String taskId) {
+        OtaTask task = otaTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
+
+        // 获取失败的设备
+        List<DeviceUpgradeStatus> failedStatuses = deviceUpgradeStatusRepository
+                .findFailedDevices(taskId);
+
+        if (failedStatuses.isEmpty()) {
+            log.info("没有需要重试的失败设备: taskId={}", taskId);
+            return toDTO(task);
+        }
+
+        log.info("重试失败设备: taskId={}, count={}", taskId, failedStatuses.size());
+
+        // 重置失败设备的状态
+        for (DeviceUpgradeStatus status : failedStatuses) {
+            status.setStatus(DeviceUpgradeStatus.UpgradeStatus.PENDING);
+            status.setProgress(0);
+            status.setErrorMessage(null);
+            deviceUpgradeStatusRepository.save(status);
+
+            // 重新发送升级消息
+            String downloadUrl = null;
+            if (task.getModelId() != null) {
+                Model model = modelRepository.findById(task.getModelId())
+                        .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
+                downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
+            }
+
+            sendOtaMessageToDevice(status.getDeviceId(), task, downloadUrl);
+        }
+
+        // 更新任务状态
+        task.setFailedDevices(0);
+        task.setStatus(OtaTask.OtaStatus.RUNNING);
+        otaTaskRepository.save(task);
+
+        return toDTO(task);
+    }
+
+    /**
+     * 重试单个设备
+     */
+    @Transactional
+    public void retrySingleDevice(String taskId, String deviceId) {
+        DeviceUpgradeStatus status = deviceUpgradeStatusRepository
+                .findByTaskIdAndDeviceId(taskId, deviceId)
+                .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
+
+        // 重置状态
+        status.setStatus(DeviceUpgradeStatus.UpgradeStatus.PENDING);
+        status.setProgress(0);
+        status.setErrorMessage(null);
+        deviceUpgradeStatusRepository.save(status);
+
+        // 获取任务信息
+        OtaTask task = otaTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
+
+        // 重新发送升级消息
+        String downloadUrl = null;
+        if (task.getModelId() != null) {
+            Model model = modelRepository.findById(task.getModelId())
+                    .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
+            downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
+        }
+
+        sendOtaMessageToDevice(deviceId, task, downloadUrl);
+
+        log.info("单个设备重试已发送: taskId={}, deviceId={}", taskId, deviceId);
+    }
+
+    /**
+     * 暂停升级任务
+     */
+    @Transactional
+    public void pauseOtaTask(String taskId) {
+        OtaTask task = otaTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
+
+        if (task.getStatus() != OtaTask.OtaStatus.RUNNING) {
+            throw new RuntimeException("只能暂停运行中的任务");
+        }
+
+        task.setStatus(OtaTask.OtaStatus.PAUSED);
+        otaTaskRepository.save(task);
+
+        log.info("升级任务已暂停: taskId={}", taskId);
+    }
+
+    /**
+     * 恢复升级任务
+     */
+    @Transactional
+    public void resumeOtaTask(String taskId) {
+        OtaTask task = otaTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
+
+        if (task.getStatus() != OtaTask.OtaStatus.PAUSED) {
+            throw new RuntimeException("只能恢复已暂停的任务");
+        }
+
+        task.setStatus(OtaTask.OtaStatus.RUNNING);
+        otaTaskRepository.save(task);
+
+        // 继续处理PENDING状态的设备
+        List<DeviceUpgradeStatus> pendingStatuses = deviceUpgradeStatusRepository
+                .findByTaskIdAndStatus(taskId, DeviceUpgradeStatus.UpgradeStatus.PENDING);
+
+        for (DeviceUpgradeStatus status : pendingStatuses) {
+            String downloadUrl = null;
+            if (task.getModelId() != null) {
+                Model model = modelRepository.findById(task.getModelId())
+                        .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
+                downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
+            }
+
+            sendOtaMessageToDevice(status.getDeviceId(), task, downloadUrl);
+        }
+
+        log.info("升级任务已恢复: taskId={}", taskId);
+    }
+
+    /**
+     * 回滚设备升级（手动触发）
+     */
+    @Transactional
+    public void rollbackDeviceUpgrade(String taskId, String deviceId) {
+        log.info("手动回滚设备升级: taskId={}, deviceId={}", taskId, deviceId);
+
+        // 检查任务和设备是否存在
+        OtaTask task = otaTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
+
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new RuntimeException("设备不存在: " + deviceId));
+
+        // 获取设备升级状态
+        DeviceUpgradeStatus status = deviceUpgradeStatusRepository
+                .findByTaskIdAndDeviceId(taskId, deviceId)
+                .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
+
+        // 通过AutoRollbackService执行回滚
+        if (mqttService != null) {
+            // 发送回滚命令到设备
+            Map<String, Object> message = new HashMap<>();
+            message.put("task_id", taskId);
+            message.put("action", "rollback");
+
+            String topic = "device/" + deviceId + "/ota/rollback";
+            mqttService.publish(topic, message);
+
+            log.info("回滚命令已发送: deviceId={}, topic={}", deviceId, topic);
+        } else {
+            throw new RuntimeException("MQTT服务不可用，无法发送回滚命令");
+        }
+    }
+
+    /**
+     * 获取设备状态汇总
+     */
+    public Map<String, Object> getDeviceStatusSummary(String taskId) {
+        List<DeviceUpgradeStatus> allStatuses = deviceUpgradeStatusRepository.findByTaskId(taskId);
+
+        int total = allStatuses.size();
+        int pending = 0, downloading = 0, installing = 0, completed = 0, failed = 0, rolledBack = 0;
+
+        for (DeviceUpgradeStatus status : allStatuses) {
+            switch (status.getStatus()) {
+                case PENDING -> pending++;
+                case DOWNLOADING -> downloading++;
+                case INSTALLING -> installing++;
+                case COMPLETED -> completed++;
+                case FAILED, DOWNLOAD_FAILED, INSTALL_FAILED -> failed++;
+                case ROLLED_BACK -> rolledBack++;
+                default -> {}
+            }
+        }
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("task_id", taskId);
+        summary.put("total", total);
+        summary.put("pending", pending);
+        summary.put("downloading", downloading);
+        summary.put("installing", installing);
+        summary.put("completed", completed);
+        summary.put("failed", failed);
+        summary.put("rolled_back", rolledBack);
+        summary.put("progress", total > 0 ? (int) ((completed + failed + rolledBack) * 100.0 / total) : 0);
+
+        return summary;
+    }
 }

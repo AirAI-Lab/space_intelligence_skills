@@ -58,8 +58,39 @@ public class Device {
     @Column(name = "current_version", length = 50)
     private String currentVersion;
 
+    @Column(name = "current_firmware_version", length = 50)
+    private String currentFirmwareVersion;
+
+    @Column(name = "inference_fps")
+    private Float inferenceFps;
+
     @Column(name = "mqtt_topic", length = 200)
     private String mqttTopic;
+
+    // 硬件信息
+    @Column(name = "os_version", length = 50)
+    private String osVersion;
+
+    @Column(name = "agent_version", length = 50)
+    private String agentVersion;
+
+    @Column(name = "gpu_model", length = 100)
+    private String gpuModel;
+
+    @Column(name = "gpu_memory_mb")
+    private Integer gpuMemoryMb;
+
+    @Column(name = "total_memory_mb")
+    private Integer totalMemoryMb;
+
+    @Column(name = "total_disk_mb")
+    private Integer totalDiskMb;
+
+    @Column(name = "temperature")
+    private Float temperature;
+
+    @Column(name = "uptime_seconds")
+    private Long uptimeSeconds;
 
     @Column(name = "last_heartbeat")
     private LocalDateTime lastHeartbeat;

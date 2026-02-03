@@ -30,6 +30,131 @@
       </template>
     </el-dialog>
 
+    <!-- 一键部署对话框 -->
+    <el-dialog v-model="deployDialogVisible" title="一键部署模型" width="800px">
+      <el-steps :active="deployStep" align-center class="deploy-steps">
+        <el-step title="选择设备" />
+        <el-step title="兼容性检查" />
+        <el-step title="确认部署" />
+      </el-steps>
+
+      <div class="deploy-content">
+        <!-- 步骤1: 选择设备 -->
+        <div v-if="deployStep === 0" class="step-content">
+          <el-form label-width="100px">
+            <el-form-item label="设备筛选">
+              <el-select
+                v-model="deviceFilter"
+                placeholder="设备状态"
+                clearable
+                style="width: 150px"
+                @change="loadDevices"
+              >
+                <el-option label="全部" value="" />
+                <el-option label="在线" value="ONLINE" />
+                <el-option label="离线" value="OFFLINE" />
+              </el-select>
+              <el-button type="primary" @click="loadDevices" style="margin-left: 10px">
+                刷新
+              </el-button>
+            </el-form-item>
+
+            <el-form-item label="选择设备">
+              <el-table
+                :data="devices"
+                @selection-change="handleDeviceSelection"
+                style="width: 100%"
+                max-height="300"
+              >
+                <el-table-column type="selection" width="55" />
+                <el-table-column prop="deviceId" label="设备ID" width="120" />
+                <el-table-column prop="deviceName" label="设备名称" />
+                <el-table-column prop="status" label="状态" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="row.status === 'ONLINE' ? 'success' : 'info'">
+                      {{ row.status === 'ONLINE' ? '在线' : '离线' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <!-- 步骤2: 兼容性检查 -->
+        <div v-if="deployStep === 1" class="step-content">
+          <div v-if="checkingDevices" class="checking">
+            <el-progress :percentage="checkProgress" :indeterminate="true" />
+            <p style="text-align: center; margin-top: 10px">正在检查设备兼容性...</p>
+          </div>
+          <div v-else>
+            <el-table :data="compatibilityList" style="width: 100%">
+              <el-table-column prop="deviceName" label="设备" width="150" />
+              <el-table-column prop="status" label="兼容性" width="120">
+                <template #default="{ row }">
+                  <el-tag
+                    :type="getCompatibilityTagType(row.status)"
+                    v-text="getCompatibilityText(row.status)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column prop="score" label="得分" width="100">
+                <template #default="{ row }">
+                  <el-progress
+                    :percentage="row.score || 0"
+                    :color="getScoreColor(row.score)"
+                    :show-text="true"
+                  />
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+
+        <!-- 步骤3: 确认部署 -->
+        <div v-if="deployStep === 2" class="step-content">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="模型名称">{{ model?.modelName }}</el-descriptions-item>
+            <el-descriptions-item label="模型格式">{{ getDeployFormat() }}</el-descriptions-item>
+            <el-descriptions-item label="部署设备数">{{ selectedDevices.length }}</el-descriptions-item>
+            <el-descriptions-item label="兼容设备">
+              {{ compatibleCount }} / {{ selectedDevices.length }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="deployDialogVisible = false">取消</el-button>
+          <el-button
+            v-if="deployStep > 0"
+            @click="deployStep--"
+            :disabled="deploying"
+          >
+            上一步
+          </el-button>
+          <el-button
+            v-if="deployStep < 2"
+            type="primary"
+            @click="nextDeployStep"
+            :disabled="deployStep === 0 && selectedDevices.length === 0"
+          >
+            下一步
+          </el-button>
+          <el-button
+            v-if="deployStep === 2"
+            type="primary"
+            @click="executeDeploy"
+            :loading="deploying"
+            :disabled="compatibleCount === 0"
+          >
+            开始部署
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
     <!-- 基本信息 -->
     <el-card class="info-card" shadow="never">
       <template #header>
@@ -153,8 +278,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { modelApi, conversionApi } from '@/api'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { modelApi, conversionApi, deviceApi, compatibilityApi, otaApi } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -165,7 +290,43 @@ const deploymentHistory = ref<any[]>([])
 const convertDialogVisible = ref(false)
 const converting = ref(false)
 const selectedConversionType = ref('PT_TO_ONNX')
+
+// 部署相关状态
+const deployDialogVisible = ref(false)
+const deploying = ref(false)
+const devices = ref<any[]>([])
+const selectedDevices = ref<string[]>([])
+const deviceFilter = ref('')
+const checkingDevices = ref(false)
+const compatibilityResults = ref<Map<string, any>>(new Map())
+const checkProgress = ref(0)
+const deployStep = ref(0)
+const deployStrategy = ref('immediate')
+const gradualBatchSize = ref(5)
+const gradualInterval = ref(30)
 let refreshTimer: any = null
+
+// 部署相关computed
+const compatibilityList = computed(() => {
+  return Array.from(compatibilityResults.value.values()).map(r => ({
+    deviceId: r.deviceId,
+    deviceName: r.deviceName,
+    status: r.status,
+    score: r.score,
+    warnings: r.warnings,
+    errors: r.errors
+  }))
+})
+
+const compatibleCount = computed(() => {
+  return Array.from(compatibilityResults.value.values()).filter(
+    r => r.status === 'COMPATIBLE' || r.status === 'COMPATIBLE_WITH_WARNING'
+  ).length
+})
+
+const incompatibleCount = computed(() => {
+  return selectedDevices.value.length - compatibleCount.value
+})
 
 const metrics = computed(() => {
   if (!model.value) return []
@@ -347,6 +508,146 @@ const startPollingConversion = () => {
   }, 3000)
 }
 
+// ==================== 部署相关函数 ====================
+
+// 修改部署模型函数，打开部署对话框
+const deployModel = () => {
+  deployStep.value = 0
+  selectedDevices.value = []
+  compatibilityResults.value.clear()
+  deployDialogVisible.value = true
+  loadDevices()
+}
+
+// 加载设备列表
+const loadDevices = async () => {
+  try {
+    const response = await deviceApi.getList({
+      page: 1,
+      pageSize: 100,
+      status: deviceFilter.value || undefined
+    })
+    devices.value = response.data?.items || []
+  } catch (error: any) {
+    ElMessage.error('加载设备列表失败: ' + (error.message || '未知错误'))
+  }
+}
+
+// 设备选择变化
+const handleDeviceSelection = (selection: any[]) => {
+  selectedDevices.value = selection.map((s: any) => s.deviceId)
+}
+
+// 下一步
+const nextDeployStep = async () => {
+  if (deployStep.value === 0) {
+    // 进入兼容性检查
+    await checkCompatibility()
+  } else if (deployStep.value === 1) {
+    // 进入确认步骤
+    deployStep.value++
+  }
+}
+
+// 检查兼容性
+const checkCompatibility = async () => {
+  if (selectedDevices.value.length === 0) {
+    ElMessage.warning('请先选择设备')
+    return
+  }
+
+  checkingDevices.value = true
+  checkProgress.value = 0
+
+  try {
+    const response = await compatibilityApi.check({
+      modelId: model.value.modelId,
+      deviceIds: selectedDevices.value
+    })
+
+    compatibilityResults.value = new Map(
+      Object.entries(response.data)
+    )
+
+    ElMessage.success('兼容性检查完成')
+    deployStep.value++
+  } catch (error: any) {
+    ElMessage.error('兼容性检查失败: ' + (error.message || '未知错误'))
+  } finally {
+    checkingDevices.value = false
+  }
+}
+
+// 获取兼容性标签类型
+const getCompatibilityTagType = (status: string) => {
+  const types: Record<string, string> = {
+    COMPATIBLE: 'success',
+    COMPATIBLE_WITH_WARNING: 'warning',
+    NOT_COMPATIBLE: 'danger',
+    UNKNOWN: 'info'
+  }
+  return types[status] || 'info'
+}
+
+// 获取兼容性文本
+const getCompatibilityText = (status: string) => {
+  const texts: Record<string, string> = {
+    COMPATIBLE: '完全兼容',
+    COMPATIBLE_WITH_WARNING: '兼容',
+    NOT_COMPATIBLE: '不兼容',
+    UNKNOWN: '未知'
+  }
+  return texts[status] || status
+}
+
+// 获取得分颜色
+const getScoreColor = (score: number) => {
+  if (score >= 80) return '#67C23A'
+  if (score >= 50) return '#E6A23C'
+  return '#F56C6C'
+}
+
+// 获取部署格式
+const getDeployFormat = () => {
+  if (model.value?.engineFilePath) return 'TensorRT Engine'
+  if (model.value?.onnxFilePath) return 'ONNX'
+  return 'PyTorch'
+}
+
+// 执行部署
+const executeDeploy = async () => {
+  if (compatibleCount.value === 0) {
+    ElMessage.warning('没有兼容的设备可以部署')
+    return
+  }
+
+  deploying.value = true
+  try {
+    // 筛选兼容的设备
+    const compatibleDeviceIds = Array.from(compatibilityResults.value.entries())
+      .filter(([_, r]) => r.status === 'COMPATIBLE' || r.status === 'COMPATIBLE_WITH_WARNING')
+      .map(([deviceId, _]) => deviceId)
+
+    await otaApi.createTask({
+      taskName: `${model.value.modelName} 部署`,
+      upgradeType: 'model',
+      modelId: model.value.modelId,
+      deviceIds: compatibleDeviceIds,
+      description: deployStrategy.value === 'gradual' ? `灰度发布: 每批${gradualBatchSize.value}台` : undefined
+    })
+
+    ElMessage.success('部署任务已创建')
+    deployDialogVisible.value = false
+
+    // 跳转到OTA任务页面
+    router.push('/ota')
+  } catch (error: any) {
+    ElMessage.error('创建部署任务失败: ' + (error.message || '未知错误'))
+  } finally {
+    deploying.value = false
+  }
+}
+
 onMounted(() => {
   loadModelDetail()
 
@@ -417,5 +718,21 @@ onUnmounted(() => {
 .metric-value {
   font-size: 24px;
   font-weight: 600;
+}
+
+/* 部署对话框样式 */
+.deploy-steps {
+  margin-bottom: 20px;
+  margin-top: 10px;
+}
+
+.step-content {
+  min-height: 300px;
+  padding: 20px 0;
+}
+
+.checking {
+  padding: 40px 0;
+  text-align: center;
 }
 </style>

@@ -465,6 +465,29 @@ export const otaApi = {
     request.delete(`/ota/tasks/${taskId}`)
 }
 
+// ==================== 设备兼容性检查 API ====================
+export const compatibilityApi = {
+  /**
+   * 批量检查设备兼容性
+   */
+  check: (data: {
+    modelId: string
+    deviceIds: string[]
+  }) => request.post('/compatibility/check', data),
+
+  /**
+   * 检查单个设备兼容性
+   */
+  checkSingle: (deviceId: string, modelId: string) =>
+    request.get(`/compatibility/check/${deviceId}/${modelId}`),
+
+  /**
+   * 获取支持的设备类型列表
+   */
+  getDeviceTypes: () =>
+    request.get('/compatibility/device-types')
+}
+
 // ==================== 推理 API ====================
 export const inferenceApi = {
   /**

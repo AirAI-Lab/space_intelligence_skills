@@ -177,4 +177,59 @@ public class ModelController {
                     .body(ApiResponse.error("更新失败: " + e.getMessage()));
         }
     }
+
+    /**
+     * 下载模型文件
+     */
+    @GetMapping("/{model_id}/download")
+    @Operation(summary = "下载模型文件")
+    public ResponseEntity<?> downloadModel(
+            @Parameter(description = "模型ID") @PathVariable("model_id") String modelId,
+            @Parameter(description = "文件格式") @RequestParam(defaultValue = "engine") String format
+    ) {
+        try {
+            return modelService.downloadModelFile(modelId, format);
+        } catch (Exception e) {
+            log.error("下载模型文件失败: modelId={}, format={}", modelId, format, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("下载失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取模型文件下载信息（内部使用）
+     */
+    @GetMapping("/{model_id}/download-info")
+    @Operation(summary = "获取模型文件下载信息")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getModelDownloadInfo(
+            @Parameter(description = "模型ID") @PathVariable("model_id") String modelId
+    ) {
+        try {
+            Map<String, Object> info = modelService.getModelDownloadInfo(modelId);
+            return ResponseEntity.ok(ApiResponse.success(info));
+        } catch (Exception e) {
+            log.error("获取模型下载信息失败: modelId={}", modelId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取模型预览URL
+     */
+    @GetMapping("/{model_id}/preview-url")
+    @Operation(summary = "获取模型预览URL")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getModelPreviewUrl(
+            @Parameter(description = "模型ID") @PathVariable("model_id") String modelId,
+            @Parameter(description = "文件格式") @RequestParam(defaultValue = "engine") String format
+    ) {
+        try {
+            Map<String, Object> urlInfo = modelService.getModelPreviewUrl(modelId, format);
+            return ResponseEntity.ok(ApiResponse.success(urlInfo));
+        } catch (Exception e) {
+            log.error("获取模型预览URL失败: modelId={}, format={}", modelId, format, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
 }

@@ -14,11 +14,16 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -341,5 +346,152 @@ public class ModelService {
         }
 
         return dto;
+    }
+
+    // ==================== 模型下载相关方法 ====================
+
+    /**
+     * 下载模型文件
+     */
+    public ResponseEntity<byte[]> downloadModelFile(String modelId, String format) {
+        Model model = modelRepository.findById(modelId)
+                .orElseThrow(() -> new RuntimeException("模型不存在: " + modelId));
+
+        String filePath;
+        String fileName;
+
+        // 根据格式选择文件路径
+        switch (format.toLowerCase()) {
+            case "pt":
+            case "pth":
+                filePath = model.getPtFilePath();
+                fileName = model.getModelName() + ".pt";
+                break;
+            case "onnx":
+                filePath = model.getOnnxFilePath();
+                fileName = model.getModelName() + ".onnx";
+                break;
+            case "engine":
+            case "tensorrt":
+                filePath = model.getEngineFilePath();
+                fileName = model.getModelName() + ".engine";
+                break;
+            default:
+                // 默认尝试TensorRT引擎文件
+                filePath = model.getEngineFilePath();
+                if (filePath == null) {
+                    filePath = model.getOnnxFilePath();
+                }
+                if (filePath == null) {
+                    filePath = model.getPtFilePath();
+                }
+                fileName = model.getModelName() + "_" + format + ".bin";
+        }
+
+        if (filePath == null) {
+            throw new RuntimeException("模型文件不存在: format=" + format);
+        }
+
+        try {
+            // 通过存储服务获取文件流
+            InputStream inputStream = storageService.getFile(filePath);
+            byte[] content = inputStream.readAllBytes();
+            inputStream.close();
+
+            // 设置响应头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", fileName);
+
+            log.info("下载模型文件: modelId={}, format={}, size={} bytes",
+                    modelId, format, content.length);
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(content);
+
+        } catch (IOException e) {
+            log.error("读取模型文件失败: filePath={}", filePath, e);
+            throw new RuntimeException("读取模型文件失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 获取模型文件下载信息
+     */
+    public Map<String, Object> getModelDownloadInfo(String modelId) {
+        Model model = modelRepository.findById(modelId)
+                .orElseThrow(() -> new RuntimeException("模型不存在: " + modelId));
+
+        Map<String, Object> info = new HashMap<>();
+        info.put("model_id", modelId);
+        info.put("model_name", model.getModelName());
+        info.put("file_size_bytes", model.getFileSizeBytes());
+
+        // 可用格式
+        Map<String, Object> formats = new HashMap<>();
+        if (model.getPtFilePath() != null) {
+            formats.put("pt", Map.of(
+                "path", model.getPtFilePath(),
+                "size", model.getFileSizeBytes()
+            ));
+        }
+        if (model.getOnnxFilePath() != null) {
+            formats.put("onnx", Map.of(
+                "path", model.getOnnxFilePath(),
+                "size", model.getFileSizeBytes()
+            ));
+        }
+        if (model.getEngineFilePath() != null) {
+            formats.put("engine", Map.of(
+                "path", model.getEngineFilePath(),
+                "size", model.getFileSizeBytes()
+            ));
+        }
+        info.put("available_formats", formats);
+
+        // 下载URL前缀
+        info.put("download_url_base", "/api/v1/models/" + modelId + "/download?format=");
+
+        return info;
+    }
+
+    /**
+     * 获取模型预览URL（临时下载链接）
+     */
+    public Map<String, Object> getModelPreviewUrl(String modelId, String format) {
+        Model model = modelRepository.findById(modelId)
+                .orElseThrow(() -> new RuntimeException("模型不存在: " + modelId));
+
+        String filePath = switch (format.toLowerCase()) {
+            case "pt", "pth" -> model.getPtFilePath();
+            case "onnx" -> model.getOnnxFilePath();
+            case "engine", "tensorrt" -> model.getEngineFilePath();
+            default -> model.getEngineFilePath();
+        };
+
+        if (filePath == null) {
+            throw new RuntimeException("模型文件不存在: format=" + format);
+        }
+
+        // 生成临时下载令牌（有效期1小时）
+        String token = generateDownloadToken(modelId, format);
+
+        Map<String, Object> urlInfo = new HashMap<>();
+        urlInfo.put("model_id", modelId);
+        urlInfo.put("format", format);
+        urlInfo.put("download_url", "/api/v1/models/" + modelId + "/download?format=" + format + "&token=" + token);
+        urlInfo.put("expires_at", System.currentTimeMillis() + 3600000); // 1小时后过期
+
+        return urlInfo;
+    }
+
+    /**
+     * 生成下载令牌
+     */
+    private String generateDownloadToken(String modelId, String format) {
+        // 简单实现：使用Base64编码的modelId + format + timestamp
+        String data = modelId + ":" + format + ":" + System.currentTimeMillis();
+        return java.util.Base64.getEncoder().encodeToString(data.getBytes());
     }
 }

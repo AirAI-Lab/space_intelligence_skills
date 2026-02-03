@@ -198,10 +198,8 @@ public class OtaController {
         }
     }
 
-    // ==================== 新增端点（阶段三） ====================
-    // 注意：P2阶段功能暂时禁用，等待OtaService添加相应方法后启用
+    // ==================== P2阶段接口（重试、回滚、暂停、恢复） ====================
 
-    /*
     @PostMapping("/tasks/{task_id}/retry")
     @Operation(summary = "重试失败设备")
     public ResponseEntity<ApiResponse<OtaTaskDTO>> retryFailedDevices(
@@ -298,5 +296,4 @@ public class OtaController {
                     .body(ApiResponse.error("恢复失败: " + e.getMessage()));
         }
     }
-    */
 }
