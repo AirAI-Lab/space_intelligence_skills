@@ -31,31 +31,34 @@ public class DatasetController {
     private final DatasetService datasetService;
 
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "上传数据集", description = "上传 YOLO/COCO/VOC 格式的数据集压缩包")
+    @Operation(summary = "上传/添加数据集", description = "上传 YOLO/COCO/VOC 格式的数据集压缩包，或指定本地路径")
     public ResponseEntity<ApiResponse<DatasetDTO>> uploadDataset(
-            @Parameter(description = "数据集文件") @RequestParam("file") MultipartFile file,
-            @Parameter(description = "数据集名称") @RequestParam("dataset_name") String datasetName,
-            @Parameter(description = "数据集类型") @RequestParam("dataset_type") Dataset.DatasetType datasetType,
+            @Parameter(description = "数据集文件（上传方式必需）") @RequestParam(value = "file", required = false) MultipartFile file,
+            @Parameter(description = "数据集名称") @RequestParam("datasetName") String datasetName,
+            @Parameter(description = "数据集类型") @RequestParam("datasetType") Dataset.DatasetType datasetType,
             @Parameter(description = "数据集格式") @RequestParam(value = "format", defaultValue = "yolov8") String format,
-            @Parameter(description = "描述") @RequestParam(value = "description", required = false) String description
+            @Parameter(description = "描述") @RequestParam(value = "description", required = false) String description,
+            @Parameter(description = "数据集来源：upload（上传）或 local（本地路径）") @RequestParam(value = "datasetSource", defaultValue = "upload") String datasetSource,
+            @Parameter(description = "本地路径（本地方式必需）") @RequestParam(value = "localPath", required = false) String localPath
     ) {
         try {
-            log.info("收到数据集上传请求: name={}, type={}, format={}, size={}",
-                    datasetName, datasetType, format, file.getSize());
+            log.info("收到数据集添加请求: name={}, type={}, source={}", datasetName, datasetType, datasetSource);
 
             DatasetUploadRequest request = new DatasetUploadRequest();
             request.setDatasetName(datasetName);
             request.setDatasetType(datasetType);
             request.setFormat(format);
             request.setDescription(description);
+            request.setDatasetSource(datasetSource);
+            request.setLocalPath(localPath);
 
             DatasetDTO result = datasetService.uploadDataset(file, request);
-            return ResponseEntity.ok(ApiResponse.success("数据集上传成功", result));
+            return ResponseEntity.ok(ApiResponse.success("数据集添加成功", result));
 
         } catch (Exception e) {
-            log.error("数据集上传失败", e);
+            log.error("数据集添加失败", e);
             return ResponseEntity.status(500)
-                    .body(ApiResponse.error("数据集上传失败: " + e.getMessage()));
+                    .body(ApiResponse.error("数据集添加失败: " + e.getMessage()));
         }
     }
 
@@ -78,12 +81,12 @@ public class DatasetController {
     @Operation(summary = "分页查询数据集列表")
     public ResponseEntity<ApiResponse<Map<String, Object>>> listDatasets(
             @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") int page_size,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") int pageSize,
             @Parameter(description = "搜索关键词") @RequestParam(required = false) String search,
             @Parameter(description = "状态过滤") @RequestParam(required = false) Dataset.DatasetStatus status
     ) {
         try {
-            Map<String, Object> result = datasetService.listDatasets(page, page_size, search, status);
+            Map<String, Object> result = datasetService.listDatasets(page, pageSize, search, status);
             return ResponseEntity.ok(ApiResponse.success(result));
         } catch (Exception e) {
             log.error("查询数据集列表失败", e);

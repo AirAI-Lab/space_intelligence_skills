@@ -91,17 +91,28 @@ public class ModelService {
      */
     @Transactional
     public ModelDTO uploadModelFile(String modelId, MultipartFile file) throws Exception {
+        log.info("开始上传模型文件: modelId={}, size={}, name={}",
+                 modelId, file.getSize(), file.getOriginalFilename());
+
         Model model = modelRepository.findById(modelId)
                 .orElseThrow(() -> new RuntimeException("模型不存在: " + modelId));
 
+        long startTime = System.currentTimeMillis();
+
         // 上传到存储
         String filePath = storageService.uploadFile(file, modelStoragePrefix + "/" + modelId);
+
+        long uploadTime = System.currentTimeMillis() - startTime;
+        log.info("文件存储完成: modelId={}, path={}, time={}ms", modelId, filePath, uploadTime);
+
         model.setPtFilePath(filePath);
         model.setFileSizeBytes(file.getSize());
         model.setStatus(Model.ModelStatus.READY);
 
         model = modelRepository.save(model);
-        log.info("模型文件上传成功: modelId={}, path={}", modelId, filePath);
+
+        long totalTime = System.currentTimeMillis() - startTime;
+        log.info("模型文件上传成功: modelId={}, totalTime={}ms", modelId, totalTime);
 
         return toDTO(model);
     }
@@ -133,8 +144,13 @@ public class ModelService {
         Model model = modelRepository.findById(modelId)
                 .orElseThrow(() -> new RuntimeException("模型不存在: " + modelId));
 
-        if (model.getPtFilePath() == null) {
-            throw new RuntimeException("模型文件不存在，请先上传 .pt 文件");
+        // 检查模型是否可转换（本地文件或S3文件）
+        // 训练产生的模型以 M_JOB 开头，文件在 S3 中
+        boolean isTrainedModel = modelId.startsWith("M_JOB");
+        boolean hasLocalFile = model.getPtFilePath() != null;
+
+        if (!isTrainedModel && !hasLocalFile) {
+            throw new RuntimeException("模型文件不存在，请先上传 .pt 文件或训练模型");
         }
 
         // 创建转换任务
@@ -143,8 +159,8 @@ public class ModelService {
         log.info("模型转换任务已创建: modelId={}, taskId={}, type={}",
                 modelId, task.getTaskId(), conversionType);
 
-        // TODO: 调用转换服务执行转换
-        // conversionService.startConversion(task.getTaskId());
+        // 调用转换服务执行转换
+        conversionService.startConversion(task.getTaskId());
 
         return toDTO(model);
     }
@@ -300,6 +316,7 @@ public class ModelService {
         dto.setOnnxFilePath(model.getOnnxFilePath());
         dto.setEngineFilePath(model.getEngineFilePath());
         dto.setMap(model.getMap());
+        dto.setMap50(model.getMap50());
         dto.setPrecision(model.getPrecision());
         dto.setRecall(model.getRecall());
         dto.setInferenceTimeMs(model.getInferenceTimeMs());

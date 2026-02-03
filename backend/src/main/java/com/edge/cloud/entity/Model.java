@@ -56,6 +56,9 @@ public class Model {
     @Column(name = "map")
     private Float map;
 
+    @Column(name = "map50")
+    private Float map50;
+
     @Column(name = "precision")
     private Float precision;
 

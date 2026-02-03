@@ -22,14 +22,29 @@ const routes = [
     component: () => import('../views/data/DatasetList.vue')
   },
   {
+    path: '/data/datasets/:id',
+    name: 'DatasetDetail',
+    component: () => import('../views/data/DatasetDetail.vue')
+  },
+  {
     path: '/training',
     name: 'Training',
     component: () => import('../views/training/TrainingJob.vue')
   },
   {
+    path: '/training/:id',
+    name: 'TrainingDetail',
+    component: () => import('../views/training/TrainingDetail.vue')
+  },
+  {
     path: '/model',
     name: 'Model',
     component: () => import('../views/model/ModelList.vue')
+  },
+  {
+    path: '/model/:id',
+    name: 'ModelDetail',
+    component: () => import('../views/model/ModelDetail.vue')
   },
   {
     path: '/ota',

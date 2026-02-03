@@ -1,0 +1,102 @@
+# Docker Compose 开发模式配置
+# 使用方法: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d backend
+
+version: '3.8'
+
+services:
+  # 后端开发模式 - 热部署支持
+  backend-dev:
+    image: docker-backend:latest
+    container_name: edge_cloud_backend_dev
+    ports:
+      - "8081:8080"
+      - "5005:5005"  # 远程调试端口
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker,dev
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/edge_cloud
+      - SPRING_DATASOURCE_USERNAME=edge_user
+      - SPRING_DATASOURCE_PASSWORD=edge_pass
+      - SPRING_REDIS_HOST=redis
+      - SPRING_REDIS_PORT=6379
+      - SPRING_MQTT_BROKER_URL=tcp://emqx:1883
+      - MQTT_BROKER_URL=tcp://emqx:1883
+      - TIMESTRIDE_ENABLED=true
+      - TIMESTRIDE_URI=jdbc:postgresql://postgres:5432/edge_cloud_timeseries
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - FILE_STORAGE_TYPE=local
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=admin123456
+      - S3_BUCKET=edge-cloud-files
+      - S3_PATH_STYLE_ACCESS=true
+      - TRAINING_SERVICE_URL=http://training:5002
+      # 开发模式配置
+      - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+      - SPRING_DEVTOOLS_RESTART_ENABLED=true
+      - SPRING_LIVE_RELOAD_ENABLED=true
+    volumes:
+      # 挂载源码目录（热部署）
+      - ../../backend:/app
+      - ~/.m2:/root/.m2  # Maven 本地仓库缓存
+      - file_storage_data:/app/data/files
+      - ../../data/datasets:/app/data/datasets
+      # 编译输出目录
+      - backend-classes:/app/target
+    depends_on:
+      - postgres
+      - redis
+      - emqx
+    networks:
+      - edge-cloud-network
+    command: ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"]
+
+  # 训练服务开发模式
+  training-dev:
+    image: edge_cloud_training:latest
+    container_name: edge_cloud_training_dev
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - TRAINING_SERVICE_PORT=5002
+      - BACKEND_API_URL=http://backend:8080
+      - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=admin123456
+      - S3_BUCKET=edge-cloud
+      - MQTT_BROKER_URL=tcp://emqx:1883
+      - MQTT_USERNAME=admin
+      - MQTT_PASSWORD=admin123456
+      - USE_GPU=true
+    volumes:
+      # 挂载源码目录（热部署）
+      - ../../training:/app
+      - ../../data/runs:/app/runs
+      - ../../data/models:/app/models
+      - ../../data/shared_models:/shared:ro
+      - ../../data/work:/app/work
+      - file_storage_data:/app/data/files:ro
+      - ../../data/datasets:/app/data/datasets:rw
+    ports:
+      - "5002:5002"
+    networks:
+      - edge-cloud-network
+    command: ["python", "-u", "-m", "uvicorn", "edge_train.api:app", "--host", "0.0.0.0", "--port", "5002", "--reload"]
+    deploy:
+      resources:
+        limits:
+          cpus: '6'
+          memory: 16G
+        reservations:
+          memory: 8G
+
+networks:
+  edge-cloud-network:
+    external: true
+
+volumes:
+  backend-classes:
+  file_storage_data:
+    external: true

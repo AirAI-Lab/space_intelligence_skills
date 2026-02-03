@@ -84,6 +84,19 @@ class ModelConverter:
             # 根据转换类型执行转换
             if conversion_type == 'PT_TO_ONNX':
                 output_file = self._convert_to_onnx(model, output_path)
+                # 上传 ONNX 文件到 S3
+                model_id = self.conversion_tasks[task_id]['model_id']
+                s3_onnx_key = f"models/{model_id}/best.onnx"
+                if self.config.upload_to_s3(output_file, s3_onnx_key):
+                    logger.info(f"ONNX 模型已上传到 S3: {s3_onnx_key}")
+                else:
+                    logger.warning(f"ONNX 模型上传到 S3 失败")
+                # 上传 ONNX 配置文件（使用不同的文件名）
+                onnx_config_file = output_file.parent / 'onnx_config.json'
+                if onnx_config_file.exists():
+                    s3_onnx_config_key = f"models/{model_id}/onnx_config.json"
+                    if self.config.upload_to_s3(onnx_config_file, s3_onnx_config_key):
+                        logger.info(f"ONNX 配置已上传到 S3: {s3_onnx_config_key}")
             elif conversion_type in ['ONNX_TO_ENGINE_FP16', 'ONNX_TO_ENGINE_INT8', 'ONNX_TO_ENGINE_FP32']:
                 output_file = self._convert_to_engine(model, output_path, conversion_type)
             else:
@@ -114,18 +127,120 @@ class ModelConverter:
             self._report_failure(task_id, str(e))
 
     def _convert_to_onnx(self, model: YOLO, output_path: Path) -> Path:
-        """转换为 ONNX 格式"""
+        """转换为 ONNX 格式，包含完整的网络结构和元数据"""
         output_path.mkdir(parents=True, exist_ok=True)
         output_file = output_path / 'best.onnx'
 
         self._report_progress(self._get_current_task_id(), 0.5)
 
+        # 获取模型文件所在的目录
+        task_id = self._get_current_task_id()
+        model_id = self.conversion_tasks[task_id]['model_id']
+        model_dir = self.config.get_model_path(model_id)
+
+        # 尝试读取训练配置（如果存在）
+        training_config = {}
+        training_config_path = model_dir / 'model_config.json'
+        if training_config_path.exists():
+            try:
+                import json
+                with open(training_config_path, 'r', encoding='utf-8') as f:
+                    training_config = json.load(f)
+                logger.info(f"读取训练配置: {training_config_path}")
+            except Exception as e:
+                logger.warning(f"读取训练配置失败: {e}")
+
+        # 构建 ONNX 配置（与训练配置分开）
+        onnx_config = {
+            'model_id': model_id,
+            'model_type': 'YOLOv8',
+            'input_size': training_config.get('architecture', {}).get('input_size', [640, 640]),
+            'num_classes': len(model.names) if hasattr(model, 'names') else 3,
+            'classes': model.names if hasattr(model, 'names') else {},
+            'format': 'onnx',
+            'opset_version': 12,
+            'dynamic': True,
+            'simplified': True,
+            'export_date': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'onnx_compatible': True
+        }
+
+        # 导出 ONNX，包含完整的计算图
+        # dynamic=True 允许动态输入尺寸
+        # simplify=True 简化计算图
+        # half=False 保持 FP32 精度（可根据需要改为 True）
         model.export(
             format='onnx',
             imgsz=640,
             simplify=True,
-            opset=12
+            opset=12,
+            dynamic=True,  # 支持动态输入尺寸
+            half=False,    # FP32 精度
+            verbose=False
         )
+
+        # YOLO export 保存 ONNX 到模型目录
+        exported_onnx = model_dir / 'best.onnx'
+
+        if exported_onnx.exists():
+            import shutil
+            import json
+            import onnx
+
+            # 移动 ONNX 文件到输出目录
+            shutil.move(str(exported_onnx), str(output_file))
+            logger.info(f"ONNX 文件已移动到: {output_file}")
+
+            # 添加元数据到 ONNX 模型
+            try:
+                onnx_model = onnx.load(str(output_file))
+
+                # 添加自定义元数据
+                meta = onnx_model.metadata_props
+                meta.add("model_id", model_id)
+                meta.add("model_type", "YOLOv8")
+                meta.add("input_size", str(onnx_config['input_size']))
+                meta.add("num_classes", str(onnx_config['num_classes']))
+                meta.add("classes", json.dumps(onnx_config['classes'], ensure_ascii=False))
+                meta.add("export_date", onnx_config['export_date'])
+                meta.add("format", "onnx")
+
+                # 保存更新后的 ONNX 模型
+                onnx.save(onnx_model, str(output_file))
+                logger.info(f"ONNX 元数据已添加到模型文件")
+            except Exception as e:
+                logger.warning(f"添加 ONNX 元数据失败: {e}")
+
+            # 保存 ONNX 配置文件（使用不同的文件名，避免覆盖训练配置）
+            onnx_config_file = output_path / 'onnx_config.json'
+            with open(onnx_config_file, 'w', encoding='utf-8') as f:
+                json.dump(onnx_config, f, indent=2, ensure_ascii=False)
+            logger.info(f"ONNX 配置已保存: {onnx_config_file}")
+
+        else:
+            # 搜索可能的 ONNX 文件位置
+            import shutil
+            search_paths = [
+                Path.cwd() / 'best.onnx',
+                Path.cwd() / f'{model_id}.onnx',
+                model_dir / f'{model_id}.onnx',
+            ]
+            found = False
+            for search_path in search_paths:
+                if search_path.exists():
+                    shutil.move(str(search_path), str(output_file))
+                    logger.info(f"在 {search_path} 找到 ONNX 文件，已移动到: {output_file}")
+                    found = True
+                    break
+
+            if not found:
+                # 列出模型目录的所有文件用于调试
+                model_dir_files = list(model_dir.glob('*')) if model_dir.exists() else []
+                cwd_files = list(Path.cwd().glob('*.onnx'))
+                logger.error(f"未找到 ONNX 文件。搜索路径: {search_paths}")
+                logger.error(f"模型目录文件: {model_dir_files}")
+                logger.error(f"当前目录 ONNX: {cwd_files}")
+                raise FileNotFoundError(f"ONNX 导出失败，未找到导出的文件")
 
         return output_file
 

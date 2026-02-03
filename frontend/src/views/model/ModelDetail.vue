@@ -1,0 +1,421 @@
+<template>
+  <div class="model-detail" v-loading="loading">
+    <!-- 返回按钮 -->
+    <el-page-header @back="goBack" title="模型详情" class="header">
+      <template #content>
+        <div class="model-title">
+          <el-tag :type="getStatusType(model?.status)" size="large">
+            {{ getStatusText(model?.status) }}
+          </el-tag>
+          <span class="model-name">{{ model?.modelName }}</span>
+        </div>
+      </template>
+    </el-page-header>
+
+    <!-- 转换对话框 -->
+    <el-dialog v-model="convertDialogVisible" title="模型格式转换" width="500px">
+      <el-form label-width="100px">
+        <el-form-item label="目标格式">
+          <el-select v-model="selectedConversionType" style="width: 100%">
+            <el-option label="PT → ONNX" value="PT_TO_ONNX" />
+            <el-option label="ONNX → TensorRT FP16" value="ONNX_TO_ENGINE_FP16" />
+            <el-option label="ONNX → TensorRT INT8" value="ONNX_TO_ENGINE_INT8" />
+            <el-option label="ONNX → TensorRT FP32" value="ONNX_TO_ENGINE_FP32" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="convertDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="startConversion" :loading="converting">开始转换</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 基本信息 -->
+    <el-card class="info-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">基本信息</span>
+          <div class="actions">
+            <el-button type="primary" @click="deployModel" :disabled="!isDeployable">
+              <el-icon><Upload /></el-icon>
+              部署
+            </el-button>
+            <el-button @click="downloadModel">
+              <el-icon><Download /></el-icon>
+              下载
+            </el-button>
+          </div>
+        </div>
+      </template>
+
+      <el-descriptions :column="2" border>
+        <el-descriptions-item label="模型ID">{{ model?.modelId }}</el-descriptions-item>
+        <el-descriptions-item label="模型名称">{{ model?.modelName }}</el-descriptions-item>
+        <el-descriptions-item label="模型类型">
+          <el-tag>{{ model?.modelType }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="框架">{{ model?.framework }}</el-descriptions-item>
+        <el-descriptions-item label="版本">{{ model?.version }}</el-descriptions-item>
+        <el-descriptions-item label="文件大小">{{ formatSize(model?.fileSizeBytes) }}</el-descriptions-item>
+        <el-descriptions-item label="mAP@0.5">
+          <span v-if="model?.map50" class="metric-value">{{ (model.map50 * 100).toFixed(2) }}%</span>
+          <span v-else-if="model?.map" class="metric-value">{{ (model.map * 100).toFixed(2) }}%</span>
+          <span v-else>-</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="推理时间">
+          <span v-if="model?.inferenceTimeMs" class="metric-value">{{ model.inferenceTimeMs }} ms</span>
+          <span v-else>-</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="部署设备数">{{ model?.deployedCount || 0 }}</el-descriptions-item>
+        <el-descriptions-item label="创建时间">{{ model?.createdAt }}</el-descriptions-item>
+      </el-descriptions>
+    </el-card>
+
+    <!-- 性能指标 -->
+    <el-card class="metrics-card" shadow="never" v-if="model?.map">
+      <template #header>
+        <span class="card-title">性能指标</span>
+      </template>
+      <el-row :gutter="20">
+        <el-col :span="6" v-for="metric in metrics" :key="metric.label">
+          <div class="metric-item">
+            <div class="metric-label">{{ metric.label }}</div>
+            <div class="metric-value" :style="{ color: metric.color }">
+              {{ metric.value }}
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+    </el-card>
+
+    <!-- 模型格式 -->
+    <el-card class="formats-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span class="card-title">可用格式</span>
+        </div>
+      </template>
+
+      <el-table :data="formats" style="width: 100%">
+        <el-table-column prop="format" label="格式" width="120">
+          <template #default="{ row }">
+            <el-tag>{{ row.format }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="path" label="文件路径" />
+        <el-table-column prop="size" label="文件大小" width="150">
+          <template #default="{ row }">
+            {{ formatSize(row.size) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200">
+          <template #default="{ row }">
+            <el-button size="small" @click="downloadFormat(row)" :disabled="!row.path">
+              下载
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              @click="convertFormat"
+              v-if="row.format === 'PT' && !formats.find(f => f.format === 'ONNX')?.path"
+            >
+              转换ONNX
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 部署历史 -->
+    <el-card class="history-card" shadow="never">
+      <template #header>
+        <span class="card-title">部署历史</span>
+      </template>
+
+      <el-timeline v-if="deploymentHistory.length > 0">
+        <el-timeline-item
+          v-for="item in deploymentHistory"
+          :key="item.id"
+          :timestamp="item.deployed_at"
+          placement="top"
+        >
+          <el-card>
+            <h4>{{ item.device_name }}</h4>
+            <p>状态: <el-tag :type="item.status === 'active' ? 'success' : 'info'">{{ item.status }}</el-tag></p>
+          </el-card>
+        </el-timeline-item>
+      </el-timeline>
+      <el-empty v-else description="暂无部署记录" />
+    </el-card>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
+import { modelApi, conversionApi } from '@/api'
+
+const route = useRoute()
+const router = useRouter()
+
+const loading = ref(false)
+const model = ref<any>(null)
+const deploymentHistory = ref<any[]>([])
+const convertDialogVisible = ref(false)
+const converting = ref(false)
+const selectedConversionType = ref('PT_TO_ONNX')
+let refreshTimer: any = null
+
+const metrics = computed(() => {
+  if (!model.value) return []
+
+  const m = []
+  // 优先显示 mAP@0.5 (map50)，这是用户最关心的指标
+  if (model.value.map50) {
+    m.push({ label: 'mAP@0.5', value: (model.value.map50 * 100).toFixed(2) + '%', color: '#409EFF' })
+  } else if (model.value.map) {
+    // 如果没有 map50，使用 map (mAP50-95) 但标注清楚
+    m.push({ label: 'mAP@0.5:0.95', value: (model.value.map * 100).toFixed(2) + '%', color: '#409EFF' })
+  }
+  if (model.value.precision) {
+    m.push({ label: 'Precision', value: (model.value.precision * 100).toFixed(2) + '%', color: '#67C23A' })
+  }
+  if (model.value.recall) {
+    m.push({ label: 'Recall', value: (model.value.recall * 100).toFixed(2) + '%', color: '#E6A23C' })
+  }
+  if (model.value.f1) {
+    m.push({ label: 'F1 Score', value: model.value.f1.toFixed(3), color: '#F56C6C' })
+  }
+  return m
+})
+
+const formats = computed(() => {
+  if (!model.value) return []
+
+  const f = []
+  if (model.value.ptFilePath) {
+    f.push({ format: 'PT', path: model.value.ptFilePath, size: model.value.fileSizeBytes || 0 })
+  }
+  if (model.value.onnxFilePath) {
+    f.push({ format: 'ONNX', path: model.value.onnxFilePath, size: model.value.fileSizeBytes || 0 })
+  }
+  if (model.value.engineFilePath) {
+    f.push({ format: 'TensorRT', path: model.value.engineFilePath, size: model.value.fileSizeBytes || 0 })
+  }
+  return f
+})
+
+const isDeployable = computed(() => {
+  return model.value?.status === 'READY' && formats.value.length > 0
+})
+
+// 加载模型详情
+const loadModelDetail = async () => {
+  const modelId = route.params.id as string
+  loading.value = true
+  try {
+    const response = await modelApi.getDetail(modelId)
+    model.value = response.data
+  } catch (error: any) {
+    ElMessage.error('加载模型详情失败: ' + (error.message || '未知错误'))
+  } finally {
+    loading.value = false
+  }
+}
+
+// 格式化文件大小
+const formatSize = (bytes: number) => {
+  if (!bytes) return '-'
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + ' KB'
+  }
+  return (bytes / (1024 * 1024)).toFixed(2) + ' MB'
+}
+
+// 获取状态类型
+const getStatusType = (status: string) => {
+  const types: Record<string, string> = {
+    READY: 'success',
+    TRAINING: 'warning',
+    CONVERTING: 'primary',
+    DEPLOYED: 'primary',
+    ARCHIVED: 'info',
+    ERROR: 'danger'
+  }
+  return types[status] || 'info'
+}
+
+// 获取状态文本
+const getStatusText = (status: string) => {
+  const texts: Record<string, string> = {
+    READY: '就绪',
+    TRAINING: '训练中',
+    CONVERTING: '转换中',
+    DEPLOYED: '已部署',
+    ARCHIVED: '已归档',
+    ERROR: '错误'
+  }
+  return texts[status] || status
+}
+
+// 返回
+const goBack = () => {
+  router.push('/model')
+}
+
+// 部署模型
+const deployModel = () => {
+  router.push({ path: '/ota', query: { modelId: model.value.modelId } })
+}
+
+// 下载模型
+const downloadModel = () => {
+  ElMessage.success('开始下载模型')
+}
+
+// 下载指定格式
+const downloadFormat = (format: any) => {
+  ElMessage.success(`开始下载 ${format.format} 格式`)
+}
+
+// 打开转换对话框
+const convertFormat = () => {
+  convertDialogVisible.value = true
+}
+
+// 开始转换
+const startConversion = async () => {
+  if (!model.value?.modelId) {
+    ElMessage.error('模型ID不存在')
+    return
+  }
+
+  converting.value = true
+  try {
+    // 首先创建转换任务
+    const response = await fetch('/api/v1/models/' + model.value.modelId + '/convert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversionType: selectedConversionType.value
+      })
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || '创建转换任务失败')
+    }
+
+    const result = await response.json()
+    const taskId = result.data?.taskId
+
+    if (taskId) {
+      // 启动转换任务
+      await conversionApi.start(taskId)
+      ElMessage.success('转换任务已启动')
+      convertDialogVisible.value = false
+
+      // 开始轮询转换状态
+      startPollingConversion()
+
+      // 刷新模型详情
+      await loadModelDetail()
+    }
+  } catch (error: any) {
+    ElMessage.error('转换失败: ' + (error.message || '未知错误'))
+  } finally {
+    converting.value = false
+  }
+}
+
+// 轮询转换状态
+const startPollingConversion = () => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
+
+  refreshTimer = setInterval(async () => {
+    await loadModelDetail()
+
+    // 如果模型不再处于转换状态，停止轮询
+    if (model.value?.status !== 'CONVERTING' && refreshTimer) {
+      clearInterval(refreshTimer)
+      refreshTimer = null
+      ElMessage.success('模型转换完成')
+    }
+  }, 3000)
+}
+
+onMounted(() => {
+  loadModelDetail()
+
+  // 如果模型正在转换，开始轮询
+  if (model.value?.status === 'CONVERTING') {
+    startPollingConversion()
+  }
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
+})
+</script>
+
+<style scoped>
+.model-detail {
+  padding: 20px;
+}
+
+.header {
+  margin-bottom: 20px;
+}
+
+.model-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-name {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.info-card,
+.metrics-card,
+.formats-card,
+.history-card {
+  margin-bottom: 20px;
+}
+
+.metric-item {
+  text-align: center;
+  padding: 20px;
+  background: var(--el-bg-color-page);
+  border-radius: 8px;
+}
+
+.metric-label {
+  font-size: 14px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 600;
+}
+</style>

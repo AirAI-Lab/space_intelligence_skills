@@ -15,7 +15,12 @@ public class TrainingJobDTO {
     private String jobId;
     private String jobName;
     private String datasetId;
+    private String datasetSource;  // backend, url, local
+    private String datasetUrl;
+    private String datasetPath;
+    private String datasetName;
     private String baseModelId;
+    private String baseModel;  // 预训练模型名称（如 yolov8n.pt）
     private String outputModelId;
     private Integer epochs;
     private Integer batchSize;
@@ -30,13 +35,14 @@ public class TrainingJobDTO {
     private Float finalLoss;
     private Integer bestEpoch;
     private String mlflowRunId;
+    private Boolean resume;
+    private String resumeJobId;
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // 关联信息
-    private String datasetName;
+    // 关联信息（从关联实体获取）
     private String baseModelName;
     private String outputModelName;
 }

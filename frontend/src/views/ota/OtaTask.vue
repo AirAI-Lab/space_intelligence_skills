@@ -17,10 +17,10 @@
             </el-input>
             <el-select v-model="statusFilter" placeholder="任务状态" clearable style="width: 150px;">
               <el-option label="全部" value="" />
-              <el-option label="待升级" value="pending" />
-              <el-option label="升级中" value="upgrading" />
-              <el-option label="已完成" value="completed" />
-              <el-option label="失败" value="failed" />
+              <el-option label="待升级" value="PENDING" />
+              <el-option label="升级中" value="UPGRADING" />
+              <el-option label="已完成" value="COMPLETED" />
+              <el-option label="失败" value="FAILED" />
             </el-select>
             <el-button type="primary" @click="loadTasks">
               <el-icon><Search /></el-icon>
@@ -44,19 +44,19 @@
     <!-- 任务列表 -->
     <el-card class="table-card">
       <el-table :data="tasks" v-loading="loading" style="width: 100%">
-        <el-table-column prop="task_name" label="任务名称" width="200" />
-        <el-table-column prop="upgrade_type" label="升级类型" width="120">
+        <el-table-column prop="taskName" label="任务名称" width="200" />
+        <el-table-column prop="upgradeType" label="升级类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.upgrade_type === 'model' ? 'primary' : 'success'">
-              {{ row.upgrade_type === 'model' ? '模型升级' : '固件升级' }}
+            <el-tag :type="row.upgradeType === 'model' ? 'primary' : 'success'">
+              {{ row.upgradeType === 'model' ? '模型升级' : '固件升级' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="target_version" label="目标版本" width="150" />
-        <el-table-column prop="target_devices" label="目标设备数" width="120" />
-        <el-table-column prop="completed_count" label="已完成" width="100">
+        <el-table-column prop="targetVersion" label="目标版本" width="150" />
+        <el-table-column prop="targetDevices" label="目标设备数" width="120" />
+        <el-table-column prop="completedCount" label="已完成" width="100">
           <template #default="{ row }">
-            {{ row.completed_count }} / {{ row.target_devices }}
+            {{ row.completedCount }} / {{ row.targetDevices }}
           </template>
         </el-table-column>
         <el-table-column prop="progress" label="进度" width="180">
@@ -75,14 +75,14 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180" />
+        <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="viewDetail(row)">
               查看详情
             </el-button>
             <el-button
-              v-if="row.status === 'pending'"
+              v-if="row.status === 'PENDING'"
               size="small"
               type="primary"
               @click="startTask(row)"
@@ -90,7 +90,7 @@
               开始
             </el-button>
             <el-button
-              v-if="row.status === 'upgrading'"
+              v-if="row.status === 'UPGRADING'"
               size="small"
               type="warning"
               @click="pauseTask(row)"
@@ -98,7 +98,7 @@
               暂停
             </el-button>
             <el-button
-              v-if="row.status === 'failed'"
+              v-if="row.status === 'FAILED'"
               size="small"
               type="primary"
               @click="retryTask(row)"
@@ -127,40 +127,49 @@
     <el-dialog v-model="createDialogVisible" title="创建升级任务" width="700px">
       <el-form :model="taskForm" label-width="120px">
         <el-form-item label="任务名称">
-          <el-input v-model="taskForm.task_name" placeholder="例如：设备批量模型升级" />
+          <el-input v-model="taskForm.taskName" placeholder="例如：设备批量模型升级" />
         </el-form-item>
         <el-form-item label="升级类型">
-          <el-radio-group v-model="taskForm.upgrade_type">
-            <el-radio label="model">模型升级</el-radio>
-            <el-radio label="firmware">固件升级</el-radio>
+          <el-radio-group v-model="taskForm.upgradeType">
+            <el-radio value="model">模型升级</el-radio>
+            <el-radio value="firmware">固件升级</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="目标模型" v-if="taskForm.upgrade_type === 'model'">
-          <el-select v-model="taskForm.model_id" style="width: 100%;">
-            <el-option label="安全帽检测v2" value="M001" />
-            <el-option label="车辆检测模型" value="M002" />
+        <el-form-item label="目标模型" v-if="taskForm.upgradeType === 'model'">
+          <el-select v-model="taskForm.modelId" style="width: 100%;" filterable>
+            <el-option
+              v-for="model in models"
+              :key="model.modelId"
+              :label="`${model.modelName} (${model.version})`"
+              :value="model.modelId"
+            />
+            <el-option v-if="models.length === 0" label="无可用模型" value="" disabled />
           </el-select>
         </el-form-item>
-        <el-form-item label="目标版本" v-if="taskForm.upgrade_type === 'firmware'">
-          <el-input v-model="taskForm.target_version" placeholder="例如：v2.1.0" />
+        <el-form-item label="目标版本" v-if="taskForm.upgradeType === 'firmware'">
+          <el-input v-model="taskForm.targetVersion" placeholder="例如：v2.1.0" />
         </el-form-item>
         <el-form-item label="目标设备">
-          <el-select v-model="taskForm.device_ids" multiple style="width: 100%;">
-            <el-option label="机载设备1号" value="EDGE_001" />
-            <el-option label="机载设备2号" value="EDGE_002" />
-            <el-option label="机载设备3号" value="EDGE_003" />
+          <el-select v-model="taskForm.deviceIds" multiple style="width: 100%;" filterable>
+            <el-option
+              v-for="device in devices"
+              :key="device.deviceId"
+              :label="`${device.deviceName} (${device.status})`"
+              :value="device.deviceId"
+            />
+            <el-option v-if="devices.length === 0" label="无可用设备" value="" disabled />
           </el-select>
         </el-form-item>
         <el-form-item label="升级策略">
           <el-radio-group v-model="taskForm.strategy">
-            <el-radio label="immediate">立即升级</el-radio>
-            <el-radio label="scheduled">定时升级</el-radio>
-            <el-radio label="manual">手动确认</el-radio>
+            <el-radio value="immediate">立即升级</el-radio>
+            <el-radio value="scheduled">定时升级</el-radio>
+            <el-radio value="manual">手动确认</el-radio>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="定时时间" v-if="taskForm.strategy === 'scheduled'">
           <el-date-picker
-            v-model="taskForm.scheduled_time"
+            v-model="taskForm.scheduledTime"
             type="datetime"
             placeholder="选择日期时间"
             style="width: 100%;"
@@ -169,81 +178,85 @@
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="createTask">创建任务</el-button>
+        <el-button type="primary" @click="createTask" :loading="creating">创建任务</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Search, RefreshLeft, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { otaApi, deviceApi, modelApi } from '@/api'
 
 const loading = ref(false)
 const searchText = ref('')
 const statusFilter = ref('')
 const tasks = ref<any[]>([])
+const devices = ref<any[]>([])
+const models = ref<any[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+let refreshTimer: any = null
 
 const createDialogVisible = ref(false)
+const creating = ref(false)
 const taskForm = ref({
-  task_name: '',
-  upgrade_type: 'model',
-  model_id: '',
-  target_version: '',
-  device_ids: [],
+  taskName: '',
+  upgradeType: 'model',
+  modelId: '',
+  targetVersion: '',
+  deviceIds: [],
   strategy: 'immediate',
-  scheduled_time: null
+  scheduledTime: null
 })
 
-// 模拟数据
-const mockTasks = [
-  {
-    task_id: 'OTA001',
-    task_name: '设备批量模型升级',
-    upgrade_type: 'model',
-    target_version: 'v2.1.0',
-    target_devices: 15,
-    completed_count: 12,
-    progress: 80,
-    status: 'upgrading',
-    created_at: '2026-01-27 08:00:00'
-  },
-  {
-    task_id: 'OTA002',
-    task_name: '固件升级批次1',
-    upgrade_type: 'firmware',
-    target_version: 'v1.5.2',
-    target_devices: 8,
-    completed_count: 8,
-    progress: 100,
-    status: 'completed',
-    created_at: '2026-01-26 14:00:00'
-  },
-  {
-    task_id: 'OTA003',
-    task_name: '新设备初始化',
-    upgrade_type: 'model',
-    target_version: 'v2.0.0',
-    target_devices: 5,
-    completed_count: 0,
-    progress: 0,
-    status: 'pending',
-    created_at: '2026-01-27 10:00:00'
+// 加载设备列表
+const loadDevices = async () => {
+  try {
+    const response = await deviceApi.getList({ page: 1, pageSize: 100 })
+    devices.value = response.data.items || []
+  } catch (error) {
+    console.error('加载设备列表失败:', error)
   }
-]
+}
+
+// 加载模型列表
+const loadModels = async () => {
+  try {
+    const response = await modelApi.getList({ page: 1, pageSize: 100 })
+    models.value = response.data.items || []
+  } catch (error) {
+    console.error('加载模型列表失败:', error)
+  }
+}
 
 // 加载任务列表
 const loadTasks = async () => {
   loading.value = true
-  setTimeout(() => {
-    tasks.value = mockTasks
-    total.value = mockTasks.length
+  try {
+    const response = await otaApi.getList({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      status: statusFilter.value || undefined
+    })
+    tasks.value = response.data.items || []
+    total.value = response.data.total || 0
+
+    // 如果有搜索文本，进行客户端过滤
+    if (searchText.value) {
+      const filtered = tasks.value.filter((t: any) =>
+        t.taskName?.toLowerCase().includes(searchText.value.toLowerCase())
+      )
+      tasks.value = filtered
+    }
+  } catch (error: any) {
+    ElMessage.error('加载任务列表失败: ' + (error.message || '未知错误'))
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
 // 重置筛选
@@ -257,10 +270,10 @@ const resetFilter = () => {
 // 获取状态类型
 const getStatusType = (status: string) => {
   const types: Record<string, string> = {
-    upgrading: 'primary',
-    completed: 'success',
-    pending: 'info',
-    failed: 'danger'
+    UPGRADING: 'primary',
+    COMPLETED: 'success',
+    PENDING: 'info',
+    FAILED: 'danger'
   }
   return types[status] || 'info'
 }
@@ -268,10 +281,10 @@ const getStatusType = (status: string) => {
 // 获取状态文本
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
-    upgrading: '升级中',
-    completed: '已完成',
-    pending: '待升级',
-    failed: '失败'
+    UPGRADING: '升级中',
+    COMPLETED: '已完成',
+    PENDING: '待升级',
+    FAILED: '失败'
   }
   return texts[status] || status
 }
@@ -279,82 +292,146 @@ const getStatusText = (status: string) => {
 // 获取进度状态
 const getProgressStatus = (status: string) => {
   const statuses: Record<string, any> = {
-    completed: 'success',
-    failed: 'exception'
+    COMPLETED: 'success',
+    FAILED: 'exception'
   }
   return statuses[status] || undefined
 }
 
 // 查看详情
 const viewDetail = (task: any) => {
-  ElMessage.info(`查看任务详情: ${task.task_name}`)
+  ElMessage.info(`查看任务详情: ${task.taskName}`)
 }
 
 // 开始任务
-const startTask = (task: any) => {
+const startTask = async (task: any) => {
   ElMessageBox.confirm(
-    `确定要开始升级任务 "${task.task_name}" 吗？`,
+    `确定要开始升级任务 "${task.taskName}" 吗？`,
     '确认开始',
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'info'
+      type: 'warning'
     }
-  ).then(() => {
-    ElMessage.success('任务开始执行')
-    loadTasks()
+  ).then(async () => {
+    try {
+      await otaApi.start(task.taskId)
+      ElMessage.success('任务已开始')
+      loadTasks()
+    } catch (error: any) {
+      ElMessage.error('开始任务失败: ' + (error.message || '未知错误'))
+    }
   })
 }
 
 // 暂停任务
-const pauseTask = (task: any) => {
+const pauseTask = async (task: any) => {
   ElMessageBox.confirm(
-    `确定要暂停任务 "${task.task_name}" 吗？`,
+    `确定要暂停升级任务 "${task.taskName}" 吗？`,
     '确认暂停',
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     }
-  ).then(() => {
-    ElMessage.success('任务已暂停')
-    loadTasks()
+  ).then(async () => {
+    try {
+      await otaApi.pause(task.taskId)
+      ElMessage.success('任务已暂停')
+      loadTasks()
+    } catch (error: any) {
+      ElMessage.error('暂停任务失败: ' + (error.message || '未知错误'))
+    }
   })
 }
 
 // 重试任务
-const retryTask = (task: any) => {
-  ElMessage.success(`开始重试任务: ${task.task_name}`)
-  loadTasks()
+const retryTask = async (task: any) => {
+  ElMessageBox.confirm(
+    `确定要重试失败设备 "${task.taskName}" 吗？`,
+    '确认重试',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      await otaApi.retryFailed(task.taskId)
+      ElMessage.success('开始重试失败设备')
+      loadTasks()
+    } catch (error: any) {
+      ElMessage.error('重试失败: ' + (error.message || '未知错误'))
+    }
+  })
 }
 
 // 显示创建对话框
 const showCreateDialog = () => {
   taskForm.value = {
-    task_name: '',
-    upgrade_type: 'model',
-    model_id: '',
-    target_version: '',
-    device_ids: [],
+    taskName: '',
+    upgradeType: 'model',
+    modelId: '',
+    targetVersion: '',
+    deviceIds: [],
     strategy: 'immediate',
-    scheduled_time: null
+    scheduledTime: null
   }
   createDialogVisible.value = true
 }
 
 // 创建任务
-const createTask = () => {
-  if (!taskForm.value.task_name || taskForm.value.device_ids.length === 0) {
+const createTask = async () => {
+  if (!taskForm.value.taskName || taskForm.value.deviceIds.length === 0) {
     ElMessage.warning('请填写完整信息')
     return
   }
-  ElMessage.success('升级任务创建成功')
-  createDialogVisible.value = false
-  loadTasks()
+  if (taskForm.value.upgradeType === 'model' && !taskForm.value.modelId) {
+    ElMessage.warning('请选择目标模型')
+    return
+  }
+  if (taskForm.value.upgradeType === 'firmware' && !taskForm.value.targetVersion) {
+    ElMessage.warning('请输入目标版本')
+    return
+  }
+
+  creating.value = true
+  try {
+    await otaApi.createTask({
+      taskName: taskForm.value.taskName,
+      upgradeType: taskForm.value.upgradeType as 'model' | 'firmware',
+      modelId: taskForm.value.modelId || undefined,
+      deviceIds: taskForm.value.deviceIds,
+      description: taskForm.value.targetVersion || undefined
+    })
+    ElMessage.success('升级任务创建成功')
+    createDialogVisible.value = false
+    loadTasks()
+  } catch (error: any) {
+    ElMessage.error('创建任务失败: ' + (error.message || '未知错误'))
+  } finally {
+    creating.value = false
+  }
 }
 
 onMounted(() => {
   loadTasks()
+  loadDevices()
+  loadModels()
+
+  // 定时刷新运行中的任务
+  refreshTimer = setInterval(() => {
+    const hasRunning = tasks.value.some((t: any) => t.status === 'UPGRADING')
+    if (hasRunning) {
+      loadTasks()
+    }
+  }, 5000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+  }
 })
 </script>
 

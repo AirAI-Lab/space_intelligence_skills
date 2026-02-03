@@ -26,7 +26,7 @@ edge_infer 的云边协同管理平台，提供设备管理、数据管理、模
 | **设备管理** | 设备注册、状态监控、分组管理 | ✅ 完成 |
 | **数据集管理** | 数据集上传、验证、版本管理 | ✅ 完成 |
 | **模型管理** | 模型导入、版本控制、格式转换 | ✅ 完成 |
-| **训练服务** | YOLOv8 训练框架 + MLflow 集成 | ✅ 完成 |
+| **训练服务** | YOLOv8 训练 + 续训功能 + MLflow 集成 | ✅ 完成 |
 | **模型转换** | .pt → .onnx → .engine (FP16/INT8) | ✅ 完成 |
 | **OTA 升级** | MQTT 通信、任务管理、状态跟踪 | ✅ 完成 |
 | **存储服务** | SeaweedFS S3 兼容存储 | ✅ 完成 |
@@ -47,6 +47,7 @@ edge_infer 的云边协同管理平台，提供设备管理、数据管理、模
 - **设备管理**：设备注册、状态监控、远程配置下发
 - **数据管理**：数据上传、数据集管理、AI辅助标注
 - **训练管理**：参考YOLOv8的训练流程，支持多种模型训练
+  - **续训功能** ⭐：支持从中断处继续训练，保留优化器状态
 - **模型管理**：模型版本管理、格式转换、一键部署
 - **OTA升级**：差异化升级、灰度发布、自动回滚
 
@@ -175,7 +176,102 @@ edge_infer_cloud/
 │       ├── frontend.Dockerfile
 │       └── training.Dockerfile
 └── docs/                 # 文档
+    ├── 04_training.md   # 训练服务文档
+    └── EDGE_REST_API.md  # REST API 文档
 ```
+
+## 模型导出和存储
+
+### 模型文件结构
+
+训练完成后，模型文件会自动上传到 S3 存储服务，包含完整的网络结构和配置信息：
+
+```
+S3: models/{model_id}/
+├── best.pt                  # PyTorch 完整模型（网络结构+权重）
+├── model_config.json       # 训练配置（训练参数、指标、使用说明）
+├── classes.txt             # 类别名称列表
+├── data.yaml               # 数据集配置（YOLO格式）
+├── best.onnx               # ONNX 模型（计算图+权重+元数据）
+└── onnx_config.json        # ONNX 配置（导出参数、格式信息）
+```
+
+### 配置文件说明
+
+| 文件 | 保存时机 | 内容 | 用途 |
+|------|---------|------|------|
+| `model_config.json` | 训练完成 | 训练参数、评估指标、类别信息、使用说明 | PyTorch 推理、模型管理 |
+| `onnx_config.json` | ONNX 转换 | ONNX 导出参数、格式兼容信息 | ONNX Runtime、部署参考 |
+
+### model_config.json 示例
+
+```json
+{
+  "model_id": "M_JOBxxx",
+  "model_type": "YOLOv8",
+  "base_model": "yolov8n.pt",
+  "architecture": {
+    "type": "YOLOv8 Detection",
+    "input_size": [640, 640],
+    "num_classes": 3,
+    "classes": {
+      "0": "Drowning",
+      "1": "Person out of water",
+      "2": "Swimming"
+    }
+  },
+  "training": {
+    "epochs": 5,
+    "batch_size": 16,
+    "optimizer": "SGD"
+  },
+  "metrics": {
+    "map50_95": 0.317,
+    "map50": 0.633,
+    "precision": 0.645,
+    "recall": 0.576
+  },
+  "usage": {
+    "inference": "from ultralytics import YOLO; model = YOLO('best.pt'); results = model('image.jpg')",
+    "export": "model.export(format='onnx')",
+    "requirements": "ultralytics>=8.0.0"
+  }
+}
+```
+
+### ONNX 模型特性
+
+- **完整计算图**：包含完整的网络结构，无需原始代码
+- **动态输入**：支持不同输入尺寸（dynamic=True）
+- **简化图**：移除冗余节点，优化推理性能
+- **元数据嵌入**：模型ID、类别信息直接保存在 ONNX 文件中
+- **跨框架兼容**：可在 ONNX Runtime、OpenCV、TensorRT 等框架中使用
+
+### 模型使用示例
+
+```python
+# 方式1: PyTorch 推理（使用 best.pt）
+from ultralytics import YOLO
+model = YOLO('best.pt')
+results = model('image.jpg')
+
+# 方式2: ONNX Runtime 推理（使用 best.onnx）
+import onnxruntime as ort
+session = ort.InferenceSession('best.onnx')
+# 读取 onnx_config.json 获取类别信息
+```
+
+### 模型转换
+
+平台支持将 PyTorch 模型转换为其他格式：
+
+1. **.pt → .onnx**：标准 ONNX 格式，跨平台兼容
+2. **.onnx → .engine**：TensorRT 引擎，GPU 加速推理
+
+转换会自动：
+- 保存完整的配置文件
+- 添加模型元数据
+- 上传到 S3 存储
 
 ## API 端点
 
@@ -219,6 +315,101 @@ training_metrics       -- 训练指标时序表(TimescaleDB)
 
 ## 开发说明
 
+### 开发模式热挂载配置
+
+本项目已配置**源码热挂载**，开发过程中修改代码无需重新构建镜像：
+
+| 服务 | 源码挂载 | 热重载方式 | 说明 |
+|------|----------|------------|------|
+| **前端** | `../../frontend:/app` | Vite HMR | 修改 Vue/TS 文件自动刷新 |
+| **后端** | `../../backend:/app` | Spring DevTools | 修改 Java 文件自动重启 |
+| **训练** | `../../training:/app` | 直接生效 | 修改 Python 文件重启服务生效 |
+
+#### 开发模式配置详情
+
+**前端 (Vue3 + Vite)**
+```yaml
+frontend:
+  image: node:21-alpine
+  environment:
+    - DOCKER_ENV=true          # Docker 环境标识
+    - VITE_API_BASE_URL=/api/v1
+  volumes:
+    - ../../frontend:/app      # 源码热挂载
+    - /app/node_modules         # 保护 node_modules
+  command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3000"
+```
+
+**后端 (Spring Boot)**
+```yaml
+backend:
+  image: maven:3.9-eclipse-temurin-21
+  environment:
+    # 数据库配置
+    - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/edge_cloud
+    - SPRING_REDIS_HOST=redis
+    # 服务间通信
+    - TRAINING_SERVICE_URL=http://training:5002
+    # 存储服务
+    - S3_ENDPOINT=http://seaweedfs:8333
+    - S3_BUCKET=edge-cloud-files
+    # 开发模式配置（JDWP 调试已禁用以加快启动）
+    - SPRING_DEVTOOLS_RESTART_ENABLED=true
+    - SPRING_LIVE_RELOAD_ENABLED=true
+  volumes:
+    - ../../backend:/app       # 源码热挂载
+    - ~/.m2:/root/.m2          # Maven 仓库缓存
+  command: mvn spring-boot:run
+```
+
+**训练服务 (Python + Flask)**
+```yaml
+training:
+  environment:
+    # 后端通信
+    - BACKEND_API_URL=http://backend:8080
+    # MLflow 配置
+    - MLFLOW_TRACKING_URI=http://mlflow:5000
+    # S3 存储
+    - S3_ENDPOINT=http://seaweedfs:8333
+    - S3_BUCKET=edge-cloud
+    # GPU 配置
+    - USE_GPU=true
+  volumes:
+    - ../../training:/app      # 源码热挂载
+    - ../../data/runs:/app/runs
+    - ../../data/models:/app/models
+```
+
+#### 开发流程
+
+1. **修改代码**：直接在 IDE 中编辑源文件
+2. **前端变更**：Vite 自动热更新，无需手动刷新
+3. **后端变更**：Spring DevTools 自动重启，无需手动操作
+4. **训练服务**：修改 Python 文件后需重启容器生效
+
+#### 服务间通信配置
+
+| 连接 | 配置 | 说明 |
+|------|------|------|
+| 前端 → 后端 | `http://backend:8080` | 通过 Vite 代理 |
+| 后端 → 训练 | `http://training:5002` | RestTemplate 调用 |
+| 训练 → 后端 | `http://backend:8080` | 状态回调 |
+| 后端 → PostgreSQL | `postgres:5432` | JPA 数据访问 |
+| 后端 → Redis | `redis:6379` | 缓存 |
+| 后端 → EMQX | `tcp://emqx:1883` | MQTT 消息 |
+| 训练 → S3 | `http://seaweedfs:8333` | 模型存储 |
+
+#### 调试端口
+
+| 服务 | 调试端口 | 说明 |
+|------|----------|------|
+| 前端 | 3000 | Vite Dev Server |
+| 后端 | 8081 | Spring Boot API |
+| 训练 | 5002 | Flask API |
+| PostgreSQL | 5432 | 数据库 |
+| EMQX Dashboard | 18083 | MQTT 管理界面 |
+
 ### CUDA 版本兼容性
 
 本项目采用混合 CUDA 版本策略：
@@ -243,9 +434,55 @@ device/{device_id}/heartbeat         -- 心跳上报
 
 ## 参考文档
 
+### 平台文档
+- [训练服务详解](docs/04_training.md) - 数据集上传、训练流程、续训功能
+- [REST API 文档](docs/EDGE_REST_API.md) - 完整的 API 接口说明
+
+### 外部参考
 - [Ultralytics YOLOv8官方文档](https://docs.ultralytics.com/zh/modes/)
 - [SeaweedFS S3 API](https://github.com/seaweedfs/seaweedfs)
 - [EMQX MQTT v5 规范](https://docs.emqx.com/en/latest/mqtt/mqtt5.html)
+
+### 续训功能说明
+
+本平台实现了改进的 YOLOv8 续训功能，解决了原生 YOLOv8 续训时的参数替换问题。详细说明请参考 [训练服务文档 - 续训功能章节](docs/04_training.md#6-续训功能详解)。
+
+**主要特性**：
+- ✅ 直接用检查点初始化模型，避免路径被替换
+- ✅ 支持在续训时调整训练参数（轮次、优化器、patience 等）
+- ✅ 完备的权重文件验证（last.pt → best.pt → 基础模型）
+- ✅ 保留优化器状态，results.csv 自然追加
+- ✅ 统一输出目录（`/app/work/outputs/{job_id}/train/`）
+- ✅ 修复 save_dir 字段覆盖问题，确保输出到正确目录
+- ✅ **可选择的参数策略** ⭐：用户可选择"使用指定参数"或"智能优化"
+- ✅ **智能优化时参数自动禁用**：选择智能优化时，学习率等参数输入框自动变灰不可用
+- ✅ **GPU 选项始终可用**：无论选择哪种策略，GPU 开关都可以使用
+
+**参数策略对比**：
+
+| 策略 | 说明 | 参数来源 | 界面状态 |
+|------|------|----------|----------|
+| **使用指定参数** | 完全由用户控制训练参数 | 用户在续训表单中指定的值 | 参数可编辑 |
+| **智能优化** | 根据训练状态自动优化参数 | 基于 results.csv 分析和检查点原始参数 | 参数灰色不可用 |
+
+**智能优化策略**（当启用时）：
+- 初期 (epoch ≤ 30)：保持正常学习率，patience=30
+- 中期 (30-100)：根据 mAP 趋势调整学习率 (0.2x-1.0x)，patience=30-50
+- 后期 (epoch > 100)：降低学习率微调 (0.1x-0.3x)，patience=50-100
+- 已收敛 (mAP > 0.7)：建议停止训练
+
+**前端交互**：
+- 续训按钮对 RUNNING、CANCELLED、FAILED 状态的任务可见
+- 续训对话框提供参数策略单选框（智能优化/使用指定参数）
+- 选择智能优化时，批次大小、图像尺寸、优化器、学习率、权重衰减等参数自动禁用（灰色）
+- GPU 开关始终可用，不受策略选择影响
+
+**验证状态**：
+- ✅ 从 epoch 32 续训验证成功
+- ✅ results.csv 正确追加新 epoch 数据
+- ✅ 模型权重正确保存到统一目录
+- ✅ patience 参数自动更新修复早停问题
+- ✅ 智能优化功能正常工作，参数自动调整生效
 
 ## 许可证
 

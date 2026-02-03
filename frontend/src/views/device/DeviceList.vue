@@ -9,30 +9,38 @@
               v-model="searchText"
               placeholder="搜索设备ID或名称"
               clearable
-              style="width: 250px;"
+              style="width: 250px"
+              @clear="handleSearch"
             >
               <template #prefix>
                 <el-icon><Search /></el-icon>
               </template>
             </el-input>
-            <el-select v-model="statusFilter" placeholder="设备状态" clearable style="width: 150px;">
+            <el-select
+              v-model="statusFilter"
+              placeholder="设备状态"
+              clearable
+              style="width: 150px"
+              @change="handleFilterChange"
+            >
               <el-option label="全部" value="" />
-              <el-option label="在线" value="online" />
-              <el-option label="离线" value="offline" />
-              <el-option label="告警" value="alarm" />
+              <el-option label="在线" value="ONLINE" />
+              <el-option label="离线" value="OFFLINE" />
+              <el-option label="升级中" value="UPGRADING" />
+              <el-option label="错误" value="ERROR" />
             </el-select>
-            <el-button type="primary" @click="loadDevices">
+            <el-button type="primary" @click="handleSearch">
               <el-icon><Search /></el-icon>
               搜索
             </el-button>
-            <el-button @click="resetFilter">
+            <el-button @click="handleReset">
               <el-icon><RefreshLeft /></el-icon>
               重置
             </el-button>
           </el-space>
         </el-col>
-        <el-col :span="6" style="text-align: right;">
-          <el-button type="primary" @click="showAddDialog">
+        <el-col :span="6" style="text-align: right">
+          <el-button type="primary" @click="handleShowAddDialog">
             <el-icon><Plus /></el-icon>
             添加设备
           </el-button>
@@ -46,49 +54,62 @@
         v-loading="loading"
         :data="devices"
         style="width: 100%"
-        @row-click="viewDevice"
+        stripe
+        @row-click="handleViewDetail"
       >
-        <el-table-column prop="device_id" label="设备ID" width="150" />
-        <el-table-column prop="device_name" label="设备名称" width="200" />
-        <el-table-column prop="device_type" label="设备类型" width="150" />
-        <el-table-column prop="group_id" label="所属分组" width="150" />
-        <el-table-column label="状态" width="100">
+        <el-table-column prop="deviceId" label="设备ID" width="150" />
+        <el-table-column prop="deviceName" label="设备名称" width="200" />
+        <el-table-column prop="deviceType" label="设备类型" width="150" />
+        <el-table-column prop="groupId" label="所属分组" width="150">
+          <template #default="{ row }">
+            {{ row.groupId || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusType(row.status)">
               {{ getStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="cpu_usage" label="CPU使用率" width="120">
+        <el-table-column prop="cpuUsage" label="CPU使用率" width="140" align="center">
           <template #default="{ row }">
             <el-progress
-              v-if="row.status === 'online'"
-              :percentage="row.cpu_usage"
-              :color="getUsageColor(row.cpu_usage)"
+              v-if="row.status === 'ONLINE'"
+              :percentage="row.cpuUsage"
+              :color="getUsageColor(row.cpuUsage)"
             />
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="gpu_usage" label="GPU使用率" width="120">
+        <el-table-column prop="gpuUsage" label="GPU使用率" width="140" align="center">
           <template #default="{ row }">
             <el-progress
-              v-if="row.status === 'online'"
-              :percentage="row.gpu_usage"
-              :color="getUsageColor(row.gpu_usage)"
+              v-if="row.status === 'ONLINE'"
+              :percentage="row.gpuUsage"
+              :color="getUsageColor(row.gpuUsage)"
             />
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="last_heartbeat" label="最后心跳" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="lastHeartbeat" label="最后心跳" width="180" />
+        <el-table-column label="操作" width="240" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button size="small" @click.stop="viewDevice(row)">
+            <el-button size="small" @click.stop="handleViewDetail(row)">
               查看详情
             </el-button>
-            <el-button size="small" @click.stop="editDevice(row)">
+            <el-button
+              size="small"
+              type="primary"
+              @click.stop="handleConfig(row)"
+            >
               配置
             </el-button>
-            <el-button size="small" type="danger" @click.stop="deleteDevice(row)">
+            <el-button
+              size="small"
+              type="danger"
+              @click.stop="handleDelete(row)"
+            >
               删除
             </el-button>
           </template>
@@ -110,150 +131,202 @@
     </el-card>
 
     <!-- 添加设备对话框 -->
-    <el-dialog v-model="addDialogVisible" title="添加设备" width="500px">
+    <el-dialog
+      v-model="addDialogVisible"
+      title="添加设备"
+      width="500px"
+      :close-on-click-modal="false"
+    >
       <el-form :model="deviceForm" label-width="100px">
-        <el-form-item label="设备ID">
-          <el-input v-model="deviceForm.device_id" placeholder="EDGE_DEVICE_001" />
+        <el-form-item label="设备ID" required>
+          <el-input
+            v-model="deviceForm.deviceId"
+            placeholder="EDGE_DEVICE_001"
+            maxlength="50"
+          />
         </el-form-item>
-        <el-form-item label="设备名称">
-          <el-input v-model="deviceForm.device_name" placeholder="边缘设备1" />
+        <el-form-item label="设备名称" required>
+          <el-input
+            v-model="deviceForm.deviceName"
+            placeholder="边缘设备1"
+            maxlength="200"
+          />
         </el-form-item>
-        <el-form-item label="设备类型">
-          <el-select v-model="deviceForm.device_type" style="width: 100%;">
+        <el-form-item label="设备类型" required>
+          <el-select v-model="deviceForm.deviceType" style="width: 100%">
             <el-option label="Jetson Orin" value="jetson_orin" />
             <el-option label="Jetson Xavier" value="jetson_xavier" />
             <el-option label="Jetson Nano" value="jetson_nano" />
+            <el-option label="边缘盒子" value="EDGE_BOX" />
           </el-select>
         </el-form-item>
         <el-form-item label="所属分组">
-          <el-input v-model="deviceForm.group_id" placeholder="group_a" />
+          <el-input
+            v-model="deviceForm.groupId"
+            placeholder="group_a"
+            maxlength="50"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="addDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="addDevice">确定</el-button>
+        <el-button @click="handleCancelAdd">取消</el-button>
+        <el-button type="primary" @click="handleAdd">
+          确定
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+// ==================== Vue 核心库 ====================
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { deviceApi } from '@/api'
-import { Search, RefreshLeft, Plus } from '@element-plus/icons-vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
 
+// ==================== 第三方 UI 库 ====================
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, RefreshLeft, Plus } from '@element-plus/icons-vue'
+
+// ==================== API 服务 ====================
+import { deviceApi } from '@/api'
+
+// ==================== 类型定义 ====================
+interface DeviceForm {
+  deviceId: string
+  deviceName: string
+  deviceType: string
+  groupId: string
+}
+
+interface DeviceItem {
+  deviceId: string
+  deviceName: string
+  deviceType: string
+  groupId: string | null
+  ip: string | null
+  mac: string | null
+  status: string
+  cpuUsage: number
+  gpuUsage: number
+  memoryUsage: number
+  diskUsage: number | null
+  currentModelId: string | null
+  currentVersion: string | null
+  mqttTopic: string | null
+  lastHeartbeat: string
+  createdAt: string
+  updatedAt: string
+}
+
+// ==================== 路由 ====================
 const router = useRouter()
 
+// ==================== 响应式状态 ====================
 const loading = ref(false)
 const searchText = ref('')
 const statusFilter = ref('')
-const devices = ref([])
+const devices = ref<DeviceItem[]>([])
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 
+// 添加对话框状态
 const addDialogVisible = ref(false)
-const deviceForm = ref({
-  device_id: '',
-  device_name: '',
-  device_type: '',
-  group_id: ''
+
+const deviceForm = reactive<DeviceForm>({
+  deviceId: '',
+  deviceName: '',
+  deviceType: '',
+  groupId: ''
 })
 
-// 加载设备列表
-const loadDevices = async () => {
+// ==================== 计算属性 ====================
+const canAddDevice = computed(() => {
+  return deviceForm.deviceId.trim() !== '' &&
+         deviceForm.deviceName.trim() !== '' &&
+         deviceForm.deviceType !== ''
+})
+
+// ==================== 工具函数 ====================
+const getUsageColor = (usage: number): string => {
+  if (usage > 80) return '#f56c6c'
+  if (usage > 60) return '#e6a23c'
+  return '#67c23a'
+}
+
+// ==================== 类型映射 ====================
+const getStatusType = (status: string): string => {
+  const types: Record<string, string> = {
+    'ONLINE': 'success',
+    'OFFLINE': 'info',
+    'UPGRADING': 'warning',
+    'ERROR': 'danger'
+  }
+  return types[status] || 'info'
+}
+
+const getStatusText = (status: string): string => {
+  const texts: Record<string, string> = {
+    'ONLINE': '在线',
+    'OFFLINE': '离线',
+    'UPGRADING': '升级中',
+    'ERROR': '错误'
+  }
+  return texts[status] || status
+}
+
+// ==================== 数据加载 ====================
+const loadDevices = async (): Promise<void> => {
   loading.value = true
   try {
-    const res = await deviceApi.getList({
+    const response = await deviceApi.getList({
       page: currentPage.value,
-      page_size: pageSize.value,
-      search: searchText.value,
-      status: statusFilter.value
+      pageSize: pageSize.value,
+      status: statusFilter.value || undefined
     })
-    devices.value = res.data.items
-    total.value = res.data.total
-  } catch (error) {
-    ElMessage.error('加载设备列表失败')
+    devices.value = response.data.items || []
+    total.value = response.data.total || 0
+  } catch (error: any) {
+    console.error('加载设备列表失败:', error)
+    ElMessage.error(`加载设备列表失败: ${error.message || '未知错误'}`)
+    devices.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
 }
 
-// 重置筛选
-const resetFilter = () => {
+// ==================== 搜索和筛选 ====================
+const handleSearch = (): void => {
+  currentPage.value = 1
+  loadDevices()
+}
+
+const handleFilterChange = (): void => {
+  currentPage.value = 1
+  loadDevices()
+}
+
+const handleReset = (): void => {
   searchText.value = ''
   statusFilter.value = ''
   currentPage.value = 1
   loadDevices()
 }
 
-// 获取状态类型
-const getStatusType = (status: string) => {
-  const types: Record<string, any> = {
-    online: 'success',
-    offline: 'info',
-    alarm: 'danger'
-  }
-  return types[status] || 'info'
+// ==================== 设备操作 ====================
+const handleViewDetail = (device: DeviceItem): void => {
+  router.push(`/device/${device.deviceId}`)
 }
 
-// 获取状态文本
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    online: '在线',
-    offline: '离线',
-    alarm: '告警'
-  }
-  return texts[status] || status
+const handleConfig = (device: DeviceItem): void => {
+  // TODO: 实现设备配置功能
+  ElMessage.info(`配置设备: ${device.deviceName}`)
 }
 
-// 获取使用率颜色
-const getUsageColor = (usage: number) => {
-  if (usage > 80) return '#f56c6c'
-  if (usage > 60) return '#e6a23c'
-  return '#67c23a'
-}
-
-// 查看设备详情
-const viewDevice = (device: any) => {
-  router.push(`/device/${device.device_id}`)
-}
-
-// 显示添加对话框
-const showAddDialog = () => {
-  deviceForm.value = {
-    device_id: '',
-    device_name: '',
-    device_type: '',
-    group_id: ''
-  }
-  addDialogVisible.value = true
-}
-
-// 添加设备
-const addDevice = async () => {
-  try {
-    await deviceApi.register(deviceForm.value)
-    ElMessage.success('设备添加成功')
-    addDialogVisible.value = false
-    loadDevices()
-  } catch (error) {
-    ElMessage.error('设备添加失败')
-  }
-}
-
-// 编辑设备
-const editDevice = (_device: any) => {
-  // TODO: 实现编辑功能
-  ElMessage.info('编辑功能待实现')
-}
-
-// 删除设备
-const deleteDevice = (device: any) => {
+const handleDelete = (device: DeviceItem): void => {
   ElMessageBox.confirm(
-    `确定要删除设备 "${device.device_name}" 吗？`,
+    `确定要删除设备 "${device.deviceName}" 吗？此操作不可恢复。`,
     '确认删除',
     {
       confirmButtonText: '确定',
@@ -262,15 +335,67 @@ const deleteDevice = (device: any) => {
     }
   ).then(async () => {
     try {
-      // await deviceApi.delete(device.device_id)
+      await deviceApi.delete(device.deviceId)
       ElMessage.success('设备删除成功')
-      loadDevices()
-    } catch (error) {
-      ElMessage.error('设备删除失败')
+      await loadDevices()
+    } catch (error: any) {
+      console.error('删除设备失败:', error)
+      ElMessage.error(`删除失败: ${error.message || '未知错误'}`)
     }
+  }).catch(() => {
+    // 用户取消删除
   })
 }
 
+// ==================== 添加设备操作 ====================
+const handleShowAddDialog = (): void => {
+  // 重置表单
+  Object.assign(deviceForm, {
+    deviceId: '',
+    deviceName: '',
+    deviceType: '',
+    groupId: ''
+  })
+  addDialogVisible.value = true
+}
+
+const handleCancelAdd = (): void => {
+  addDialogVisible.value = false
+}
+
+const handleAdd = async (): Promise<void> => {
+  if (!canAddDevice.value) {
+    ElMessage.warning('请填写完整信息')
+    return
+  }
+
+  try {
+    await deviceApi.register({
+      deviceId: deviceForm.deviceId.trim(),
+      deviceName: deviceForm.deviceName.trim(),
+      deviceType: deviceForm.deviceType,
+      groupId: deviceForm.groupId.trim() || undefined
+    })
+    ElMessage.success('设备添加成功')
+    addDialogVisible.value = false
+
+    // 重置表单
+    Object.assign(deviceForm, {
+      deviceId: '',
+      deviceName: '',
+      deviceType: '',
+      groupId: ''
+    })
+
+    // 刷新列表
+    await loadDevices()
+  } catch (error: any) {
+    console.error('添加设备失败:', error)
+    ElMessage.error(`设备添加失败: ${error.message || '未知错误'}`)
+  }
+}
+
+// ==================== 生命周期 ====================
 onMounted(() => {
   loadDevices()
 })
@@ -286,7 +411,7 @@ onMounted(() => {
 }
 
 .table-card {
-  min-height: calc(100vh - 300px);
+  min-height: calc(100vh - 280px);
 }
 
 .pagination {
@@ -295,7 +420,11 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.el-table :deep(.el-table__row) {
+:deep(.el-table__row) {
   cursor: pointer;
+}
+
+:deep(.el-table__row:hover) {
+  background-color: var(--el-fill-color-light);
 }
 </style>

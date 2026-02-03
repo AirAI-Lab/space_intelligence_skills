@@ -28,16 +28,16 @@ public class MqttService {
 
     private final OtaService otaService;
 
-    @Value("${MQTT_BROKER_URL:tcp://localhost:1883}")
+    @Value("${mqtt.broker-url:${spring.mqtt.broker-url:tcp://localhost:1883}}")
     private String brokerUrl;
 
-    @Value("${MQTT_CLIENT_ID:edge_cloud_backend}")
+    @Value("${mqtt.client-id:${spring.mqtt.client-id:edge_cloud_backend}}")
     private String clientId;
 
-    @Value("${MQTT_USERNAME:admin}")
+    @Value("${mqtt.username:${spring.mqtt.username:admin}}")
     private String username;
 
-    @Value("${MQTT_PASSWORD:admin123456}")
+    @Value("${mqtt.password:${spring.mqtt.password:admin123456}}")
     private String password;
 
     private MqttClient mqttClient;
@@ -46,6 +46,8 @@ public class MqttService {
     @PostConstruct
     public void init() {
         try {
+            log.info("MQTT配置: brokerUrl={}, username={}, password={}", brokerUrl, username, "******");
+
             mqttClient = new MqttClient(brokerUrl, clientId);
             MqttConnectionOptions options = new MqttConnectionOptions();
             options.setAutomaticReconnect(true);

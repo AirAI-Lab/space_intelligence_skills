@@ -109,6 +109,23 @@ public class TrainingController {
         }
     }
 
+    @GetMapping("/jobs")
+    @Operation(summary = "分页查询训练任务列表")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> listTrainingJobs2(
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") int pageSize,
+            @Parameter(description = "状态过滤") @RequestParam(required = false) TrainingJob.TrainingStatus status
+    ) {
+        try {
+            Map<String, Object> result = trainingService.listTrainingJobs(page, pageSize, status);
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            log.error("查询训练任务列表失败", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("查询失败: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/{job_id}")
     @Operation(summary = "获取训练任务详情")
     public ResponseEntity<ApiResponse<TrainingJobDTO>> getTrainingJob(
@@ -171,6 +188,22 @@ public class TrainingController {
         }
     }
 
+    @GetMapping("/{job_id}/logs")
+    @Operation(summary = "获取训练日志")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getTrainingLogs(
+            @Parameter(description = "任务ID") @PathVariable("job_id") String jobId,
+            @Parameter(description = "日志行数") @RequestParam(defaultValue = "100") int lines
+    ) {
+        try {
+            Map<String, Object> logs = trainingService.getTrainingLogs(jobId, lines);
+            return ResponseEntity.ok(ApiResponse.success(logs));
+        } catch (Exception e) {
+            log.error("获取训练日志失败: {}", jobId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
+
     /**
      * 内部回调接口：训练进度更新
      */
@@ -202,16 +235,54 @@ public class TrainingController {
             @PathVariable("job_id") String jobId,
             @RequestParam String output_model_id,
             @RequestParam float final_map,
+            @RequestParam(defaultValue = "0") float final_map50,
             @RequestParam float final_loss,
             @RequestParam int best_epoch
     ) {
         try {
-            trainingService.completeTraining(jobId, output_model_id, final_map, final_loss, best_epoch);
+            trainingService.completeTraining(jobId, output_model_id, final_map, final_map50, final_loss, best_epoch);
             return ResponseEntity.ok(ApiResponse.success(null));
         } catch (Exception e) {
             log.error("训练完成通知失败: {}", jobId, e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("通知失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 获取任务的实际训练进度（从 results.csv 读取）
+     * 用于续训时获取原任务的实际训练轮次
+     */
+    @GetMapping("/{job_id}/actual-progress")
+    @Operation(summary = "获取任务的实际训练进度")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActualProgress(
+            @PathVariable("job_id") String jobId
+    ) {
+        try {
+            Map<String, Object> result = trainingService.getActualProgress(jobId);
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            log.error("获取实际进度失败: {}", jobId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 从已完成的训练任务创建模型记录
+     */
+    @PostMapping("/{job_id}/create-model")
+    @Operation(summary = "从训练任务创建模型记录")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> createModelFromTraining(
+            @PathVariable("job_id") String jobId
+    ) {
+        try {
+            Map<String, Object> result = trainingService.createModelFromTrainingJob(jobId);
+            return ResponseEntity.ok(ApiResponse.success("模型记录创建成功", result));
+        } catch (Exception e) {
+            log.error("创建模型记录失败: {}", jobId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("创建失败: " + e.getMessage()));
         }
     }
 }

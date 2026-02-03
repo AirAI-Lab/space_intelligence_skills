@@ -86,11 +86,11 @@ services:
       - edge-cloud-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/')"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 20s
+      start_period: 40s
 
   # SeaweedFS 对象存储（Apache 2.0 - 完全免费，商业化友好）
   seaweedfs:
@@ -109,38 +109,45 @@ services:
       - edge-cloud-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8333/"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider --timeout=10 http://127.0.0.1:8333/ || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 90s
 
-  # 前端服务 (Vue3 + TypeScript)
+  # 前端服务 (Vue3 + TypeScript) - 开发模式
   frontend:
-    build:
-      context: ../../frontend
-      dockerfile: ../deployment/docker/frontend.Dockerfile
+    image: node:21-alpine
     container_name: edge_cloud_frontend
+    working_dir: /app
     ports:
       - "3000:3000"
     environment:
-      - VITE_API_BASE_URL=http://localhost:8081/api/v1
+      - DOCKER_ENV=true
+      - VITE_API_BASE_URL=/api/v1
       - VITE_WS_URL=ws://localhost:8081/ws
+    volumes:
+      # 开发模式：挂载源码目录（热重载）
+      - ../../frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3000"
     depends_on:
       - backend
     networks:
       - edge-cloud-network
     restart: unless-stopped
 
-  # 后端 API 服务 (Spring Boot 3.x)
+  # 后端 API 服务 (Spring Boot 3.x) - 开发模式
   backend:
-    build:
-      context: ../../backend
-      dockerfile: ../deployment/docker/backend.Dockerfile
+    image: maven:3.9-eclipse-temurin-21
     container_name: edge_cloud_backend
+    working_dir: /app
     ports:
       - "8081:8080"
+      - "5005:5005"  # 远程调试端口
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      - TZ=Asia/Shanghai
+      - SPRING_PROFILES_ACTIVE=docker,dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/edge_cloud
       - SPRING_DATASOURCE_USERNAME=edge_user
       - SPRING_DATASOURCE_PASSWORD=edge_pass
@@ -151,6 +158,7 @@ services:
       - TIMESTRIDE_ENABLED=true
       - TIMESTRIDE_URI=jdbc:postgresql://postgres:5432/edge_cloud_timeseries
       - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - TRAINING_SERVICE_URL=http://edge_cloud_training:5002
       # SeaweedFS S3存储配置（Apache 2.0，商业化友好）
       - FILE_STORAGE_TYPE=s3
       - S3_ENDPOINT=http://seaweedfs:8333
@@ -158,13 +166,28 @@ services:
       - S3_SECRET_KEY=admin123456
       - S3_BUCKET=edge-cloud-files
       - S3_PATH_STYLE_ACCESS=true
+      # 开发模式配置（暂时禁用JDWP调试以加快启动）
+      # - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005
+      - SPRING_DEVTOOLS_RESTART_ENABLED=true
+      - SPRING_LIVE_RELOAD_ENABLED=true
     depends_on:
       - postgres
       - redis
       - emqx
       - seaweedfs
     volumes:
+      # 开发模式：挂载源码目录（热重载）
+      - ../../backend:/app
+      - ~/.m2:/root/.m2  # Maven 本地仓库缓存
       - file_storage_data:/app/data/files
+    command:
+      - /bin/bash
+      - -c
+      - |
+        apt-get update -qq && apt-get install -y -qq tzdata &&
+        ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime &&
+        echo 'Asia/Shanghai' > /etc/timezone &&
+        mvn spring-boot:run
     networks:
       - edge-cloud-network
     restart: unless-stopped
@@ -176,13 +199,14 @@ services:
       dockerfile: ../deployment/docker/training.Dockerfile
     container_name: edge_cloud_training
     runtime: nvidia
+    shm_size: '16gb'  # 增加共享内存以支持多 workers 数据加载
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
       - CUDA_VISIBLE_DEVICES=0
       - PYTHONUNBUFFERED=1
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       # 后端 API 配置
-      - BACKEND_API_URL=http://backend:8081
+      - BACKEND_API_URL=http://backend:8080
       # S3 存储配置
       - S3_ENDPOINT=http://seaweedfs:8333
       - S3_ACCESS_KEY=admin
@@ -195,10 +219,16 @@ services:
       # GPU 配置
       - USE_GPU=true
     volumes:
+      # 开发模式：挂载源码目录（热重载）
+      - ../../training:/app
+      # 数据目录
       - ../../data/runs:/app/runs
       - ../../data/models:/app/models
       - ../../data/shared_models:/shared:ro
-      - training_work:/app/work
+      - ../../data/work:/app/work
+      # 文件存储
+      - file_storage_data:/app/data/files:ro
+      - ../../data/datasets:/app/data/datasets:rw
     ports:
       - "5002:5002"
     deploy:

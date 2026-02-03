@@ -30,8 +30,27 @@ public class TrainingJob {
     @Column(name = "dataset_id", length = 50)
     private String datasetId;
 
+    // 数据集来源：backend, url, local
+    @Column(name = "dataset_source", length = 20)
+    private String datasetSource = "backend";
+
+    // URL 数据集地址（datasetSource=url 时使用）
+    @Column(name = "dataset_url", length = 500)
+    private String datasetUrl;
+
+    // 本地数据集路径（datasetSource=local 时使用）
+    @Column(name = "dataset_path", length = 500)
+    private String datasetPath;
+
+    // 自定义数据集名称（datasetSource=url/local 时使用）
+    @Column(name = "dataset_name", length = 200)
+    private String datasetName;
+
     @Column(name = "base_model_id", length = 50)
     private String baseModelId;
+
+    @Column(name = "base_model", length = 100)
+    private String baseModel;  // 预训练模型名称（如 yolov8n.pt）
 
     @Column(name = "output_model_id", length = 50)
     private String outputModelId;
@@ -81,6 +100,15 @@ public class TrainingJob {
 
     @Column(name = "mlflow_experiment_id", length = 100)
     private String mlflowExperimentId;
+
+    @Column(name = "resume")
+    private Boolean resume = false;
+
+    @Column(name = "resume_job_id", length = 50)
+    private String resumeJobId;
+
+    @Column(name = "enable_smart_optimization")
+    private Boolean enableSmartOptimization = true;  // 是否启用智能参数优化（续训时）
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;

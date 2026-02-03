@@ -17,7 +17,12 @@
       "Bash(git ls-tree:*)",
       "Bash(docker-compose:*)",
       "Bash(mvn:*)",
-      "Bash(java:*)"
+      "Bash(java:*)",
+      "Bash(for:*)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(done)",
+      "Bash(powershell.exe:*)"
     ],
     "additionalDirectories": [
       "D:\\github\\edge_infer\\src\\mqtt",

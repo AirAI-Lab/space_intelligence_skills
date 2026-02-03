@@ -1,6 +1,11 @@
 spring:
   application:
     name: edge-infer-cloud
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
+      enabled: true
 
 server:
   port: 8080
@@ -11,14 +16,19 @@ spring:
   config:
     activate:
       on-profile: docker
-  datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/edge_cloud}
-    username: ${SPRING_DATASOURCE_USERNAME:edge_user}
-    password: ${SPRING_DATASOURCE_PASSWORD:edge_pass}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false
-  redis:
-    host: ${SPRING_REDIS_HOST:redis}
-    port: ${SPRING_REDIS_PORT:6379}
+    datasource:
+      url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/edge_cloud}
+      username: ${SPRING_DATASOURCE_USERNAME:edge_user}
+      password: ${SPRING_DATASOURCE_PASSWORD:edge_pass}
+    jpa:
+      hibernate:
+        ddl-auto: update
+      show-sql: false
+    redis:
+      host: ${SPRING_REDIS_HOST:redis}
+      port: ${SPRING_REDIS_PORT:6379}
+  mqtt:
+    broker-url: tcp://emqx:1883
+    client-id: edge_cloud_backend
+    username: admin
+    password: admin123456

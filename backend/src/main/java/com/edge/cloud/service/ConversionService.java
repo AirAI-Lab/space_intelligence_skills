@@ -112,8 +112,14 @@ public class ConversionService {
             request.put("conversion_type", task.getConversionType().name());
             request.put("precision", getPrecisionFromType(task.getConversionType()));
 
-            // TODO: 调用 Python 训练服务执行转换
-            // restTemplate.postForEntity(trainingServiceUrl + "/convert", request, String.class);
+            // 调用 Python 训练服务执行转换
+            try {
+                String response = restTemplate.postForObject(trainingServiceUrl + "/convert", request, String.class);
+                log.info("训练服务转换响应: {}", response);
+            } catch (Exception e) {
+                log.error("调用训练服务转换失败: {}", e.getMessage());
+                throw e;
+            }
 
             log.info("转换任务已启动: taskId={}", taskId);
             return toDTO(task);

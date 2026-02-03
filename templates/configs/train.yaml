@@ -1,0 +1,27 @@
+# 训练配置（参考 YOLOv8）
+model:
+  name: "yolov8n"
+  pretrained: true
+
+train:
+  epochs: 100
+  batch: 16
+  imgsz: 640
+  device: 0              # GPU设备ID
+  optimizer: "AdamW"     # 优化器: SGD/Adam/AdamW
+  lr0: 0.01              # 初始学习率
+  lrf: 0.01              # 最终学习率因子
+  momentum: 0.937        # 动量
+  weight_decay: 0.0005   # 权重衰减
+  warmup_epochs: 3.0     # 预热轮数
+  patience: 50           # 早停耐心值
+  save_period: 10        # 保存频率
+  cache: false           # 数据缓存
+  amp: true              # 混合精度训练
+  cos_lr: true           # 余弦学习率
+
+logging:
+  project: "runs/train"
+  name: "exp"
+  wandb: false           # W&B集成
+  tensorboard: true      # TensorBoard

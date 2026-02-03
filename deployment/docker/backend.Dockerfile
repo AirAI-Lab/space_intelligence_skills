@@ -23,10 +23,19 @@ RUN mvn clean package -DskipTests
 # 阶段2: 运行阶段
 FROM eclipse-temurin:21-jre-alpine
 
+# 设置时区
+ENV TZ=Asia/Shanghai
+RUN apk add --no-cache tzdata \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone
+
 WORKDIR /app
 
 # 创建非 root 用户
 RUN addgroup -S spring && adduser -S spring -G spring
+
+# 创建数据目录并设置权限
+RUN mkdir -p /app/data/files && chown -R spring:spring /app
 
 # 复制构建产物
 COPY --from=builder /app/target/*.jar app.jar

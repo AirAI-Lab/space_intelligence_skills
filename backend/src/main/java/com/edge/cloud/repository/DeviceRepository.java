@@ -1,6 +1,8 @@
 package com.edge.cloud.repository;
 
 import com.edge.cloud.entity.Device;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -18,6 +20,11 @@ public interface DeviceRepository extends JpaRepository<Device, String> {
      * 根据设备状态查询设备列表
      */
     List<Device> findByStatus(Device.DeviceStatus status);
+
+    /**
+     * 根据设备状态分页查询
+     */
+    Page<Device> findByStatus(Device.DeviceStatus status, Pageable pageable);
 
     /**
      * 根据设备组ID查询设备列表

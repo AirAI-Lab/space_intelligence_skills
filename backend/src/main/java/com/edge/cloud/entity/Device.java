@@ -30,6 +30,12 @@ public class Device {
     @Column(name = "group_id", length = 50)
     private String groupId;
 
+    @Column(name = "ip", length = 50)
+    private String ip;
+
+    @Column(name = "mac", length = 50)
+    private String mac;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50)
     private DeviceStatus status;

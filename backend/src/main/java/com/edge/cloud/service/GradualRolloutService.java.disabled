@@ -1,0 +1,251 @@
+package com.edge.cloud.service;
+
+import com.edge.cloud.repository.OtaTaskRepository;
+import com.edge.cloud.repository.DeviceUpgradeStatusRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 灰度发布服务
+ * 实现分批升级、逐步放量策略
+ */
+@Service
+@Slf4j
+@RequiredArgsConstructor
+public class GradualRolloutService {
+
+    private final OtaService otaService;
+    private final OtaTaskRepository otaTaskRepository;
+    private final DeviceUpgradeStatusRepository deviceUpgradeStatusRepository;
+    private final WebSocketMessageService webSocketMessageService;
+
+    // 存储灰度发布状态
+    private final ConcurrentHashMap<String, GradualRolloutState> rolloutStates = new ConcurrentHashMap<>();
+
+    /**
+     * 灰度发布状态
+     */
+    public static class GradualRolloutState {
+        String taskId;
+        int totalDevices;
+        int batchSize;
+        int intervalMinutes;
+        int currentBatch;
+        int completedBatches;
+        LocalDateTime lastBatchTime;
+        RolloutStatus status;
+
+        public enum RolloutStatus {
+            PENDING, IN_PROGRESS, PAUSED, COMPLETED, FAILED, ROLLED_BACK
+        }
+    }
+
+    /**
+     * 启动灰度发布
+     *
+     * @param taskId OTA任务ID
+     * @param batchSize 每批设备数量
+     * @param intervalMinutes 批次间隔（分钟）
+     */
+    public void startGradualRollout(String taskId, int batchSize, int intervalMinutes) {
+        log.info("启动灰度发布: taskId={}, batchSize={}, interval={}min",
+                taskId, batchSize, intervalMinutes);
+
+        // 获取所有待升级设备
+        List<DeviceUpgradeStatus> devices = deviceUpgradeStatusRepository.findByTaskId(taskId);
+        int totalDevices = devices.size();
+
+        // 计算批次数
+        int totalBatches = (int) Math.ceil((double) totalDevices / batchSize);
+
+        // 创建状态
+        GradualRolloutState state = new GradualRolloutState();
+        state.taskId = taskId;
+        state.totalDevices = totalDevices;
+        state.batchSize = batchSize;
+        state.intervalMinutes = intervalMinutes;
+        state.currentBatch = 0;
+        state.completedBatches = 0;
+        state.status = GradualRolloutState.RolloutStatus.PENDING;
+
+        rolloutStates.put(taskId, state);
+
+        log.info("灰度发布计划: 总设备={}, 总批次={}, 每批设备={}",
+                totalDevices, totalBatches, batchSize);
+
+        // 启动第一批
+        executeNextBatch(taskId);
+    }
+
+    /**
+     * 执行下一批升级
+     */
+    @Async
+    public void executeNextBatch(String taskId) {
+        GradualRolloutState state = rolloutStates.get(taskId);
+        if (state == null) {
+            log.warn("灰度发布状态不存在: taskId={}", taskId);
+            return;
+        }
+
+        if (state.status == GradualRolloutState.RolloutStatus.PAUSED) {
+            log.info("灰度发布已暂停: taskId={}", taskId);
+            return;
+        }
+
+        state.currentBatch++;
+        state.status = GradualRolloutState.RolloutStatus.IN_PROGRESS;
+        state.lastBatchTime = LocalDateTime.now();
+
+        log.info("执行第 {} 批升级: taskId={}", state.currentBatch, taskId);
+
+        // 计算当前批次的设备范围
+        int startIndex = (state.currentBatch - 1) * state.batchSize;
+        int endIndex = Math.min(startIndex + state.batchSize, state.totalDevices);
+
+        // 获取当前批次的设备
+        List<DeviceUpgradeStatus> allDevices = deviceUpgradeStatusRepository.findByTaskId(taskId);
+        List<DeviceUpgradeStatus> batchDevices = allDevices.subList(startIndex, endIndex);
+
+        log.info("批次 {}: 设备数量={}", state.currentBatch, batchDevices.size());
+
+        // 发送升级命令
+        for (DeviceUpgradeStatus device : batchDevices) {
+            if (device.getStatus() == UpgradeStatus.PENDING) {
+                otaService.sendUpgradeCommand(device);
+            }
+        }
+
+        // 通知前端
+        webSocketMessageService.sendOtaTaskProgress(taskId, Map.of(
+                "batch", state.currentBatch,
+                "totalBatches", (int) Math.ceil((double) state.totalDevices / state.batchSize),
+                "batchSize", batchDevices.size(),
+                "status", "batch_executing"
+        ));
+    }
+
+    /**
+     * 检查并执行下一批
+     * 定时任务，每分钟检查一次
+     */
+    @Scheduled(fixedDelay = 60000)
+    public void checkAndExecuteNextBatch() {
+        for (String taskId : rolloutStates.keySet()) {
+            GradualRolloutState state = rolloutStates.get(taskId);
+
+            if (state.status != GradualRolloutState.RolloutStatus.IN_PROGRESS) {
+                continue;
+            }
+
+            // 检查当前批次是否完成
+            if (!isCurrentBatchCompleted(taskId, state.currentBatch)) {
+                continue;
+            }
+
+            // 检查成功率
+            if (!checkBatchSuccessRate(taskId, state.currentBatch)) {
+                log.warn("批次 {} 成功率过低，暂停灰度发布: taskId={}",
+                        state.currentBatch, taskId);
+                pauseRollout(taskId);
+                continue;
+            }
+
+            state.completedBatches++;
+
+            // 检查是否全部完成
+            int totalBatches = (int) Math.ceil((double) state.totalDevices / state.batchSize);
+            if (state.completedBatches >= totalBatches) {
+                log.info("灰度发布完成: taskId={}", taskId);
+                state.status = GradualRolloutState.RolloutStatus.COMPLETED;
+                continue;
+            }
+
+            // 检查是否到达执行下一批的时间
+            if (state.lastBatchTime.plusMinutes(state.intervalMinutes)
+                    .isBefore(LocalDateTime.now())) {
+                log.info("准备执行下一批: taskId={}, batch={}",
+                        taskId, state.currentBatch + 1);
+                executeNextBatch(taskId);
+            }
+        }
+    }
+
+    /**
+     * 检查当前批次是否完成
+     */
+    private boolean isCurrentBatchCompleted(String taskId, int batchNumber) {
+        GradualRolloutState state = rolloutStates.get(taskId);
+        int startIndex = (batchNumber - 1) * state.batchSize;
+        int endIndex = Math.min(startIndex + state.batchSize, state.totalDevices);
+
+        List<DeviceUpgradeStatus> devices = deviceUpgradeStatusRepository.findByTaskId(taskId);
+        List<DeviceUpgradeStatus> batchDevices = devices.subList(startIndex, endIndex);
+
+        // 检查是否所有设备都已完成或失败
+        return batchDevices.stream().allMatch(d ->
+                d.getStatus() == UpgradeStatus.COMPLETED ||
+                d.getStatus() == UpgradeStatus.FAILED
+        );
+    }
+
+    /**
+     * 检查批次成功率
+     * 阈值: 成功率 >= 80%
+     */
+    private boolean checkBatchSuccessRate(String taskId, int batchNumber) {
+        GradualRolloutState state = rolloutStates.get(taskId);
+        int startIndex = (batchNumber - 1) * state.batchSize;
+        int endIndex = Math.min(startIndex + state.batchSize, state.totalDevices);
+
+        List<DeviceUpgradeStatus> devices = deviceUpgradeStatusRepository.findByTaskId(taskId);
+        List<DeviceUpgradeStatus> batchDevices = devices.subList(startIndex, endIndex);
+
+        long successCount = batchDevices.stream()
+                .filter(d -> d.getStatus() == UpgradeStatus.COMPLETED)
+                .count();
+
+        double successRate = (double) successCount / batchDevices.size();
+
+        log.info("批次 {} 成功率: {}%", batchNumber, successRate * 100);
+
+        return successRate >= 0.8;
+    }
+
+    /**
+     * 暂停灰度发布
+     */
+    public void pauseRollout(String taskId) {
+        GradualRolloutState state = rolloutStates.get(taskId);
+        if (state != null) {
+            state.status = GradualRolloutState.RolloutStatus.PAUSED;
+            log.info("灰度发布已暂停: taskId={}", taskId);
+        }
+    }
+
+    /**
+     * 恢复灰度发布
+     */
+    public void resumeRollout(String taskId) {
+        GradualRolloutState state = rolloutStates.get(taskId);
+        if (state != null && state.status == GradualRolloutState.RolloutStatus.PAUSED) {
+            state.status = GradualRolloutState.RolloutStatus.IN_PROGRESS;
+            log.info("灰度发布已恢复: taskId={}", taskId);
+        }
+    }
+
+    /**
+     * 获取灰度发布状态
+     */
+    public GradualRolloutState getRolloutState(String taskId) {
+        return rolloutStates.get(taskId);
+    }
+}

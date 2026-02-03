@@ -30,7 +30,7 @@ class TrainingConfig:
 
     # MLflow 配置
     mlflow_tracking_uri: str = field(default_factory=lambda: os.environ.get(
-        'MLFLOW_TRACKING_URI', 'http://mlflow:5001'
+        'MLFLOW_TRACKING_URI', 'http://mlflow:5000'
     ))
 
     # 后端 API 配置
@@ -53,7 +53,7 @@ class TrainingConfig:
     work_dir: Path = field(default_factory=lambda: Path('/app/work'))
     dataset_dir: Path = field(default_factory=lambda: Path('/app/work/datasets'))
     model_dir: Path = field(default_factory=lambda: Path('/app/work/models'))
-    output_dir: Path = field(default_factory=lambda: Path('/app/work/outputs'))
+    output_dir: Path = field(default_factory=lambda: Path('/app/work/outputs'))  # 统一使用 /app/work/outputs 作为训练输出目录
 
     # GPU 配置
     use_gpu: bool = field(default_factory=lambda: os.environ.get(

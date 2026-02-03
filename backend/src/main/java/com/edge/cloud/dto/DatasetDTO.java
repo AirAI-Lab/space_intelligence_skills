@@ -16,6 +16,7 @@ public class DatasetDTO {
     private String datasetName;
     private Dataset.DatasetType datasetType;
     private String format;
+    private String datasetSource;  // upload 或 local
     private String storagePath;
     private Integer categoryCount;
     private Integer sampleCount;

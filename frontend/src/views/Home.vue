@@ -37,7 +37,7 @@
             <span>最近训练任务</span>
           </template>
           <el-table :data="recentTrainings" style="width: 100%">
-            <el-table-column prop="job_name" label="任务名称" />
+            <el-table-column prop="jobName" label="任务名称" />
             <el-table-column prop="status" label="状态" width="100">
               <template #default="{ row }">
                 <el-tag :type="getStatusType(row.status)">
@@ -63,27 +63,27 @@
             <span>在线设备</span>
           </template>
           <el-table :data="onlineDevices" style="width: 100%">
-            <el-table-column prop="device_id" label="设备ID" width="150" />
-            <el-table-column prop="device_name" label="设备名称" />
-            <el-table-column prop="cpu_usage" label="CPU使用率" width="120">
+            <el-table-column prop="deviceId" label="设备ID" width="150" />
+            <el-table-column prop="deviceName" label="设备名称" />
+            <el-table-column prop="cpuUsage" label="CPU使用率" width="120">
               <template #default="{ row }">
-                {{ row.cpu_usage }}%
+                {{ row.cpuUsage }}%
               </template>
             </el-table-column>
-            <el-table-column prop="gpu_usage" label="GPU使用率" width="120">
+            <el-table-column prop="gpuUsage" label="GPU使用率" width="120">
               <template #default="{ row }">
-                {{ row.gpu_usage }}%
+                {{ row.gpuUsage }}%
               </template>
             </el-table-column>
-            <el-table-column prop="memory_usage" label="内存使用" width="120">
+            <el-table-column prop="memoryUsage" label="内存使用" width="120">
               <template #default="{ row }">
-                {{ row.memory_usage }}GB
+                {{ row.memoryUsage }}GB
               </template>
             </el-table-column>
-            <el-table-column prop="last_heartbeat" label="最后心跳" width="180" />
+            <el-table-column prop="lastHeartbeat" label="最后心跳" width="180" />
             <el-table-column label="操作" width="150">
               <template #default="{ row }">
-                <el-button size="small" @click="viewDevice(row.device_id)">
+                <el-button size="small" @click="viewDevice(row.deviceId)">
                   查看详情
                 </el-button>
               </template>
@@ -142,40 +142,40 @@ const statistics = ref([
 // 在线设备
 const onlineDevices = ref([
   {
-    device_id: 'EDGE_001',
-    device_name: '机载设备1号',
-    cpu_usage: 45.5,
-    gpu_usage: 60.2,
-    memory_usage: 12.5,
-    last_heartbeat: '2025-01-26 10:00:00'
+    deviceId: 'EDGE_001',
+    deviceName: '机载设备1号',
+    cpuUsage: 45.5,
+    gpuUsage: 60.2,
+    memoryUsage: 12.5,
+    lastHeartbeat: '2025-01-26 10:00:00'
   },
   {
-    device_id: 'EDGE_002',
-    device_name: '机载设备2号',
-    cpu_usage: 38.2,
-    gpu_usage: 55.8,
-    memory_usage: 10.2,
-    last_heartbeat: '2025-01-26 10:00:05'
+    deviceId: 'EDGE_002',
+    deviceName: '机载设备2号',
+    cpuUsage: 38.2,
+    gpuUsage: 55.8,
+    memoryUsage: 10.2,
+    lastHeartbeat: '2025-01-26 10:00:05'
   }
 ])
 
 // 最近训练任务
 const recentTrainings = ref([
   {
-    job_id: 'JOB001',
-    job_name: '安全帽检测v2',
+    jobId: 'JOB001',
+    jobName: '安全帽检测v2',
     status: 'running',
     progress: 65
   },
   {
-    job_id: 'JOB002',
-    job_name: '车辆检测训练',
+    jobId: 'JOB002',
+    jobName: '车辆检测训练',
     status: 'completed',
     progress: 100
   },
   {
-    job_id: 'JOB003',
-    job_name: '人员识别微调',
+    jobId: 'JOB003',
+    jobName: '人员识别微调',
     status: 'pending',
     progress: 0
   }
@@ -218,30 +218,48 @@ const initChart = () => {
       trigger: 'item'
     },
     legend: {
-      orient: 'vertical',
-      left: 'left'
+      top: '5%',
+      left: 'center'
     },
     series: [
       {
         name: '设备状态',
         type: 'pie',
-        radius: '50%',
-        data: [
-          { value: 42, name: '在线' },
-          { value: 8, name: '离线' },
-          { value: 2, name: '告警' }
-        ],
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: false,
+          position: 'center'
+        },
         emphasis: {
-          itemStyle: {
-            shadowBlur: 10,
-            shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)'
+          label: {
+            show: true,
+            fontSize: 20,
+            fontWeight: 'bold'
           }
-        }
+        },
+        labelLine: {
+          show: false
+        },
+        data: [
+          { value: 35, name: '在线', itemStyle: { color: '#67c23a' } },
+          { value: 5, name: '离线', itemStyle: { color: '#909399' } },
+          { value: 2, name: '故障', itemStyle: { color: '#f56c6c' } }
+        ]
       }
     ]
   }
   chart.setOption(option)
+
+  // 响应式
+  window.addEventListener('resize', () => {
+    chart.resize()
+  })
 }
 
 onMounted(() => {
@@ -255,25 +273,19 @@ onMounted(() => {
 }
 
 .stat-card {
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
 .stat-content {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 15px;
 }
 
 .stat-icon {
   width: 60px;
   height: 60px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -282,12 +294,12 @@ onMounted(() => {
 .stat-value {
   font-size: 28px;
   font-weight: bold;
-  color: #333;
+  color: #303133;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #999;
+  color: #909399;
   margin-top: 5px;
 }
 </style>

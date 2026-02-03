@@ -197,4 +197,106 @@ public class OtaController {
                     .body(ApiResponse.error("处理失败: " + e.getMessage()));
         }
     }
+
+    // ==================== 新增端点（阶段三） ====================
+    // 注意：P2阶段功能暂时禁用，等待OtaService添加相应方法后启用
+
+    /*
+    @PostMapping("/tasks/{task_id}/retry")
+    @Operation(summary = "重试失败设备")
+    public ResponseEntity<ApiResponse<OtaTaskDTO>> retryFailedDevices(
+            @Parameter(description = "任务ID") @PathVariable("task_id") String taskId
+    ) {
+        try {
+            log.info("重试失败设备: taskId={}", taskId);
+            OtaTaskDTO result = otaService.retryFailedDevices(taskId);
+            return ResponseEntity.ok(ApiResponse.success("已重试失败设备", result));
+        } catch (Exception e) {
+            log.error("重试失败设备失败: taskId={}", taskId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("重试失败: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/tasks/{task_id}/devices/{device_id}/retry")
+    @Operation(summary = "重试单个设备")
+    public ResponseEntity<ApiResponse<Void>> retrySingleDevice(
+            @Parameter(description = "任务ID") @PathVariable("task_id") String taskId,
+            @Parameter(description = "设备ID") @PathVariable("device_id") String deviceId
+    ) {
+        try {
+            log.info("重试单个设备: taskId={}, deviceId={}", taskId, deviceId);
+            otaService.retrySingleDevice(taskId, deviceId);
+            return ResponseEntity.ok(ApiResponse.success("已重试设备", null));
+        } catch (Exception e) {
+            log.error("重试设备失败: taskId={}, deviceId={}", taskId, deviceId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("重试失败: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/tasks/{task_id}/devices/{device_id}/rollback")
+    @Operation(summary = "回滚设备升级")
+    public ResponseEntity<ApiResponse<Void>> rollbackDeviceUpgrade(
+            @Parameter(description = "任务ID") @PathVariable("task_id") String taskId,
+            @Parameter(description = "设备ID") @PathVariable("device_id") String deviceId
+    ) {
+        try {
+            log.info("回滚设备升级: taskId={}, deviceId={}", taskId, deviceId);
+            otaService.rollbackDeviceUpgrade(taskId, deviceId);
+            return ResponseEntity.ok(ApiResponse.success("回滚指令已发送", null));
+        } catch (Exception e) {
+            log.error("回滚设备升级失败: taskId={}, deviceId={}", taskId, deviceId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("回滚失败: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/tasks/{task_id}/devices/summary")
+    @Operation(summary = "获取设备状态汇总")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getDeviceStatusSummary(
+            @Parameter(description = "任务ID") @PathVariable("task_id") String taskId
+    ) {
+        try {
+            Map<String, Object> summary = otaService.getDeviceStatusSummary(taskId);
+            return ResponseEntity.ok(ApiResponse.success(summary));
+        } catch (Exception e) {
+            log.error("获取设备状态汇总失败: taskId={}", taskId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("获取失败: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/tasks/{task_id}/pause")
+    @Operation(summary = "暂停升级任务")
+    public ResponseEntity<ApiResponse<Void>> pauseOtaTask(
+            @Parameter(description = "任务ID") @PathVariable("task_id") String taskId
+    ) {
+        try {
+            log.info("暂停升级任务: taskId={}", taskId);
+            otaService.pauseOtaTask(taskId);
+            return ResponseEntity.ok(ApiResponse.success("升级任务已暂停", null));
+        } catch (Exception e) {
+            log.error("暂停升级任务失败: taskId={}", taskId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("暂停失败: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/tasks/{task_id}/resume")
+    @Operation(summary = "恢复升级任务")
+    public ResponseEntity<ApiResponse<Void>> resumeOtaTask(
+            @Parameter(description = "任务ID") @PathVariable("task_id") String taskId
+    ) {
+        try {
+            log.info("恢复升级任务: taskId={}", taskId);
+            otaService.resumeOtaTask(taskId);
+            return ResponseEntity.ok(ApiResponse.success("升级任务已恢复", null));
+        } catch (Exception e) {
+            log.error("恢复升级任务失败: taskId={}", taskId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("恢复失败: " + e.getMessage()));
+        }
+    }
+    */
 }

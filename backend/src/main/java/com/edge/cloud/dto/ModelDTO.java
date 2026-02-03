@@ -23,6 +23,7 @@ public class ModelDTO {
     private String onnxFilePath;
     private String engineFilePath;
     private Float map;
+    private Float map50;
     private Float precision;
     private Float recall;
     private Float inferenceTimeMs;

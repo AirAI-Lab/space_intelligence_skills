@@ -34,6 +34,9 @@ public class Dataset {
     @Column(name = "format", nullable = false, length = 50)
     private String format;
 
+    @Column(name = "dataset_source", length = 20)
+    private String datasetSource = "upload";  // upload 或 local
+
     @Column(name = "storage_path", length = 500)
     private String storagePath;
 
