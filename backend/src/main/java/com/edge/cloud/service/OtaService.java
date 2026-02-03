@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -32,6 +33,8 @@ public class OtaService {
     private final DeviceUpgradeStatusRepository deviceUpgradeStatusRepository;
     private final DeviceRepository deviceRepository;
     private final ModelRepository modelRepository;
+    private final DeploymentService deploymentService;
+    private final com.edge.cloud.repository.ModelDeploymentRepository modelDeploymentRepository;
 
     // 使用 setter 注入打破循环依赖
     private MqttService mqttService;
@@ -138,9 +141,23 @@ public class OtaService {
                 downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
             }
 
-            // 向所有设备发送升级消息
+            // 向所有设备发送升级消息，并创建部署记录
             List<DeviceUpgradeStatus> statusList = deviceUpgradeStatusRepository.findByTaskId(taskId);
             for (DeviceUpgradeStatus status : statusList) {
+                // 如果是模型升级，创建部署记录
+                if (task.getModelId() != null) {
+                    try {
+                        deploymentService.createDeployment(
+                                task.getModelId(),
+                                status.getDeviceId(),
+                                task.getTotalDevices() > 1 ? "BATCH" : "SINGLE",
+                                "system",
+                                taskId
+                        );
+                    } catch (Exception e) {
+                        log.warn("创建部署记录失败: deviceId={}", status.getDeviceId(), e);
+                    }
+                }
                 sendOtaMessageToDevice(status.getDeviceId(), task, downloadUrl);
             }
 
@@ -242,6 +259,20 @@ public class OtaService {
                 task.setStatus(OtaTask.OtaStatus.COMPLETED);
             }
             otaTaskRepository.save(task);
+
+            // 标记部署记录成功（通过OTA任务ID和设备ID查找）
+            if (task.getModelId() != null) {
+                try {
+                    deploymentService.markDeploymentSuccess(
+                            findDeploymentId(taskId, deviceId),
+                            device != null ? device.getInferenceFps() : null,
+                            null,
+                            null
+                    );
+                } catch (Exception e) {
+                    log.warn("更新部署记录成功状态失败: taskId={}, deviceId={}", taskId, deviceId, e);
+                }
+            }
         }
 
         log.info("设备升级完成: taskId={}, deviceId={}", taskId, deviceId);
@@ -281,6 +312,18 @@ public class OtaService {
                 task.setStatus(OtaTask.OtaStatus.FAILED);
             }
             otaTaskRepository.save(task);
+
+            // 标记部署记录失败
+            if (task.getModelId() != null) {
+                try {
+                    deploymentService.markDeploymentFailed(
+                            findDeploymentId(taskId, deviceId),
+                            errorMessage
+                    );
+                } catch (Exception e) {
+                    log.warn("更新部署记录失败状态: taskId={}, deviceId={}", taskId, deviceId, e);
+                }
+            }
         }
 
         log.error("设备升级失败: taskId={}, deviceId={}, error={}", taskId, deviceId, errorMessage);
@@ -486,6 +529,15 @@ public class OtaService {
             deviceRepository.save(device);
         }
 
+        // 标记部署记录已回滚
+        if (success) {
+            try {
+                deploymentService.markDeploymentRolledBack(findDeploymentId(taskId, deviceId));
+            } catch (Exception e) {
+                log.warn("更新部署记录回滚状态失败: taskId={}, deviceId={}", taskId, deviceId, e);
+            }
+        }
+
         log.info("设备回滚处理完成: deviceId={}, success={}", deviceId, success);
     }
 
@@ -685,5 +737,14 @@ public class OtaService {
         summary.put("progress", total > 0 ? (int) ((completed + failed + rolledBack) * 100.0 / total) : 0);
 
         return summary;
+    }
+
+    /**
+     * 根据OTA任务ID和设备ID查找部署记录ID
+     */
+    private String findDeploymentId(String taskId, String deviceId) {
+        return modelDeploymentRepository.findByOtaTaskIdAndDeviceId(taskId, deviceId)
+                .map(com.edge.cloud.entity.ModelDeployment::getDeploymentId)
+                .orElseThrow(() -> new RuntimeException("部署记录不存在: taskId=" + taskId + ", deviceId=" + deviceId));
     }
 }

@@ -565,3 +565,62 @@ export const conversionApi = {
   delete: (taskId: string) =>
     request.delete(`/conversion/tasks/${taskId}`)
 }
+
+// ==================== 部署记录 API ====================
+export const deploymentApi = {
+  /**
+   * 获取部署记录详情
+   */
+  getDetail: (deploymentId: string) =>
+    request.get(`/deployments/${deploymentId}`),
+
+  /**
+   * 分页查询部署记录
+   */
+  getList: (params: {
+    page?: number
+    pageSize?: number
+    modelId?: string
+    deviceId?: string
+    status?: string
+    deploymentType?: string
+    startTime?: string
+    endTime?: string
+  }) => request.get('/deployments', { params }),
+
+  /**
+   * 获取最近部署记录
+   */
+  getRecent: (params?: { page?: number; pageSize?: number }) =>
+    request.get('/deployments/recent', { params }),
+
+  /**
+   * 获取模型的部署历史
+   */
+  getModelHistory: (modelId: string) =>
+    request.get(`/deployments/model/${modelId}/history`),
+
+  /**
+   * 获取模型部署统计
+   */
+  getModelStats: (modelId: string) =>
+    request.get(`/deployments/model/${modelId}/stats`),
+
+  /**
+   * 获取模型当前运行的设备列表
+   */
+  getModelActiveDevices: (modelId: string) =>
+    request.get(`/deployments/model/${modelId}/active-devices`),
+
+  /**
+   * 获取设备的部署历史
+   */
+  getDeviceHistory: (deviceId: string, params?: { page?: number; pageSize?: number }) =>
+    request.get(`/deployments/device/${deviceId}/history`, { params }),
+
+  /**
+   * 获取设备的当前部署信息
+   */
+  getDeviceCurrent: (deviceId: string) =>
+    request.get(`/deployments/device/${deviceId}/current`)
+}

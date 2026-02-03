@@ -50,6 +50,11 @@ const routes = [
     path: '/ota',
     name: 'OTA',
     component: () => import('../views/ota/OtaTask.vue')
+  },
+  {
+    path: '/deployment',
+    name: 'Deployment',
+    component: () => import('../views/deployment/DeploymentRecord.vue')
   }
 ]
 

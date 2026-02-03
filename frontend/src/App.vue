@@ -37,6 +37,10 @@
             <el-icon><Download /></el-icon>
             <span>OTA升级</span>
           </el-menu-item>
+          <el-menu-item index="/deployment">
+            <el-icon><Document /></el-icon>
+            <span>部署记录</span>
+          </el-menu-item>
         </el-menu>
       </el-aside>
 
@@ -85,7 +89,8 @@ import {
   Box,
   Download,
   Bell,
-  User
+  User,
+  Document
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -101,7 +106,8 @@ const pageTitle = computed(() => {
     '/data': '数据管理',
     '/training': '训练管理',
     '/model': '模型管理',
-    '/ota': 'OTA升级'
+    '/ota': 'OTA升级',
+    '/deployment': '部署记录'
   }
   return titles[route.path] || 'edge_infer_cloud'
 })
