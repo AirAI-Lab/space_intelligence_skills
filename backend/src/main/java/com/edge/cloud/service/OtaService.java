@@ -441,6 +441,9 @@ public class OtaService {
             throw new RuntimeException("无法删除运行中的任务");
         }
 
+        // 先删除关联的设备升级状态记录
+        deviceUpgradeStatusRepository.deleteByTaskId(taskId);
+
         otaTaskRepository.deleteById(taskId);
         log.info("OTA 任务已删除: taskId={}", taskId);
     }

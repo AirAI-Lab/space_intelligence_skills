@@ -20,6 +20,11 @@ public interface DeviceUpgradeStatusRepository extends JpaRepository<DeviceUpgra
     List<DeviceUpgradeStatus> findByTaskId(String taskId);
 
     /**
+     * 根据任务ID删除所有设备升级状态
+     */
+    void deleteByTaskId(String taskId);
+
+    /**
      * 根据任务ID和状态查询
      */
     List<DeviceUpgradeStatus> findByTaskIdAndStatus(String taskId, DeviceUpgradeStatus.UpgradeStatus status);
