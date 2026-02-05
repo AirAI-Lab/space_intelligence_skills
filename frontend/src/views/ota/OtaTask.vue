@@ -76,7 +76,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="viewDetail(row)">
               查看详情
@@ -104,6 +104,14 @@
               @click="retryTask(row)"
             >
               重试
+            </el-button>
+            <el-button
+              v-if="row.upgradeType === 'MODEL' && (row.status === 'COMPLETED' || row.status === 'UPGRADING')"
+              size="small"
+              type="success"
+              @click="replaceModel(row)"
+            >
+              替换模型
             </el-button>
           </template>
         </el-table-column>
@@ -475,6 +483,59 @@ const retryTask = async (task: any) => {
       ElMessage.error('重试失败: ' + (error.message || '未知错误'))
     }
   })
+}
+
+// 替换模型（触发热加载）
+const replaceModel = async (task: any) => {
+  // 先获取设备列表
+  try {
+    const response = await otaApi.getTaskDeviceStatuses(task.taskId)
+    const devices = response.data || []
+
+    if (devices.length === 0) {
+      ElMessage.warning('该任务没有关联的设备')
+      return
+    }
+
+    // 如果只有一个设备，直接替换；如果有多个设备，让用户选择
+    if (devices.length === 1) {
+      await doReplaceModel(task.taskId, devices[0].deviceId, devices[0].deviceName)
+    } else {
+      // 显示设备选择对话框
+      ElMessageBox({
+        title: '选择要替换模型的设备',
+        message: `请选择要触发热加载的设备：`,
+        showCancelButton: true,
+        confirmButtonText: '全部替换',
+        cancelButtonText: '取消',
+        distinguishCancelAndClose: true,
+        beforeClose: async (action: string, instance: any, done: () => void) => {
+          if (action === 'confirm') {
+            // 全部替换
+            for (const device of devices) {
+              await doReplaceModel(task.taskId, device.deviceId, device.deviceName)
+            }
+            ElMessage.success(`已触发 ${devices.length} 台设备的模型热加载`)
+            done()
+          } else {
+            done()
+          }
+        }
+      })
+    }
+  } catch (error: any) {
+    ElMessage.error('获取设备列表失败: ' + (error.message || '未知错误'))
+  }
+}
+
+// 执行模型替换
+const doReplaceModel = async (taskId: string, deviceId: string, deviceName: string) => {
+  try {
+    await otaApi.replaceModel(taskId, deviceId)
+    ElMessage.success(`已触发设备 "${deviceName}" 的模型热加载`)
+  } catch (error: any) {
+    ElMessage.error(`触发热加载失败: ${error.message || '未知错误'}`)
+  }
 }
 
 // 显示创建对话框

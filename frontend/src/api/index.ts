@@ -487,7 +487,13 @@ export const otaApi = {
    * 删除任务
    */
   delete: (taskId: string) =>
-    request.delete(`/ota/tasks/${taskId}`)
+    request.delete(`/ota/tasks/${taskId}`),
+
+  /**
+   * 替换模型（触发热加载）
+   */
+  replaceModel: (taskId: string, deviceId: string) =>
+    request.post(`/ota/tasks/${taskId}/devices/${deviceId}/replace-model`)
 }
 
 // ==================== 设备兼容性检查 API ====================

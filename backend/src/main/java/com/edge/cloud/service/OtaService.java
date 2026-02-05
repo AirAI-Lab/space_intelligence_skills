@@ -824,4 +824,50 @@ public class OtaService {
                 .map(com.edge.cloud.entity.ModelDeployment::getDeploymentId)
                 .orElseThrow(() -> new RuntimeException("部署记录不存在: taskId=" + taskId + ", deviceId=" + deviceId));
     }
+
+    /**
+     * 替换模型（触发热加载）
+     * 向设备发送MQTT消息，触发热加载已部署的模型
+     */
+    public void replaceModel(String taskId, String deviceId) {
+        OtaTask task = otaTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
+
+        if (task.getUpgradeType() != OtaTask.OtaUpgradeType.MODEL) {
+            throw new RuntimeException("该任务不是模型升级任务");
+        }
+
+        if (task.getModelId() == null) {
+            throw new RuntimeException("该任务没有关联的模型");
+        }
+
+        // 获取模型信息
+        Model model = modelRepository.findById(task.getModelId())
+                .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
+
+        // 获取设备升级状态以获取engine文件路径
+        DeviceUpgradeStatus upgradeStatus = deviceUpgradeStatusRepository
+                .findByTaskIdAndDeviceId(taskId, deviceId)
+                .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
+
+        // 构建engine文件路径
+        String engineFileName = task.getTaskName() + "_" + task.getTargetVersion() + ".engine";
+        String enginePath = "/home/nvidia/edge_infer/models/" + engineFileName;
+
+        // 发送MQTT消息触发热加载
+        Map<String, Object> message = new HashMap<>();
+        message.put("task_id", taskId);
+        message.put("task_name", task.getTaskName());
+        message.put("model_id", model.getModelId());
+        message.put("model_display_name", model.getModelName());
+        message.put("model_version", task.getTargetVersion());
+        message.put("engine_path", enginePath);
+        message.put("input_width", model.getInputWidth() != null ? model.getInputWidth() : 640);
+        message.put("input_height", model.getInputHeight() != null ? model.getInputHeight() : 640);
+
+        String topic = "device/" + deviceId + "/model/reload";
+        mqttService.publish(topic, message);
+
+        log.info("模型热加载指令已发送: deviceId={}, topic={}, enginePath={}", deviceId, topic, enginePath);
+    }
 }

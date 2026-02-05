@@ -24,7 +24,8 @@
       "Bash(done)",
       "Bash(powershell.exe:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ],
     "additionalDirectories": [
       "D:\\github\\edge_infer\\src\\mqtt",
