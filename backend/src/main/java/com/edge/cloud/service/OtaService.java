@@ -225,6 +225,7 @@ public class OtaService {
             // 准备 MQTT 消息（使用边缘端期望的字段名）
             Map<String, Object> message = new HashMap<>();
             message.put("task_id", task.getTaskId());
+            message.put("task_name", task.getTaskName()); // 添加任务名称
             // 边缘端期望 model_name 和 model_version
             message.put("model_name", task.getModelId()); // 使用 model_id 作为 model_name
             message.put("model_version", task.getTargetVersion());

@@ -181,6 +181,62 @@
         <el-button type="primary" @click="createTask" :loading="creating">创建任务</el-button>
       </template>
     </el-dialog>
+
+    <!-- 任务详情对话框 -->
+    <el-dialog v-model="detailDialogVisible" title="任务详情" width="900px" @closed="deviceStatuses = []">
+      <el-descriptions v-if="currentTask" :column="2" border class="task-info">
+        <el-descriptions-item label="任务名称">{{ currentTask.taskName }}</el-descriptions-item>
+        <el-descriptions-item label="升级类型">
+          <el-tag :type="currentTask.upgradeType === 'MODEL' ? 'primary' : 'success'">
+            {{ getUpgradeTypeText(currentTask.upgradeType) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="目标版本">{{ currentTask.targetVersion || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="任务状态">
+          <el-tag :type="getStatusType(currentTask.status)">
+            {{ getStatusText(currentTask.status) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="目标设备数">{{ currentTask.targetDevices }}</el-descriptions-item>
+        <el-descriptions-item label="已完成">
+          {{ currentTask.completedCount }} / {{ currentTask.targetDevices }}
+        </el-descriptions-item>
+        <el-descriptions-item label="进度" :span="2">
+          <el-progress :percentage="currentTask.progress" :status="getProgressStatus(currentTask.status)" />
+        </el-descriptions-item>
+        <el-descriptions-item label="创建时间" :span="2">{{ currentTask.createdAt }}</el-descriptions-item>
+      </el-descriptions>
+
+      <el-divider content-position="left">设备升级状态</el-divider>
+
+      <el-table :data="deviceStatuses" v-loading="detailLoading" style="width: 100%" max-height="400">
+        <el-table-column prop="deviceId" label="设备ID" width="150" />
+        <el-table-column prop="deviceName" label="设备名称" width="150" />
+        <el-table-column prop="status" label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="getDeviceStatusType(row.status)">
+              {{ getDeviceStatusText(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="progress" label="进度" width="150">
+          <template #default="{ row }">
+            <el-progress :percentage="row.progress || 0" :status="row.status === 'COMPLETED' ? 'success' : row.status.includes('FAILED') ? 'exception' : undefined" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="errorMessage" label="错误信息" min-width="200">
+          <template #default="{ row }">
+            <span v-if="row.errorMessage" class="error-text">{{ row.errorMessage }}</span>
+            <span v-else>-</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="updatedAt" label="更新时间" width="180" />
+      </el-table>
+
+      <template #footer>
+        <el-button type="primary" @click="detailDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -298,9 +354,64 @@ const getProgressStatus = (status: string) => {
   return statuses[status] || undefined
 }
 
+// 详情对话框相关
+const detailDialogVisible = ref(false)
+const detailLoading = ref(false)
+const currentTask = ref<any>(null)
+const deviceStatuses = ref<any[]>([])
+
 // 查看详情
-const viewDetail = (task: any) => {
-  ElMessage.info(`查看任务详情: ${task.taskName}`)
+const viewDetail = async (task: any) => {
+  currentTask.value = task
+  detailDialogVisible.value = true
+  await loadTaskDeviceStatuses(task.taskId)
+}
+
+// 加载任务设备状态
+const loadTaskDeviceStatuses = async (taskId: string) => {
+  detailLoading.value = true
+  try {
+    const response = await otaApi.getTaskDeviceStatuses(taskId)
+    deviceStatuses.value = response.data || []
+  } catch (error: any) {
+    console.error('加载设备状态失败:', error)
+    ElMessage.error('加载设备状态失败: ' + (error.message || '未知错误'))
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+// 获取设备状态类型
+const getDeviceStatusType = (status: string) => {
+  const types: Record<string, string> = {
+    PENDING: 'info',
+    DOWNLOADING: 'primary',
+    DOWNLOAD_FAILED: 'danger',
+    INSTALLING: 'warning',
+    INSTALL_FAILED: 'danger',
+    COMPLETED: 'success',
+    FAILED: 'danger'
+  }
+  return types[status] || 'info'
+}
+
+// 获取设备状态文本
+const getDeviceStatusText = (status: string) => {
+  const texts: Record<string, string> = {
+    PENDING: '待升级',
+    DOWNLOADING: '下载中',
+    DOWNLOAD_FAILED: '下载失败',
+    INSTALLING: '安装中',
+    INSTALL_FAILED: '安装失败',
+    COMPLETED: '已完成',
+    FAILED: '失败'
+  }
+  return texts[status] || status
+}
+
+// 获取升级类型文本
+const getUpgradeTypeText = (type: string) => {
+  return type === 'MODEL' ? '模型升级' : '固件升级'
 }
 
 // 开始任务
@@ -457,5 +568,13 @@ onUnmounted(() => {
 
 .percentage-value {
   font-size: 12px;
+}
+
+.task-info {
+  margin-bottom: 20px;
+}
+
+.error-text {
+  color: #f56c6c;
 }
 </style>

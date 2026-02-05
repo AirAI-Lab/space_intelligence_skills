@@ -734,8 +734,13 @@ const executeDeploy = async () => {
       .filter(([_, r]) => r.status === 'COMPATIBLE' || r.status === 'COMPATIBLE_WITH_WARNING')
       .map(([deviceId, _]) => deviceId)
 
+    // 生成唯一任务名称（添加时间戳避免重复）
+    const now = new Date()
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`
+    const taskName = `${model.value.modelName} 部署_${timeStr}`
+
     await otaApi.createTask({
-      taskName: `${model.value.modelName} 部署`,
+      taskName: taskName,
       upgradeType: 'MODEL',
       modelId: model.value.modelId,
       deviceIds: compatibleDeviceIds,

@@ -442,6 +442,12 @@ export const otaApi = {
     request.get(`/ota/tasks/${taskId}/devices`),
 
   /**
+   * 获取任务的所有设备状态
+   */
+  getTaskDeviceStatuses: (taskId: string) =>
+    request.get(`/ota/tasks/${taskId}/devices`),
+
+  /**
    * 获取升级进度
    */
   getProgress: (taskId: string) =>
