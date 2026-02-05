@@ -22,6 +22,7 @@ public class OtaTaskDTO {
     private Integer totalDevices;
     private Integer completedDevices;
     private Integer failedDevices;
+    private Integer progress;  // 计算字段：完成百分比
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 

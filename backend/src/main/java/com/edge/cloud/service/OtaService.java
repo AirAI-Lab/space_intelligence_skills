@@ -509,6 +509,14 @@ public class OtaService {
         dto.setCreatedAt(task.getCreatedAt());
         dto.setUpdatedAt(task.getUpdatedAt());
 
+        // 计算进度百分比
+        if (task.getTotalDevices() != null && task.getTotalDevices() > 0) {
+            int progress = (task.getCompletedDevices() * 100) / task.getTotalDevices();
+            dto.setProgress(progress);
+        } else {
+            dto.setProgress(0);
+        }
+
         // 加载关联信息
         if (task.getModelId() != null) {
             modelRepository.findById(task.getModelId())
