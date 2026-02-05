@@ -430,6 +430,31 @@ public class OtaService {
     }
 
     /**
+     * 获取设备的待处理 OTA 任务
+     */
+    public OtaTaskDTO getPendingOtaTask(String deviceId) {
+        // 查找该设备的 RUNNING 或 PENDING 状态的任务
+        List<DeviceUpgradeStatus> pendingStatuses = deviceUpgradeStatusRepository
+                .findRecentByDeviceId(deviceId).stream()
+                .filter(s -> s.getStatus() == DeviceUpgradeStatus.UpgradeStatus.PENDING ||
+                           s.getStatus() == DeviceUpgradeStatus.UpgradeStatus.DOWNLOADING)
+                .collect(Collectors.toList());
+
+        if (pendingStatuses.isEmpty()) {
+            return null;
+        }
+
+        // 返回最早的一个待处理任务
+        DeviceUpgradeStatus status = pendingStatuses.get(0);
+        OtaTask task = otaTaskRepository.findById(status.getTaskId()).orElse(null);
+        if (task == null) {
+            return null;
+        }
+
+        return toDTO(task);
+    }
+
+    /**
      * 删除 OTA 任务
      */
     @Transactional

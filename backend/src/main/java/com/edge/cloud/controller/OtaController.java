@@ -124,6 +124,24 @@ public class OtaController {
         }
     }
 
+    @GetMapping("/pending/{device_id}")
+    @Operation(summary = "查询设备的待处理 OTA 任务")
+    public ResponseEntity<ApiResponse<OtaTaskDTO>> getPendingOtaTask(
+            @Parameter(description = "设备ID") @PathVariable("device_id") String deviceId
+    ) {
+        try {
+            OtaTaskDTO result = otaService.getPendingOtaTask(deviceId);
+            if (result == null) {
+                return ResponseEntity.ok(ApiResponse.success("无待处理任务", null));
+            }
+            return ResponseEntity.ok(ApiResponse.success(result));
+        } catch (Exception e) {
+            log.error("查询待处理任务失败: deviceId={}", deviceId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("查询失败: " + e.getMessage()));
+        }
+    }
+
     @DeleteMapping("/tasks/{task_id}")
     @Operation(summary = "删除 OTA 升级任务")
     public ResponseEntity<ApiResponse<Void>> deleteOtaTask(
