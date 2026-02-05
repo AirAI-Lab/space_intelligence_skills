@@ -224,7 +224,7 @@ public class MqttService {
             mqttMessage.setRetained(false);
 
             mqttClient.publish(topic, mqttMessage);
-            log.debug("MQTT 消息已发送: topic={}, payload={}", topic, payload);
+            log.info("MQTT 消息已发送: topic={}, payload={}", topic, payload);
 
         } catch (Exception e) {
             log.error("发送 MQTT 消息失败: topic={}", topic, e);
