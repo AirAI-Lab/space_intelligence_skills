@@ -4,6 +4,7 @@ import com.edge.cloud.dto.ModelCreateRequest;
 import com.edge.cloud.dto.ModelDTO;
 import com.edge.cloud.entity.ConversionTask;
 import com.edge.cloud.entity.Model;
+import com.edge.cloud.repository.ConversionTaskRepository;
 import com.edge.cloud.repository.DatasetRepository;
 import com.edge.cloud.repository.ModelRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -39,6 +39,7 @@ public class ModelService {
 
     private final ModelRepository modelRepository;
     private final DatasetRepository datasetRepository;
+    private final ConversionTaskRepository conversionTaskRepository;
     private final ConversionService conversionService;
     private final StorageService storageService;
     private final RestTemplate restTemplate;
@@ -111,6 +112,7 @@ public class ModelService {
         log.info("文件存储完成: modelId={}, path={}, time={}ms", modelId, filePath, uploadTime);
 
         model.setPtFilePath(filePath);
+        model.setPtFileSizeBytes(file.getSize());
         model.setFileSizeBytes(file.getSize());
         model.setStatus(Model.ModelStatus.READY);
 
@@ -165,6 +167,58 @@ public class ModelService {
                 modelId, task.getTaskId(), conversionType);
 
         // 调用转换服务执行转换
+        conversionService.startConversion(task.getTaskId());
+
+        return toDTO(model);
+    }
+
+    /**
+     * 重新转换模型格式（删除旧转换结果并重新转换）
+     */
+    @Transactional
+    public ModelDTO reconvertModel(String modelId, ConversionTask.ConversionType conversionType) {
+        Model model = modelRepository.findById(modelId)
+                .orElseThrow(() -> new RuntimeException("模型不存在: " + modelId));
+
+        // 获取该模型的所有转换任务
+        List<ConversionTask> existingTasks = conversionTaskRepository.findByModelId(modelId);
+
+        // 找到同类型的转换任务并删除
+        for (ConversionTask task : existingTasks) {
+            if (task.getConversionType() == conversionType) {
+                log.info("删除旧的转换任务: taskId={}", task.getTaskId());
+                conversionService.deleteConversionTask(task.getTaskId());
+            }
+        }
+
+        // 根据转换类型清除对应的文件路径
+        switch (conversionType) {
+            case PT_TO_ONNX:
+                if (model.getOnnxFilePath() != null) {
+                    log.info("删除旧的 ONNX 文件: {}", model.getOnnxFilePath());
+                    storageService.deleteFile(model.getOnnxFilePath());
+                    model.setOnnxFilePath(null);
+                }
+                break;
+            case ONNX_TO_ENGINE_FP16:
+            case ONNX_TO_ENGINE_INT8:
+            case ONNX_TO_ENGINE_FP32:
+                if (model.getEngineFilePath() != null) {
+                    log.info("删除旧的 Engine 文件: {}", model.getEngineFilePath());
+                    storageService.deleteFile(model.getEngineFilePath());
+                    model.setEngineFilePath(null);
+                }
+                break;
+        }
+
+        modelRepository.save(model);
+
+        // 创建新的转换任务
+        ConversionTask task = conversionService.createConversionTask(modelId, conversionType);
+        log.info("重新转换任务已创建: modelId={}, taskId={}, type={}",
+                modelId, task.getTaskId(), conversionType);
+
+        // 启动转换
         conversionService.startConversion(task.getTaskId());
 
         return toDTO(model);
@@ -318,8 +372,11 @@ public class ModelService {
         dto.setParentModelId(model.getParentModelId());
         dto.setDatasetId(model.getDatasetId());
         dto.setPtFilePath(model.getPtFilePath());
+        dto.setPtFileSizeBytes(model.getPtFileSizeBytes());
         dto.setOnnxFilePath(model.getOnnxFilePath());
+        dto.setOnnxFileSizeBytes(model.getOnnxFileSizeBytes());
         dto.setEngineFilePath(model.getEngineFilePath());
+        dto.setEngineFileSizeBytes(model.getEngineFileSizeBytes());
         dto.setMap(model.getMap());
         dto.setMap50(model.getMap50());
         dto.setPrecision(model.getPrecision());
@@ -352,6 +409,7 @@ public class ModelService {
 
     /**
      * 下载模型文件
+     * 支持从 S3 或本地文件系统下载
      */
     public ResponseEntity<byte[]> downloadModelFile(String modelId, String format) {
         Model model = modelRepository.findById(modelId)
@@ -389,30 +447,109 @@ public class ModelService {
         }
 
         if (filePath == null) {
-            throw new RuntimeException("模型文件不存在: format=" + format);
+            throw new RuntimeException("模型文件不存在: format=" + format + "，请先上传模型文件或进行格式转换");
         }
 
         try {
-            // 通过存储服务获取文件流
-            InputStream inputStream = storageService.getFile(filePath);
-            byte[] content = inputStream.readAllBytes();
-            inputStream.close();
+            byte[] content = null;
+
+            // 首先尝试从存储服务获取文件（S3或本地存储）
+            try {
+                if (storageService.exists(filePath)) {
+                    InputStream inputStream = storageService.getFile(filePath);
+                    content = inputStream.readAllBytes();
+                    inputStream.close();
+                    log.info("从存储服务下载模型文件: modelId={}, format={}, path={}, size={} bytes",
+                            modelId, format, filePath, content.length);
+                } else {
+                    log.warn("存储服务中文件不存在: {}", filePath);
+                }
+            } catch (Exception e) {
+                log.warn("从存储服务获取文件失败: {}, 尝试本地文件系统", e.getMessage());
+            }
+
+            // 如果存储服务失败，尝试从本地文件系统读取（用于转换后的文件）
+            if (content == null) {
+                content = tryReadLocalFile(filePath);
+                if (content != null) {
+                    log.info("从本地文件系统下载模型文件: modelId={}, format={}, path={}, size={} bytes",
+                            modelId, format, filePath, content.length);
+                }
+            }
+
+            if (content == null) {
+                throw new RuntimeException("模型文件不存在，请检查是否已上传模型或完成格式转换。文件路径: " + filePath);
+            }
 
             // 设置响应头
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
             headers.setContentDispositionFormData("attachment", fileName);
 
-            log.info("下载模型文件: modelId={}, format={}, size={} bytes",
-                    modelId, format, content.length);
-
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(content);
 
-        } catch (IOException e) {
-            log.error("读取模型文件失败: filePath={}", filePath, e);
-            throw new RuntimeException("读取模型文件失败: " + e.getMessage());
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("下载模型文件失败: modelId={}, format={}, path={}", modelId, format, filePath, e);
+            throw new RuntimeException("下载模型文件失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 尝试从本地文件系统读取文件（用于转换服务生成的本地文件）
+     */
+    private byte[] tryReadLocalFile(String filePath) {
+        try {
+            java.io.File file = null;
+
+            // 情况1: 如果路径包含 "outputs/" 或 "work/"，可能是转换服务生成的本地文件
+            if (filePath.contains("outputs/") || filePath.contains("work/")) {
+                file = new java.io.File(filePath);
+                if (!file.exists()) {
+                    // 尝试 /app/work 前缀（Docker 容器内路径）
+                    file = new java.io.File("/app/work/outputs/" + filePath.substring(filePath.lastIndexOf("outputs/") + 8));
+                }
+            }
+            // 情况2: S3 路径格式的 PT 文件，尝试映射到训练输出目录
+            else if (filePath.startsWith("s3://models/")) {
+                // S3 路径格式: s3://models/M_JOB202602011236009605/best.pt
+                // 本地路径格式: /app/work/outputs/JOB202602011236009605/train/weights/best.pt
+                String pathPart = filePath.substring("s3://models/".length()); // M_JOB202602011236009605/best.pt
+                String[] parts = pathPart.split("/", 2);
+                if (parts.length == 2) {
+                    String modelId = parts[0]; // M_JOB202602011236009605
+                    String fileName = parts[1]; // best.pt
+
+                    // 对于训练生成的模型 (M_JOB*)，提取 JOB ID
+                    if (modelId.startsWith("M_")) {
+                        String jobId = modelId.substring(2); // JOB202602011236009605
+                        file = new java.io.File("/app/work/outputs/" + jobId + "/train/weights/" + fileName);
+                        log.debug("尝试训练输出目录: {}", file.getPath());
+                    }
+                }
+            }
+
+            // 如果上述方法未找到，尝试直接路径
+            if (file == null || !file.exists()) {
+                file = new java.io.File(filePath);
+            }
+            // 尝试在 /app/work/outputs 目录下查找
+            if (!file.exists()) {
+                file = new java.io.File("/app/work/outputs/" + filePath);
+            }
+
+            if (file.exists() && file.isFile()) {
+                return java.nio.file.Files.readAllBytes(file.toPath());
+            }
+
+            log.warn("本地文件也不存在: {}", filePath);
+            return null;
+        } catch (Exception e) {
+            log.warn("读取本地文件失败: {}", filePath, e);
+            return null;
         }
     }
 

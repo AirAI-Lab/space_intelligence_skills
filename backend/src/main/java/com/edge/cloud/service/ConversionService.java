@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +33,7 @@ public class ConversionService {
     private final ConversionTaskRepository conversionTaskRepository;
     private final ModelRepository modelRepository;
     private final RestTemplate restTemplate;
+    private final StorageService storageService;
 
     @Value("${TRAINING_SERVICE_URL:http://localhost:5002}")
     private String trainingServiceUrl;
@@ -170,16 +172,18 @@ public class ConversionService {
         task.setOptimizationTimeSeconds(optimizationTimeSeconds);
         conversionTaskRepository.save(task);
 
-        // 更新模型的文件路径
+        // 更新模型的文件路径和文件大小
         Model model = modelRepository.findById(task.getModelId())
                 .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
 
         switch (task.getTargetFormat()) {
             case ONNX:
                 model.setOnnxFilePath(outputPath);
+                model.setOnnxFileSizeBytes(fileSizeBytes);
                 break;
             case ENGINE:
                 model.setEngineFilePath(outputPath);
+                model.setEngineFileSizeBytes(fileSizeBytes);
                 break;
         }
 
@@ -188,6 +192,95 @@ public class ConversionService {
 
         log.info("转换完成: taskId={}, outputPath={}, size={} bytes, time={} s",
                 taskId, outputPath, fileSizeBytes, optimizationTimeSeconds);
+    }
+
+    /**
+     * 完成转换（带文件上传）
+     *
+     * 训练服务转换完成后，将生成的文件上传到此端点，
+     * 后端负责将文件保存到 S3 存储并更新模型记录。
+     *
+     * @param taskId 转换任务ID
+     * @param file 转换后的文件
+     * @param optimizationTimeSeconds 优化耗时（秒）
+     */
+    @Transactional
+    public void completeConversionWithFile(String taskId, MultipartFile file, int optimizationTimeSeconds) {
+        ConversionTask task = conversionTaskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("转换任务不存在: " + taskId));
+
+        try {
+            // 确定文件扩展名
+            String extension = getFileExtension(task.getTargetFormat());
+            String category = "models";  // 转换后的模型文件存储在 models 分类下
+
+            // 上传文件到 S3/本地存储
+            String s3Key = storageService.uploadFile(file, category);
+            long fileSizeBytes = file.getSize();
+
+            log.info("转换文件已上传到存储: taskId={}, key={}, size={} bytes", taskId, s3Key, fileSizeBytes);
+
+            // 更新转换任务状态
+            task.setStatus(ConversionTask.ConversionStatus.COMPLETED);
+            task.setProgress(1.0f);
+            task.setOutputFilePath(s3Key);  // 存储 S3 key 而不是本地路径
+            task.setFileSizeBytes(fileSizeBytes);
+            task.setOptimizationTimeSeconds(optimizationTimeSeconds);
+            conversionTaskRepository.save(task);
+
+            // 更新模型的文件路径和文件大小
+            Model model = modelRepository.findById(task.getModelId())
+                    .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
+
+            switch (task.getTargetFormat()) {
+                case ONNX:
+                    model.setOnnxFilePath(s3Key);
+                    model.setOnnxFileSizeBytes(fileSizeBytes);
+                    break;
+                case ENGINE:
+                    model.setEngineFilePath(s3Key);
+                    model.setEngineFileSizeBytes(fileSizeBytes);
+                    break;
+            }
+
+            model.setStatus(Model.ModelStatus.READY);
+            modelRepository.save(model);
+
+            log.info("转换完成（文件已上传）: taskId={}, s3Key={}, size={} bytes, time={} s",
+                    taskId, s3Key, fileSizeBytes, optimizationTimeSeconds);
+
+        } catch (Exception e) {
+            log.error("处理转换文件失败: taskId={}", taskId, e);
+            // 标记转换失败
+            task.setStatus(ConversionTask.ConversionStatus.FAILED);
+            task.setErrorMessage("上传转换文件失败: " + e.getMessage());
+            conversionTaskRepository.save(task);
+
+            // 恢复模型状态
+            Model model = modelRepository.findById(task.getModelId()).orElse(null);
+            if (model != null) {
+                model.setStatus(Model.ModelStatus.READY);
+                modelRepository.save(model);
+            }
+
+            throw new RuntimeException("上传转换文件失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 根据目标格式获取文件扩展名
+     */
+    private String getFileExtension(ConversionTask.ModelFormat format) {
+        switch (format) {
+            case ONNX:
+                return ".onnx";
+            case ENGINE:
+                return ".engine";
+            case PT:
+                return ".pt";
+            default:
+                return ".bin";
+        }
     }
 
     /**

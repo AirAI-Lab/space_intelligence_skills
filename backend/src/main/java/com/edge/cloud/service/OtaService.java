@@ -7,7 +7,9 @@ import com.edge.cloud.entity.*;
 import com.edge.cloud.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,12 +41,20 @@ public class OtaService {
     // 使用 setter 注入打破循环依赖
     private MqttService mqttService;
 
+    @Autowired
+    @Lazy
     public void setMqttService(MqttService mqttService) {
         this.mqttService = mqttService;
     }
 
     @Value("${S3_ENDPOINT:http://localhost:8333}")
     private String s3Endpoint;
+
+    @Value("${S3_EXTERNAL_ENDPOINT:http://192.168.0.103:8333}")
+    private String s3ExternalEndpoint;
+
+    @Value("${backend.external-url:http://localhost:8081}")
+    private String backendExternalUrl;
 
     /**
      * 创建 OTA 升级任务
@@ -58,9 +68,14 @@ public class OtaService {
             Model model = modelRepository.findById(request.getModelId())
                     .orElseThrow(() -> new RuntimeException("模型不存在: " + request.getModelId()));
 
-            if (model.getEngineFilePath() == null) {
-                throw new RuntimeException("模型未转换，请先转换为 .engine 格式");
+            // 支持 ONNX 或 Engine 格式（Jetson 设备可接收 ONNX 后本地转换为 Engine）
+            if (model.getOnnxFilePath() == null && model.getEngineFilePath() == null) {
+                throw new RuntimeException("模型未转换，请先转换为 ONNX 或 Engine 格式");
             }
+            log.info("模型验证通过: modelId={}, hasONNX={}, hasEngine={}",
+                    model.getModelId(),
+                    model.getOnnxFilePath() != null,
+                    model.getEngineFilePath() != null);
         }
 
         // 获取目标设备列表
@@ -133,12 +148,27 @@ public class OtaService {
             task.setStatus(OtaTask.OtaStatus.RUNNING);
             otaTaskRepository.save(task);
 
-            // 获取模型下载地址
+            // 获取模型下载地址（优先使用 ONNX，Jetson 可本地转换为 Engine）
             String downloadUrl = null;
+            String modelFileName = null;
             if (task.getModelId() != null) {
                 Model model = modelRepository.findById(task.getModelId())
                         .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
-                downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
+
+                // 优先使用 ONNX 文件（Jetson 可本地转换为 Engine）
+                // 使用后端 API 下载，通过共享卷访问文件
+                if (model.getOnnxFilePath() != null) {
+                    // 使用后端 API 下载 ONNX 文件（使用可配置的外部URL）
+                    downloadUrl = backendExternalUrl + "/api/v1/files/download?path=" + model.getOnnxFilePath();
+                    modelFileName = "best.onnx";
+                    log.info("使用 ONNX 文件进行 OTA: modelId={}, file={}, url={}", model.getModelId(), modelFileName, downloadUrl);
+                } else if (model.getEngineFilePath() != null) {
+                    downloadUrl = s3ExternalEndpoint + "/" + model.getEngineFilePath();
+                    modelFileName = model.getEngineFilePath().substring(model.getEngineFilePath().lastIndexOf('/') + 1);
+                    log.info("使用 Engine 文件进行 OTA: modelId={}, file={}, url={}", model.getModelId(), modelFileName, downloadUrl);
+                } else {
+                    throw new RuntimeException("模型没有可用的文件（ONNX 或 Engine）");
+                }
             }
 
             // 向所有设备发送升级消息，并创建部署记录
@@ -192,16 +222,34 @@ public class OtaService {
                 deviceRepository.save(device);
             }
 
-            // 准备 MQTT 消息
+            // 准备 MQTT 消息（使用边缘端期望的字段名）
             Map<String, Object> message = new HashMap<>();
             message.put("task_id", task.getTaskId());
-            message.put("upgrade_type", task.getUpgradeType().name());
-            message.put("target_version", task.getTargetVersion());
+            // 边缘端期望 model_name 和 model_version
+            message.put("model_name", task.getModelId()); // 使用 model_id 作为 model_name
+            message.put("model_version", task.getTargetVersion());
             message.put("download_url", downloadUrl);
-            message.put("model_id", task.getModelId());
 
-            // 发送 MQTT 消息
-            String topic = "device/" + deviceId + "/ota/update";
+            // 添加模型配置信息（用于 TensorRT 转换时的输入尺寸）
+            if (task.getModelId() != null) {
+                Model model = modelRepository.findById(task.getModelId()).orElse(null);
+                if (model != null) {
+                    message.put("model_id", model.getModelId());
+                    message.put("model_display_name", model.getModelName()); // 实际的模型名称（如 helmet_detect）
+                    if (model.getInputWidth() != null) {
+                        message.put("input_width", model.getInputWidth());
+                    }
+                    if (model.getInputHeight() != null) {
+                        message.put("input_height", model.getInputHeight());
+                    }
+                    log.info("添加模型配置到 OTA 消息: modelId={}, modelName={}, inputSize={}x{}",
+                            model.getModelId(), model.getModelName(),
+                            model.getInputWidth(), model.getInputHeight());
+                }
+            }
+
+            // 发送 MQTT 消息到边缘端订阅的命令主题
+            String topic = "device/" + deviceId + "/ota/command";
             mqttService.publish(topic, message);
 
             log.info("OTA 升级消息已发送: deviceId={}, topic={}", deviceId, topic);

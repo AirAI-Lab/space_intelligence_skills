@@ -1,5 +1,9 @@
 version: '3.8'
 
+# 加载统一 IP 配置
+env_file:
+  - ../.env.ip
+
 services:
   # PostgreSQL + TimescaleDB 时序数据库（免费 + MIT/Apache协议）
   postgres:
@@ -166,6 +170,9 @@ services:
       - S3_SECRET_KEY=admin123456
       - S3_BUCKET=edge-cloud-files
       - S3_PATH_STYLE_ACCESS=true
+      # 外部访问URL配置（设备下载文件用，根据实际网络修改）
+      # 注意：此IP应与 .env.ip 中的 CLOUD_IP 保持一致
+      - BACKEND_EXTERNAL_URL=${CLOUD_API_URL}
       # 开发模式配置（暂时禁用JDWP调试以加快启动）
       # - JAVA_TOOL_OPTIONS=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=0.0.0.0:5005
       - SPRING_DEVTOOLS_RESTART_ENABLED=true
@@ -180,6 +187,7 @@ services:
       - ../../backend:/app
       - ~/.m2:/root/.m2  # Maven 本地仓库缓存
       - file_storage_data:/app/data/files
+      - ../../data/work:/app/work  # 共享训练输出目录，用于访问 ONNX 文件
     command:
       - /bin/bash
       - -c
@@ -209,9 +217,10 @@ services:
       - BACKEND_API_URL=http://backend:8080
       # S3 存储配置
       - S3_ENDPOINT=http://seaweedfs:8333
+      - S3_EXTERNAL_ENDPOINT=http://192.168.0.103:8333
       - S3_ACCESS_KEY=admin
       - S3_SECRET_KEY=admin123456
-      - S3_BUCKET=edge-cloud
+      - S3_BUCKET=edge-cloud-files
       # MQTT 配置
       - MQTT_BROKER_URL=tcp://emqx:1883
       - MQTT_USERNAME=admin

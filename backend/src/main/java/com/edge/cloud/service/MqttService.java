@@ -167,8 +167,11 @@ public class MqttService {
             String errorMessage = (String) message.get("error_message");
 
             // 根据 status 类型调用不同的处理方法
+            // 边缘设备发送的状态: downloading, verifying, applying, success, failed
             switch (status) {
                 case "downloading":
+                case "verifying":
+                case "applying":
                 case "installing":
                     // 通过 OtaService 处理进度更新
                     try {
@@ -178,6 +181,7 @@ public class MqttService {
                     }
                     break;
                 case "completed":
+                case "success":
                     // 通过 OtaService 处理完成
                     try {
                         otaService.handleDeviceUpgradeComplete(taskId, deviceId);
@@ -229,23 +233,25 @@ public class MqttService {
 
     /**
      * 发布 OTA 更新消息到设备
+     * 边缘设备期望订阅 topic: device/{device_id}/ota/command
      */
     public void publishOtaUpdate(String deviceId, String taskId, String upgradeType,
                                   String targetVersion, String downloadUrl, String modelId) {
-        String topic = "device/" + deviceId + "/ota/update";
+        String topic = "device/" + deviceId + "/ota/command";
 
         Map<String, Object> message = Map.of(
                 "task_id", taskId,
-                "upgrade_type", upgradeType,
-                "target_version", targetVersion,
+                "model_name", modelId != null ? modelId : "model",
+                "model_version", targetVersion,
                 "download_url", downloadUrl != null ? downloadUrl : "",
-                "model_id", modelId != null ? modelId : "",
+                "md5_checksum", "",
+                "file_size", 0,
                 "timestamp", System.currentTimeMillis()
         );
 
         publish(topic, message);
-        log.info("OTA 更新消息已发送: deviceId={}, taskId={}, upgradeType={}",
-                deviceId, taskId, upgradeType);
+        log.info("OTA 更新消息已发送: deviceId={}, taskId={}, topic={}",
+                deviceId, taskId, topic);
     }
 
     /**

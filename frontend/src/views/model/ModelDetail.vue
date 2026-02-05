@@ -165,10 +165,6 @@
               <el-icon><Upload /></el-icon>
               部署
             </el-button>
-            <el-button @click="downloadModel">
-              <el-icon><Download /></el-icon>
-              下载
-            </el-button>
           </div>
         </div>
       </template>
@@ -233,7 +229,7 @@
             {{ formatSize(row.size) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="280">
           <template #default="{ row }">
             <el-button size="small" @click="downloadFormat(row)" :disabled="!row.path">
               下载
@@ -245,6 +241,14 @@
               v-if="row.format === 'PT' && !formats.find(f => f.format === 'ONNX')?.path"
             >
               转换ONNX
+            </el-button>
+            <el-button
+              size="small"
+              type="warning"
+              @click="reconvertFormat(row)"
+              v-if="row.format === 'ONNX' && row.path"
+            >
+              重新转换
             </el-button>
           </template>
         </el-table-column>
@@ -356,13 +360,13 @@ const formats = computed(() => {
 
   const f = []
   if (model.value.ptFilePath) {
-    f.push({ format: 'PT', path: model.value.ptFilePath, size: model.value.fileSizeBytes || 0 })
+    f.push({ format: 'PT', path: model.value.ptFilePath, size: model.value.ptFileSizeBytes || 0 })
   }
   if (model.value.onnxFilePath) {
-    f.push({ format: 'ONNX', path: model.value.onnxFilePath, size: model.value.fileSizeBytes || 0 })
+    f.push({ format: 'ONNX', path: model.value.onnxFilePath, size: model.value.onnxFileSizeBytes || 0 })
   }
   if (model.value.engineFilePath) {
-    f.push({ format: 'TensorRT', path: model.value.engineFilePath, size: model.value.fileSizeBytes || 0 })
+    f.push({ format: 'TensorRT', path: model.value.engineFilePath, size: model.value.engineFileSizeBytes || 0 })
   }
   return f
 })
@@ -374,11 +378,19 @@ const isDeployable = computed(() => {
 // 加载模型详情
 const loadModelDetail = async () => {
   const modelId = route.params.id as string
+  console.log('Loading model detail for ID:', modelId)
   loading.value = true
   try {
     const response = await modelApi.getDetail(modelId)
     model.value = response.data
+    console.log('Model loaded successfully:', model.value?.modelName)
+
+    // 如果模型正在转换，开始轮询
+    if (model.value?.status === 'CONVERTING') {
+      startPollingConversion()
+    }
   } catch (error: any) {
+    console.error('Failed to load model detail:', error)
     ElMessage.error('加载模型详情失败: ' + (error.message || '未知错误'))
   } finally {
     loading.value = false
@@ -425,24 +437,136 @@ const goBack = () => {
   router.push('/model')
 }
 
-// 部署模型
-const deployModel = () => {
-  router.push({ path: '/ota', query: { modelId: model.value.modelId } })
-}
-
 // 下载模型
 const downloadModel = () => {
   ElMessage.success('开始下载模型')
 }
 
 // 下载指定格式
-const downloadFormat = (format: any) => {
-  ElMessage.success(`开始下载 ${format.format} 格式`)
+const downloadFormat = async (format: any) => {
+  if (!model.value?.modelId || !format.path) {
+    ElMessage.warning('文件路径不存在')
+    return
+  }
+
+  // 确定下载格式参数
+  let downloadFormat = 'engine'
+  if (format.format === 'PT') {
+    downloadFormat = 'pt'
+  } else if (format.format === 'ONNX') {
+    downloadFormat = 'onnx'
+  } else if (format.format === 'TensorRT') {
+    downloadFormat = 'engine'
+  }
+
+  // 构建下载 URL
+  const downloadUrl = `/api/v1/models/${model.value.modelId}/download?format=${downloadFormat}`
+
+  try {
+    // 使用 fetch API 获取二进制数据
+    const response = await fetch(downloadUrl)
+
+    if (!response.ok) {
+      // 尝试解析错误信息
+      const errorText = await response.text()
+      let errorMessage = '下载失败'
+      try {
+        const errorJson = JSON.parse(errorText)
+        errorMessage = errorJson.message || errorMessage
+      } catch {
+        errorMessage = errorText || errorMessage
+      }
+      ElMessage.error(errorMessage)
+      return
+    }
+
+    // 检查响应类型是否为二进制
+    const contentType = response.headers.get('Content-Type')
+    if (contentType && contentType.includes('application/json')) {
+      // 如果返回的是 JSON，说明服务器返回了错误
+      const errorJson = await response.json()
+      ElMessage.error(errorJson.message || '下载失败')
+      return
+    }
+
+    // 获取文件名（从响应头或使用默认值）
+    let filename = `${model.value.modelName}_${format.format.toLowerCase()}.${downloadFormat === 'engine' ? 'engine' : downloadFormat}`
+    const contentDisposition = response.headers.get('Content-Disposition')
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+      if (filenameMatch && filenameMatch[1]) {
+        filename = filenameMatch[1].replace(/['"]/g, '')
+      }
+    }
+
+    // 获取二进制数据
+    const blob = await response.blob()
+
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    // 释放 URL 对象
+    window.URL.revokeObjectURL(url)
+
+    ElMessage.success(`开始下载 ${format.format} 格式`)
+  } catch (error: any) {
+    console.error('下载失败:', error)
+    ElMessage.error('下载失败: ' + (error.message || '未知错误'))
+  }
 }
 
 // 打开转换对话框
 const convertFormat = () => {
   convertDialogVisible.value = true
+}
+
+// 重新转换格式（删除旧文件并重新转换）
+const reconvertFormat = async (format: any) => {
+  if (!model.value?.modelId) {
+    ElMessage.error('模型ID不存在')
+    return
+  }
+
+  // 根据格式确定转换类型
+  let conversionType: 'PT_TO_ONNX' | 'ONNX_TO_ENGINE_FP16' | 'ONNX_TO_ENGINE_INT8' | 'ONNX_TO_ENGINE_FP32' = 'PT_TO_ONNX'
+  if (format.format === 'ONNX') {
+    conversionType = 'PT_TO_ONNX'
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除旧的 ${format.format} 文件并重新转换吗？此操作不可恢复。`,
+      '确认重新转换',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    converting.value = true
+    await modelApi.reconvert(model.value.modelId, conversionType)
+
+    ElMessage.success('重新转换任务已启动')
+
+    // 开始轮询转换状态
+    startPollingConversion()
+
+    // 刷新模型详情
+    await loadModelDetail()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('重新转换失败: ' + (error.message || '未知错误'))
+    }
+  } finally {
+    converting.value = false
+  }
 }
 
 // 开始转换
@@ -454,35 +578,17 @@ const startConversion = async () => {
 
   converting.value = true
   try {
-    // 首先创建转换任务
-    const response = await fetch('/api/v1/models/' + model.value.modelId + '/convert', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        conversionType: selectedConversionType.value
-      })
-    })
+    // 直接调用 modelApi.convert，它会创建并启动转换任务
+    const result = await modelApi.convert(model.value.modelId, selectedConversionType.value)
 
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.message || '创建转换任务失败')
-    }
+    ElMessage.success('转换任务已启动')
+    convertDialogVisible.value = false
 
-    const result = await response.json()
-    const taskId = result.data?.taskId
+    // 开始轮询转换状态
+    startPollingConversion()
 
-    if (taskId) {
-      // 启动转换任务
-      await conversionApi.start(taskId)
-      ElMessage.success('转换任务已启动')
-      convertDialogVisible.value = false
-
-      // 开始轮询转换状态
-      startPollingConversion()
-
-      // 刷新模型详情
-      await loadModelDetail()
-    }
+    // 刷新模型详情
+    await loadModelDetail()
   } catch (error: any) {
     ElMessage.error('转换失败: ' + (error.message || '未知错误'))
   } finally {
@@ -630,9 +736,10 @@ const executeDeploy = async () => {
 
     await otaApi.createTask({
       taskName: `${model.value.modelName} 部署`,
-      upgradeType: 'model',
+      upgradeType: 'MODEL',
       modelId: model.value.modelId,
       deviceIds: compatibleDeviceIds,
+      targetVersion: model.value.version || '1.0.0',
       description: deployStrategy.value === 'gradual' ? `灰度发布: 每批${gradualBatchSize.value}台` : undefined
     })
 
@@ -648,13 +755,8 @@ const executeDeploy = async () => {
   }
 }
 
-onMounted(() => {
-  loadModelDetail()
-
-  // 如果模型正在转换，开始轮询
-  if (model.value?.status === 'CONVERTING') {
-    startPollingConversion()
-  }
+onMounted(async () => {
+  await loadModelDetail()
 })
 
 onUnmounted(() => {

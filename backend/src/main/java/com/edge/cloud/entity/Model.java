@@ -47,11 +47,20 @@ public class Model {
     @Column(name = "pt_file_path", length = 500)
     private String ptFilePath;
 
+    @Column(name = "pt_file_size_bytes")
+    private Long ptFileSizeBytes;
+
     @Column(name = "onnx_file_path", length = 500)
     private String onnxFilePath;
 
+    @Column(name = "onnx_file_size_bytes")
+    private Long onnxFileSizeBytes;
+
     @Column(name = "engine_file_path", length = 500)
     private String engineFilePath;
+
+    @Column(name = "engine_file_size_bytes")
+    private Long engineFileSizeBytes;
 
     @Column(name = "map")
     private Float map;

@@ -400,20 +400,95 @@ const handleReset = (): void => {
 }
 
 // ==================== 模型操作 ====================
-const handleViewDetail = (model: ModelItem): void => {
-  router.push(`/model/${model.modelId}`)
+const handleViewDetail = async (model: ModelItem): Promise<void> => {
+  console.log('Viewing model detail:', model.modelId, model.modelName)
+  try {
+    await router.push(`/model/${model.modelId}`)
+    console.log('Navigation successful')
+  } catch (error) {
+    console.error('Navigation failed:', error)
+    ElMessage.error('页面跳转失败，请稍后重试')
+  }
 }
 
 const handleDeploy = (model: ModelItem): void => {
   router.push({
-    path: '/ota',
-    query: { modelId: model.modelId }
+    path: '/model',
+    query: { deployModel: model.modelId }
   })
+  // 然后打开模型详情页面
+  router.push(`/model/${model.modelId}`)
 }
 
-const handleDownload = (model: ModelItem): void => {
-  // TODO: 实现模型下载功能
-  ElMessage.info(`开始下载模型: ${model.modelName}`)
+const handleDownload = async (model: ModelItem): Promise<void> => {
+  // 优先下载 ONNX 格式，如果没有则下载 PT
+  let format = 'pt'
+  if (model.onnxFilePath) {
+    format = 'onnx'
+  } else if (model.engineFilePath) {
+    format = 'engine'
+  }
+
+  // 检查文件路径是否存在
+  const filePath = format === 'onnx' ? model.onnxFilePath : (format === 'engine' ? model.engineFilePath : model.ptFilePath)
+  if (!filePath) {
+    ElMessage.warning(`模型没有 ${format.toUpperCase()} 文件，请先转换模型`)
+    return
+  }
+
+  // 构建下载 URL
+  const downloadUrl = `/api/v1/models/${model.modelId}/download?format=${format}`
+
+  try {
+    // 使用 fetch API 获取二进制数据
+    const response = await fetch(downloadUrl)
+
+    if (!response.ok) {
+      // 尝试解析错误信息
+      const errorText = await response.text()
+      let errorMessage = '下载失败'
+      try {
+        const errorJson = JSON.parse(errorText)
+        errorMessage = errorJson.message || errorMessage
+      } catch {
+        errorMessage = errorText || errorMessage
+      }
+      ElMessage.error(errorMessage)
+      return
+    }
+
+    // 检查响应类型是否为二进制
+    const contentType = response.headers.get('Content-Type')
+    if (contentType && contentType.includes('application/json')) {
+      // 如果返回的是 JSON，说明服务器返回了错误
+      const errorJson = await response.json()
+      ElMessage.error(errorJson.message || '下载失败')
+      return
+    }
+
+    // 获取文件名
+    let filename = `${model.modelName}_${format}`
+
+    // 获取二进制数据
+    const blob = await response.blob()
+
+    // 创建下载链接
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    // 释放 URL 对象
+    window.URL.revokeObjectURL(url)
+
+    ElMessage.success(`开始下载 ${model.modelName} (${format})`)
+  } catch (error: any) {
+    console.error('下载失败:', error)
+    ElMessage.error('下载失败: ' + (error.message || '未知错误'))
+  }
 }
 
 const handleDelete = (model: ModelItem): void => {

@@ -149,7 +149,15 @@ public class S3StorageService implements StorageService {
 
             return s3Client.getObject(getRequest);
         } catch (Exception e) {
-            log.error("获取文件失败: {}", key, e);
+            // 文件不存在时返回 null，而不是抛出异常
+            // 这样调用者可以实现回退机制
+            String errorMessage = e.getMessage();
+            if (errorMessage != null && errorMessage.contains("404")) {
+                log.warn("S3 文件不存在: {}", key);
+                return null;
+            }
+            // 其他错误（如网络问题）仍然抛出异常
+            log.error("获取 S3 文件失败: {}", key, e);
             throw new RuntimeException("获取文件失败: " + e.getMessage(), e);
         }
     }

@@ -1,0 +1,8 @@
+{
+  "taskName": "TestONNX-v2",
+  "upgradeType": "MODEL",
+  "modelId": "M_JOB202602011236009605",
+  "targetVersion": "1.0.0",
+  "strategy": "IMMEDIATE",
+  "deviceIds": ["jetson_orin_001"]
+}

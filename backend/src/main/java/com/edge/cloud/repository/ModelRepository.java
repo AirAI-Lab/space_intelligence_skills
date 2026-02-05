@@ -58,9 +58,9 @@ public interface ModelRepository extends JpaRepository<Model, String> {
     List<Model> findLatestByName(String modelName);
 
     /**
-     * 查询可部署的模型（状态为READY且有engine文件）
+     * 查询可部署的模型（状态为READY且有engine或onnx文件）
      */
-    @Query("SELECT m FROM Model m WHERE m.status = 'READY' AND m.engineFilePath IS NOT NULL ORDER BY m.createdAt DESC")
+    @Query("SELECT m FROM Model m WHERE m.status = 'READY' AND (m.engineFilePath IS NOT NULL OR m.onnxFilePath IS NOT NULL) ORDER BY m.createdAt DESC")
     List<Model> findDeployableModels();
 
     /**

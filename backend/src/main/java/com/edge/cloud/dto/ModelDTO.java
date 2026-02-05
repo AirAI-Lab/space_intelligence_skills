@@ -20,8 +20,11 @@ public class ModelDTO {
     private String parentModelId;
     private String datasetId;
     private String ptFilePath;
+    private Long ptFileSizeBytes;
     private String onnxFilePath;
+    private Long onnxFileSizeBytes;
     private String engineFilePath;
+    private Long engineFileSizeBytes;
     private Float map;
     private Float map50;
     private Float precision;

@@ -110,7 +110,14 @@ cd deployment/docker
 Copy-Item .env.example .env
 # 编辑 .env 文件
 
-# 3. 启动服务（管理平台模式）
+# 3. ⚠️ 重要：配置外部访问URL
+# 编辑 docker-compose.yml，设置 BACKEND_EXTERNAL_URL
+# 这是 Jetson 设备下载模型文件时使用的地址，必须能从设备访问
+# 示例：
+#   - 局域网部署：BACKEND_EXTERNAL_URL=http://192.168.x.x:8081
+#   - 公网部署：BACKEND_EXTERNAL_URL=http://your-domain.com:8081
+
+# 4. 启动服务（管理平台模式）
 docker-compose up -d
 
 # 或启动完整平台（含 GPU 训练）
@@ -272,6 +279,68 @@ session = ort.InferenceSession('best.onnx')
 - 保存完整的配置文件
 - 添加模型元数据
 - 上传到 S3 存储
+
+## 模型部署与OTA升级
+
+### ⚠️ 重要配置：BACKEND_EXTERNAL_URL
+
+**部署模型前必须配置此参数！** 这是 Jetson 设备从云端下载模型文件的URL。
+
+**配置位置**：`deployment/docker/docker-compose.yml`
+
+```yaml
+backend:
+  environment:
+    # 外部访问URL配置（设备下载文件用，根据实际网络修改）
+    - BACKEND_EXTERNAL_URL=http://192.168.0.103:8081
+```
+
+**配置说明**：
+
+| 场景 | 配置值 | 说明 |
+|------|--------|------|
+| 局域网部署 | `http://192.168.x.x:8081` | 使用服务器局域网IP |
+| 公网部署 | `http://your-domain.com:8081` | 使用域名或公网IP |
+| 本地测试 | `http://localhost:8081` | 仅用于同机测试 |
+
+**验证方法**：
+
+在 Jetson 设备上测试能否访问：
+```bash
+curl http://your-backend-url:8081/api/v1/files/download?path=/app/work/outputs/CONV.../best.onnx --output test.onnx
+```
+
+### 部署流程
+
+1. **准备模型**：确保模型已转换为 ONNX 或 Engine 格式
+2. **检查设备在线**：在设备管理页面确认目标设备状态为"在线"
+3. **创建部署任务**：选择模型和设备，点击"部署"
+4. **监控进度**：在部署记录页面查看实时进度
+
+### 部署状态说明
+
+| 状态 | 说明 | 处理建议 |
+|------|------|----------|
+| PENDING | 任务已创建，等待执行 | 正常，系统会自动启动 |
+| DOWNLOADING | 设备正在下载模型 | 等待，大文件可能需要几分钟 |
+| INSTALLING | 设备正在安装模型 | 等待，TensorRT转换可能需要时间 |
+| DEPLOYING | 部署执行中 | 正常流程 |
+| SUCCESS | 部署成功 | 模型已加载到设备 |
+| FAILED | 部署失败 | 查看错误信息，检查网络或模型文件 |
+
+### 常见问题
+
+**问题1：进度一直为0%**
+- 检查 Jetson 设备能否访问 BACKEND_EXTERNAL_URL
+- 检查 MQTT 连接是否正常（设备心跳是否更新）
+
+**问题2：下载失败**
+- 确认模型文件存在（S3或本地）
+- 检查防火墙设置
+
+**问题3：TensorRT构建失败**
+- 确认 ONNX 文件格式正确
+- 检查 Jetson 设备 TensorRT 版本
 
 ## API 端点
 
@@ -435,6 +504,7 @@ device/{device_id}/heartbeat         -- 心跳上报
 ## 参考文档
 
 ### 平台文档
+- [📘 模型部署配置指南](docs/DEPLOYMENT_GUIDE.md) - BACKEND_EXTERNAL_URL配置、部署流程、故障排查
 - [训练服务详解](docs/04_training.md) - 数据集上传、训练流程、续训功能
 - [REST API 文档](docs/EDGE_REST_API.md) - 完整的 API 接口说明
 

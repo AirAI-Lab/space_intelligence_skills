@@ -9,8 +9,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -140,6 +142,28 @@ public class ConversionController {
             return ResponseEntity.ok(ApiResponse.success(null));
         } catch (Exception e) {
             log.error("转换完成通知失败: {}", taskId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("通知失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 内部回调接口：转换完成（带文件上传）
+     *
+     * 训练服务转换完成后，将生成的文件上传到后端，后端负责保存到 S3
+     */
+    @PostMapping(value = "/internal/{task_id}/complete-with-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "转换完成通知（带文件上传）")
+    public ResponseEntity<ApiResponse<Void>> completeConversionWithFile(
+            @PathVariable("task_id") String taskId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "optimization_time_seconds", defaultValue = "0") int optimizationTimeSeconds
+    ) {
+        try {
+            conversionService.completeConversionWithFile(taskId, file, optimizationTimeSeconds);
+            return ResponseEntity.ok(ApiResponse.success(null));
+        } catch (Exception e) {
+            log.error("转换完成通知失败（带文件）: {}", taskId, e);
             return ResponseEntity.status(500)
                     .body(ApiResponse.error("通知失败: " + e.getMessage()));
         }

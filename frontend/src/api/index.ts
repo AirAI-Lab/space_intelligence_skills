@@ -356,8 +356,18 @@ export const modelApi = {
    */
   convert: (
     modelId: string,
-    conversionType: 'ONNX' | 'TENSORRT'
+    conversionType: 'PT_TO_ONNX' | 'ONNX_TO_ENGINE_FP16' | 'ONNX_TO_ENGINE_INT8' | 'ONNX_TO_ENGINE_FP32'
   ) => request.post(`/models/${modelId}/convert`, null, {
+    params: { conversionType }
+  }),
+
+  /**
+   * 重新转换模型格式（删除旧转换结果）
+   */
+  reconvert: (
+    modelId: string,
+    conversionType: 'PT_TO_ONNX' | 'ONNX_TO_ENGINE_FP16' | 'ONNX_TO_ENGINE_INT8' | 'ONNX_TO_ENGINE_FP32'
+  ) => request.post(`/models/${modelId}/reconvert`, null, {
     params: { conversionType }
   }),
 
@@ -379,7 +389,15 @@ export const modelApi = {
    * 删除模型
    */
   delete: (modelId: string) =>
-    request.delete(`/models/${modelId}`)
+    request.delete(`/models/${modelId}`),
+
+  /**
+   * 下载模型文件
+   */
+  download: (modelId: string, format: 'pt' | 'onnx' | 'engine') => {
+    // 返回下载 URL，让浏览器直接下载
+    return `/api/v1/models/${modelId}/download?format=${format}`
+  }
 }
 
 // ==================== OTA API ====================
@@ -389,9 +407,10 @@ export const otaApi = {
    */
   createTask: (data: {
     taskName: string
-    upgradeType: 'model' | 'firmware'
+    upgradeType: 'MODEL' | 'CONFIG' | 'FIRMWARE'
     modelId?: string
     deviceIds: string[]
+    targetVersion?: string
     description?: string
   }) => request.post('/ota/tasks', data),
 

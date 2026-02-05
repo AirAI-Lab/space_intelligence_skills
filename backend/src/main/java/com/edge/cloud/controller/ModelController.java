@@ -81,6 +81,23 @@ public class ModelController {
         }
     }
 
+    @PostMapping("/{model_id}/reconvert")
+    @Operation(summary = "重新转换模型格式", description = "删除旧转换结果并重新转换")
+    public ResponseEntity<ApiResponse<ModelDTO>> reconvertModel(
+            @Parameter(description = "模型ID") @PathVariable("model_id") String modelId,
+            @Parameter(description = "转换类型") @RequestParam ConversionTask.ConversionType conversionType
+    ) {
+        try {
+            log.info("重新转换模型: modelId={}, type={}", modelId, conversionType);
+            ModelDTO result = modelService.reconvertModel(modelId, conversionType);
+            return ResponseEntity.ok(ApiResponse.success("模型重新转换任务已创建", result));
+        } catch (Exception e) {
+            log.error("重新转换模型失败: modelId={}", modelId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("重新转换失败: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/{model_id}")
     @Operation(summary = "获取模型详情")
     public ResponseEntity<ApiResponse<ModelDTO>> getModel(
