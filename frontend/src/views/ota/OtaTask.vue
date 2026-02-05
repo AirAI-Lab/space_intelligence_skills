@@ -59,13 +59,21 @@
             {{ row.completedCount }} / {{ row.targetDevices }}
           </template>
         </el-table-column>
-        <el-table-column prop="progress" label="进度" width="180">
+        <el-table-column prop="progress" label="进度" width="200">
           <template #default="{ row }">
-            <el-progress :percentage="row.progress" :status="getProgressStatus(row.status)">
-              <template #default="{ percentage }">
-                <span class="percentage-value">{{ percentage }}%</span>
-              </template>
-            </el-progress>
+            <div class="progress-cell">
+              <el-progress :percentage="row.progress" :status="getProgressStatus(row.status)">
+                <template #default="{ percentage }">
+                  <span class="percentage-value">{{ percentage }}%</span>
+                </template>
+              </el-progress>
+              <div class="progress-detail">
+                {{ row.completedDevices || 0 }} / {{ row.totalDevices || 0 }} 设备
+                <span v-if="row.status === 'RUNNING' || row.status === 'UPGRADING'" class="status-hint">
+                  (进行中)
+                </span>
+              </div>
+            </div>
           </template>
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
@@ -76,7 +84,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="280" fixed="right">
+        <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="viewDetail(row)">
               查看详情
@@ -106,12 +114,20 @@
               重试
             </el-button>
             <el-button
-              v-if="row.upgradeType === 'MODEL' && (row.status === 'COMPLETED' || row.status === 'UPGRADING')"
+              v-if="row.upgradeType === 'MODEL' && (row.status === 'COMPLETED' || row.status === 'UPGRADING' || row.status === 'RUNNING')"
               size="small"
               type="success"
               @click="replaceModel(row)"
             >
               替换模型
+            </el-button>
+            <el-button
+              v-if="row.status === 'PENDING' || row.status === 'COMPLETED' || row.status === 'FAILED'"
+              size="small"
+              type="danger"
+              @click="deleteTask(row)"
+            >
+              删除
             </el-button>
           </template>
         </el-table-column>
@@ -538,6 +554,27 @@ const doReplaceModel = async (taskId: string, deviceId: string, deviceName: stri
   }
 }
 
+// 删除任务
+const deleteTask = async (task: any) => {
+  ElMessageBox.confirm(
+    `确定要删除升级任务 "${task.taskName}" 吗？删除后将无法恢复。`,
+    '确认删除',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(async () => {
+    try {
+      await otaApi.delete(task.taskId)
+      ElMessage.success('任务已删除')
+      loadTasks()
+    } catch (error: any) {
+      ElMessage.error('删除任务失败: ' + (error.message || '未知错误'))
+    }
+  })
+}
+
 // 显示创建对话框
 const showCreateDialog = () => {
   taskForm.value = {
@@ -628,6 +665,22 @@ onUnmounted(() => {
 
 .percentage-value {
   font-size: 12px;
+}
+
+.progress-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-detail {
+  font-size: 12px;
+  color: #909399;
+}
+
+.status-hint {
+  color: #409EFF;
+  margin-left: 4px;
 }
 
 .task-info {
