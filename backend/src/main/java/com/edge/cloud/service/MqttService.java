@@ -167,15 +167,18 @@ public class MqttService {
             String errorMessage = (String) message.get("error_message");
 
             // 根据 status 类型调用不同的处理方法
-            // 边缘设备发送的状态: downloading, verifying, applying, success, failed
+            // 边缘设备发送的状态: downloading, verifying, converting, applying, success, failed
             switch (status) {
                 case "downloading":
                 case "verifying":
+                case "converting":
                 case "applying":
                 case "installing":
                     // 通过 OtaService 处理进度更新
                     try {
                         otaService.handleDeviceUpgradeProgress(taskId, deviceId, progress);
+                        log.info("设备升级进度: taskId={}, deviceId={}, status={}, progress={}%",
+                                taskId, deviceId, status, progress);
                     } catch (Exception e) {
                         log.error("处理设备升级进度失败: taskId={}, deviceId={}", taskId, deviceId, e);
                     }
@@ -185,6 +188,7 @@ public class MqttService {
                     // 通过 OtaService 处理完成
                     try {
                         otaService.handleDeviceUpgradeComplete(taskId, deviceId);
+                        log.info("设备升级完成: taskId={}, deviceId={}", taskId, deviceId);
                     } catch (Exception e) {
                         log.error("处理设备升级完成失败: taskId={}, deviceId={}", taskId, deviceId, e);
                     }
@@ -195,12 +199,13 @@ public class MqttService {
                     // 通过 OtaService 处理失败
                     try {
                         otaService.handleDeviceUpgradeFailed(taskId, deviceId, errorMessage);
+                        log.warn("设备升级失败: taskId={}, deviceId={}, error={}", taskId, deviceId, errorMessage);
                     } catch (Exception e) {
                         log.error("处理设备升级失败错误: taskId={}, deviceId={}", taskId, deviceId, e);
                     }
                     break;
                 default:
-                    log.debug("未处理的设备状态: status={}, deviceId={}", status, deviceId);
+                    log.warn("未处理的设备状态: status={}, deviceId={}, taskId={}", status, deviceId, taskId);
             }
 
         } catch (Exception e) {

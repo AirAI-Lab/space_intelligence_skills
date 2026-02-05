@@ -833,7 +833,7 @@ public class OtaService {
         OtaTask task = otaTaskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
 
-        if (task.getUpgradeType() != OtaTask.OtaUpgradeType.MODEL) {
+        if (task.getUpgradeType() != OtaTask.UpgradeType.MODEL) {
             throw new RuntimeException("该任务不是模型升级任务");
         }
 
@@ -845,13 +845,17 @@ public class OtaService {
         Model model = modelRepository.findById(task.getModelId())
                 .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
 
-        // 获取设备升级状态以获取engine文件路径
+        // 获取设备升级状态
         DeviceUpgradeStatus upgradeStatus = deviceUpgradeStatusRepository
                 .findByTaskIdAndDeviceId(taskId, deviceId)
                 .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
 
         // 构建engine文件路径
-        String engineFileName = task.getTaskName() + "_" + task.getTargetVersion() + ".engine";
+        // 使用模型版本（优先使用targetVersion，否则使用model.version）
+        String version = (task.getTargetVersion() != null && !task.getTargetVersion().isEmpty())
+                ? task.getTargetVersion()
+                : model.getVersion();
+        String engineFileName = task.getTaskName() + "_" + version + ".engine";
         String enginePath = "/home/nvidia/edge_infer/models/" + engineFileName;
 
         // 发送MQTT消息触发热加载
@@ -860,7 +864,7 @@ public class OtaService {
         message.put("task_name", task.getTaskName());
         message.put("model_id", model.getModelId());
         message.put("model_display_name", model.getModelName());
-        message.put("model_version", task.getTargetVersion());
+        message.put("model_version", model.getVersion());
         message.put("engine_path", enginePath);
         message.put("input_width", model.getInputWidth() != null ? model.getInputWidth() : 640);
         message.put("input_height", model.getInputHeight() != null ? model.getInputHeight() : 640);

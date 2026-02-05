@@ -677,9 +677,9 @@ const resumeJob = async (job: any) => {
   // 获取原任务的实际训练进度（从 results.csv 读取）
   let actualEpoch = job.currentEpoch || 0
   try {
-    const result = await trainingApi.getActualProgress(job.jobId)
-    if (result.status === 'success' && result.data.exists) {
-      actualEpoch = result.data.current_epoch
+    const response = await trainingApi.getActualProgress(job.jobId)
+    if (response.data.code === 200 && response.data.data.exists) {
+      actualEpoch = response.data.data.current_epoch
       console.log(`原任务 ${job.jobId} 实际训练进度: epoch=${actualEpoch}`)
     }
   } catch (error) {

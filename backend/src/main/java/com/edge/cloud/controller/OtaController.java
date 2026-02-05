@@ -314,25 +314,21 @@ public class OtaController {
                     .body(ApiResponse.error("恢复失败: " + e.getMessage()));
         }
     }
-}
 
-/**
- * 内部回调接口：替换模型（触发热加载）
- */
-@PostMapping("/tasks/{task_id}/devices/{device_id}/replace-model")
-@Operation(summary = "替换模型（触发热加载）")
-public ResponseEntity<ApiResponse<Void>> replaceModel(
-        @Parameter(description = "任务ID") @PathVariable("task_id") String taskId,
-        @Parameter(description = "设备ID") @PathVariable("device_id") String deviceId
-) {
-    try {
-        log.info("替换模型: taskId={}, deviceId={}", taskId, deviceId);
-        otaService.replaceModel(taskId, deviceId);
-        return ResponseEntity.ok(ApiResponse.success("已发送模型热加载指令", null));
-    } catch (Exception e) {
-        log.error("替换模型失败: taskId={}, deviceId={}", taskId, deviceId, e);
-        return ResponseEntity.status(500)
-                .body(ApiResponse.error("替换失败: " + e.getMessage()));
+    @PostMapping("/tasks/{task_id}/devices/{device_id}/replace-model")
+    @Operation(summary = "替换模型（触发热加载）")
+    public ResponseEntity<ApiResponse<Void>> replaceModel(
+            @Parameter(description = "任务ID") @PathVariable("task_id") String taskId,
+            @Parameter(description = "设备ID") @PathVariable("device_id") String deviceId
+    ) {
+        try {
+            log.info("替换模型: taskId={}, deviceId={}", taskId, deviceId);
+            otaService.replaceModel(taskId, deviceId);
+            return ResponseEntity.ok(ApiResponse.success("已发送模型热加载指令", null));
+        } catch (Exception e) {
+            log.error("替换模型失败: taskId={}, deviceId={}", taskId, deviceId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("替换失败: " + e.getMessage()));
+        }
     }
-}
 }

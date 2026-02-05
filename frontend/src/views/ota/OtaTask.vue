@@ -509,7 +509,7 @@ const replaceModel = async (task: any) => {
         confirmButtonText: '全部替换',
         cancelButtonText: '取消',
         distinguishCancelAndClose: true,
-        beforeClose: async (action: string, instance: any, done: () => void) => {
+        beforeClose: async (action: string, _instance: any, done: () => void) => {
           if (action === 'confirm') {
             // 全部替换
             for (const device of devices) {
@@ -574,7 +574,6 @@ const createTask = async () => {
       upgradeType: taskForm.value.upgradeType === 'model' ? 'MODEL' : 'FIRMWARE',
       modelId: taskForm.value.modelId || undefined,
       targetVersion: taskForm.value.targetVersion || undefined,
-      strategy: 'IMMEDIATE',
       deviceIds: taskForm.value.deviceIds
     })
     ElMessage.success('升级任务创建成功')

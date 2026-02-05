@@ -283,7 +283,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { modelApi, conversionApi, deviceApi, compatibilityApi, otaApi } from '@/api'
+import { modelApi, deviceApi, compatibilityApi, otaApi } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -307,7 +307,6 @@ const checkProgress = ref(0)
 const deployStep = ref(0)
 const deployStrategy = ref('immediate')
 const gradualBatchSize = ref(5)
-const gradualInterval = ref(30)
 let refreshTimer: any = null
 
 // 部署相关computed
@@ -326,10 +325,6 @@ const compatibleCount = computed(() => {
   return Array.from(compatibilityResults.value.values()).filter(
     r => r.status === 'COMPATIBLE' || r.status === 'COMPATIBLE_WITH_WARNING'
   ).length
-})
-
-const incompatibleCount = computed(() => {
-  return selectedDevices.value.length - compatibleCount.value
 })
 
 const metrics = computed(() => {
@@ -435,11 +430,6 @@ const getStatusText = (status: string) => {
 // 返回
 const goBack = () => {
   router.push('/model')
-}
-
-// 下载模型
-const downloadModel = () => {
-  ElMessage.success('开始下载模型')
 }
 
 // 下载指定格式
@@ -579,7 +569,7 @@ const startConversion = async () => {
   converting.value = true
   try {
     // 直接调用 modelApi.convert，它会创建并启动转换任务
-    const result = await modelApi.convert(model.value.modelId, selectedConversionType.value)
+    await modelApi.convert(model.value.modelId, selectedConversionType.value as 'PT_TO_ONNX' | 'ONNX_TO_ENGINE_FP16' | 'ONNX_TO_ENGINE_INT8' | 'ONNX_TO_ENGINE_FP32')
 
     ElMessage.success('转换任务已启动')
     convertDialogVisible.value = false

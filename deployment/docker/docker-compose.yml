@@ -1,9 +1,5 @@
 version: '3.8'
 
-# 加载统一 IP 配置
-env_file:
-  - ../.env.ip
-
 services:
   # PostgreSQL + TimescaleDB 时序数据库（免费 + MIT/Apache协议）
   postgres:
