@@ -47,8 +47,8 @@
         <el-table-column prop="taskName" label="任务名称" width="200" />
         <el-table-column prop="upgradeType" label="升级类型" width="120">
           <template #default="{ row }">
-            <el-tag :type="row.upgradeType === 'model' ? 'primary' : 'success'">
-              {{ row.upgradeType === 'model' ? '模型升级' : '固件升级' }}
+            <el-tag :type="row.upgradeType === 'MODEL' ? 'primary' : 'success'">
+              {{ row.upgradeType === 'MODEL' ? '模型升级' : '固件升级' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -399,10 +399,11 @@ const createTask = async () => {
   try {
     await otaApi.createTask({
       taskName: taskForm.value.taskName,
-      upgradeType: taskForm.value.upgradeType as 'model' | 'firmware',
+      upgradeType: taskForm.value.upgradeType === 'model' ? 'MODEL' : 'FIRMWARE',
       modelId: taskForm.value.modelId || undefined,
-      deviceIds: taskForm.value.deviceIds,
-      description: taskForm.value.targetVersion || undefined
+      targetVersion: taskForm.value.targetVersion || undefined,
+      strategy: 'IMMEDIATE',
+      deviceIds: taskForm.value.deviceIds
     })
     ElMessage.success('升级任务创建成功')
     createDialogVisible.value = false
