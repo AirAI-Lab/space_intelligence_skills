@@ -51,10 +51,10 @@ public interface ModelDeploymentRepository extends JpaRepository<ModelDeployment
      * 分页查询部署记录（支持多条件过滤）
      */
     @Query("SELECT d FROM ModelDeployment d WHERE " +
-           "(:modelId IS NULL OR d.modelId = :modelId) AND " +
-           "(:deviceId IS NULL OR d.deviceId = :deviceId) AND " +
-           "(:status IS NULL OR d.status = :status) AND " +
-           "(:deploymentType IS NULL OR d.deploymentType = :deploymentType) AND " +
+           "(CAST(:modelId AS text) IS NULL OR d.modelId = :modelId) AND " +
+           "(CAST(:deviceId AS text) IS NULL OR d.deviceId = :deviceId) AND " +
+           "(CAST(:status AS text) IS NULL OR d.status = :status) AND " +
+           "(CAST(:deploymentType AS text) IS NULL OR d.deploymentType = :deploymentType) AND " +
            "(:startTime IS NULL OR d.createdAt >= :startTime) AND " +
            "(:endTime IS NULL OR d.createdAt <= :endTime)")
     Page<ModelDeployment> findByConditions(
