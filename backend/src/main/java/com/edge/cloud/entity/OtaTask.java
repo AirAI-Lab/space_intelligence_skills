@@ -52,6 +52,9 @@ public class OtaTask {
     @Column(name = "failed_devices")
     private Integer failedDevices = 0;
 
+    @Column(name = "progress")
+    private Integer progress = 0;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
