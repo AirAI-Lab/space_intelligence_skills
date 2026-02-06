@@ -4,7 +4,10 @@
       <template #header>
         <div class="card-header">
           <h2>部署记录</h2>
-          <el-button type="primary" @click="fetchRecords" :icon="Refresh">刷新</el-button>
+          <div class="header-actions">
+            <el-button type="danger" @click="handleClearCompleted" :icon="Delete">清空已完成</el-button>
+            <el-button type="primary" @click="fetchRecords" :icon="Refresh">刷新</el-button>
+          </div>
         </div>
       </template>
 
@@ -93,7 +96,7 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="200" fixed="right">
           <template #default="{ row }">
             <el-button
               type="primary"
@@ -102,6 +105,14 @@
               @click.stop="showDetail(row)"
             >
               详情
+            </el-button>
+            <el-button
+              type="danger"
+              size="small"
+              link
+              @click.stop="handleDelete(row)"
+            >
+              删除
             </el-button>
           </template>
         </el-table-column>
@@ -193,7 +204,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Refresh } from '@element-plus/icons-vue'
+import { Refresh, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { deploymentApi } from '@/api'
 import { modelApi } from '@/api'
@@ -380,6 +391,54 @@ const handleRollback = async () => {
   }
 }
 
+// 删除部署记录
+const handleDelete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除部署记录 "${row.deploymentId}" 吗？删除后将无法恢复。`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    await deploymentApi.delete(row.deploymentId)
+    ElMessage.success('部署记录已删除')
+    fetchRecords()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error('删除失败: ' + (error.response?.data?.message || error.message || '未知错误'))
+    }
+  }
+}
+
+// 清空所有已完成/失败/已回滚的部署记录
+const handleClearCompleted = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要清空所有已完成、失败和已回滚的部署记录吗？正在进行的部署记录不会被删除。此操作不可恢复。',
+      '确认清空',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    const res = await deploymentApi.clearCompleted()
+    ElMessage.success(`清空完成: 删除 ${res.data.deleted} 条，跳过 ${res.data.skipped} 条`)
+    fetchRecords()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('清空失败:', error)
+      ElMessage.error('清空失败: ' + (error.response?.data?.message || error.message || '未知错误'))
+    }
+  }
+}
+
 onMounted(() => {
   fetchRecords()
   fetchModelOptions()
@@ -402,6 +461,11 @@ onMounted(() => {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .filter-form {

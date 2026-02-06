@@ -653,5 +653,23 @@ export const deploymentApi = {
    * 获取设备的当前部署信息
    */
   getDeviceCurrent: (deviceId: string) =>
-    request.get(`/deployments/device/${deviceId}/current`)
+    request.get(`/deployments/device/${deviceId}/current`),
+
+  /**
+   * 删除部署记录
+   */
+  delete: (deploymentId: string) =>
+    request.delete(`/deployments/${deploymentId}`),
+
+  /**
+   * 批量删除部署记录
+   */
+  batchDelete: (deploymentIds: string[]) =>
+    request.delete('/deployments/batch', { data: deploymentIds }),
+
+  /**
+   * 清空所有已完成/失败/已回滚的部署记录
+   */
+  clearCompleted: () =>
+    request.delete('/deployments/clear')
 }

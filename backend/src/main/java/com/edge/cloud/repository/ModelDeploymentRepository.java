@@ -55,8 +55,8 @@ public interface ModelDeploymentRepository extends JpaRepository<ModelDeployment
            "(CAST(:deviceId AS text) IS NULL OR d.deviceId = :deviceId) AND " +
            "(CAST(:status AS text) IS NULL OR d.status = :status) AND " +
            "(CAST(:deploymentType AS text) IS NULL OR d.deploymentType = :deploymentType) AND " +
-           "(:startTime IS NULL OR d.createdAt >= :startTime) AND " +
-           "(:endTime IS NULL OR d.createdAt <= :endTime)")
+           "(CAST(:startTime AS timestamp) IS NULL OR d.createdAt >= :startTime) AND " +
+           "(CAST(:endTime AS timestamp) IS NULL OR d.createdAt <= :endTime)")
     Page<ModelDeployment> findByConditions(
         @Param("modelId") String modelId,
         @Param("deviceId") String deviceId,

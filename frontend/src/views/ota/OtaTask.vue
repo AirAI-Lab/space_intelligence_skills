@@ -122,7 +122,6 @@
               替换模型
             </el-button>
             <el-button
-              v-if="row.status === 'PENDING' || row.status === 'COMPLETED' || row.status === 'FAILED'"
               size="small"
               type="danger"
               @click="deleteTask(row)"
@@ -630,11 +629,11 @@ onMounted(() => {
 
   // 定时刷新运行中的任务
   refreshTimer = setInterval(() => {
-    const hasRunning = tasks.value.some((t: any) => t.status === 'UPGRADING')
+    const hasRunning = tasks.value.some((t: any) => t.status === 'RUNNING' || t.status === 'UPGRADING')
     if (hasRunning) {
       loadTasks()
     }
-  }, 5000)
+  }, 3000)  // 改为3秒刷新，提升响应速度
 })
 
 onUnmounted(() => {

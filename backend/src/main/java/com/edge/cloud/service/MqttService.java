@@ -10,11 +10,13 @@ import org.eclipse.paho.mqttv5.common.MqttException;
 import org.eclipse.paho.mqttv5.common.MqttMessage;
 import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.RequiredArgsConstructor;
 
@@ -51,11 +53,17 @@ public class MqttService {
             mqttClient = new MqttClient(brokerUrl, clientId);
             MqttConnectionOptions options = new MqttConnectionOptions();
             options.setAutomaticReconnect(true);
-            options.setCleanStart(true);
+            // 保持会话，重连后订阅不丢失（参考edge_infer设置）
+            options.setCleanStart(false);
+            // 设置会话过期时间为2小时
+            options.setSessionExpiryInterval(7200L);
             options.setUserName(username);
             options.setPassword(password.getBytes());
             options.setConnectionTimeout(30);
-            options.setKeepAliveInterval(60);
+            // 增加keepalive间隔到120秒（参考edge_infer设置，减少断线频率）
+            options.setKeepAliveInterval(120);
+            // 启用最大保活间隔协商
+            options.setMaximumPacketSize(256000L);
 
             mqttClient.connect(options);
             log.info("MQTT 客户端连接成功: brokerUrl={}, clientId={}", brokerUrl, clientId);
@@ -85,12 +93,7 @@ public class MqttService {
      */
     private void subscribeToDeviceStatusTopics() {
         try {
-            // 订阅设备 OTA 状态反馈
-            String otaStatusTopic = "device/+/ota/status";
-            mqttClient.subscribe(otaStatusTopic, 1);
-            log.info("订阅 OTA 状态主题成功: {}", otaStatusTopic);
-
-            // 设置消息回调
+            // 先设置消息回调，再订阅（重要：顺序不能反）
             mqttClient.setCallback(new org.eclipse.paho.mqttv5.client.MqttCallback() {
                 @Override
                 public void messageArrived(String topic, MqttMessage message) throws Exception {
@@ -105,16 +108,22 @@ public class MqttService {
                 @Override
                 public void connectComplete(boolean reconnect, String serverURI) {
                     log.info("MQTT 连接{}成功: {}", reconnect ? "重连" : "初始", serverURI);
+                    // 重连后需要重新订阅主题
+                    if (reconnect) {
+                        subscribeToDeviceStatusTopics();
+                    }
                 }
 
                 @Override
                 public void disconnected(MqttDisconnectResponse disconnectResponse) {
-                    log.warn("MQTT 连接断开: {}", disconnectResponse.getReasonString());
+                    int reasonCode = disconnectResponse != null ? disconnectResponse.getReasonCode() : -1;
+                    String reasonString = disconnectResponse != null ? disconnectResponse.getReasonString() : "unknown";
+                    log.warn("MQTT 连接断开: reasonCode={}, reason={}", reasonCode, reasonString);
                 }
 
                 @Override
                 public void mqttErrorOccurred(MqttException exception) {
-                    log.error("MQTT 发生错误", exception);
+                    log.error("MQTT 发生错误: code={}, message={}", exception.getReasonCode(), exception.getMessage(), exception);
                 }
 
                 @Override
@@ -122,6 +131,11 @@ public class MqttService {
                     log.debug("MQTT 消息发送完成");
                 }
             });
+
+            // 然后订阅设备 OTA 状态反馈
+            String otaStatusTopic = "device/+/ota/status";
+            mqttClient.subscribe(otaStatusTopic, 1);
+            log.info("订阅 OTA 状态主题成功: {}", otaStatusTopic);
 
         } catch (MqttException e) {
             log.error("订阅主题失败", e);
@@ -134,7 +148,7 @@ public class MqttService {
     private void handleDeviceMessage(String topic, MqttMessage message) {
         try {
             String payload = new String(message.getPayload());
-            log.debug("收到设备消息: topic={}, payload={}", topic, payload);
+            log.info("收到设备消息: topic={}, payload={}", topic, payload);
 
             // 解析主题: device/{device_id}/ota/status
             String[] topicParts = topic.split("/");
@@ -294,5 +308,57 @@ public class MqttService {
         String topic = "device/+/+" + topicSuffix;
         // MQTT 广播使用通配符，实际发送时需要针对每个设备
         log.info("广播消息: topicSuffix={}", topicSuffix);
+    }
+
+    /**
+     * 定时检查MQTT连接状态（每30秒）
+     */
+    @Scheduled(fixedRate = 30000)
+    public void checkMqttConnection() {
+        try {
+            if (mqttClient == null || !mqttClient.isConnected()) {
+                log.warn("MQTT连接已断开，尝试重新连接...");
+                reconnect();
+            }
+        } catch (Exception e) {
+            log.error("检查MQTT连接状态失败", e);
+        }
+    }
+
+    /**
+     * 手动重新连接MQTT
+     */
+    private synchronized void reconnect() {
+        try {
+            if (mqttClient != null && mqttClient.isConnected()) {
+                return;
+            }
+
+            log.info("开始重新连接MQTT...");
+            if (mqttClient != null) {
+                try {
+                    mqttClient.disconnect();
+                } catch (Exception e) {
+                    // 忽略断开错误
+                }
+            }
+
+            MqttConnectionOptions options = new MqttConnectionOptions();
+            options.setAutomaticReconnect(true);
+            options.setCleanStart(false);
+            options.setSessionExpiryInterval(7200L);
+            options.setUserName(username);
+            options.setPassword(password.getBytes());
+            options.setConnectionTimeout(30);
+            options.setKeepAliveInterval(120);
+            options.setMaximumPacketSize(256000L);
+
+            mqttClient.connect(options);
+            log.info("MQTT 重连成功");
+
+            subscribeToDeviceStatusTopics();
+        } catch (MqttException e) {
+            log.error("MQTT 重连失败", e);
+        }
     }
 }

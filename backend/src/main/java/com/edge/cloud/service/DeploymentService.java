@@ -245,6 +245,68 @@ public class DeploymentService {
     }
 
     /**
+     * 删除部署记录
+     */
+    @Transactional
+    public void deleteDeployment(String deploymentId) {
+        ModelDeployment deployment = deploymentRepository.findById(deploymentId)
+                .orElseThrow(() -> new RuntimeException("部署记录不存在: " + deploymentId));
+
+        // 允许删除任何状态的部署记录
+        deploymentRepository.deleteById(deploymentId);
+        log.info("删除部署记录: deploymentId={}, status={}", deploymentId, deployment.getStatus());
+    }
+
+    /**
+     * 批量删除部署记录
+     */
+    @Transactional
+    public void deleteDeployments(List<String> deploymentIds) {
+        for (String deploymentId : deploymentIds) {
+            try {
+                deleteDeployment(deploymentId);
+            } catch (Exception e) {
+                log.warn("删除部署记录失败: deploymentId={}, error={}", deploymentId, e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 清空所有已完成/失败/已回滚的部署记录
+     */
+    @Transactional
+    public Map<String, Object> clearCompletedDeployments() {
+        // 查询所有非DEPLOYING状态的记录
+        List<ModelDeployment> allDeployments = deploymentRepository.findAll();
+        int total = allDeployments.size();
+        int deleted = 0;
+        int skipped = 0;
+
+        for (ModelDeployment deployment : allDeployments) {
+            String status = deployment.getStatus();
+            if (!ModelDeployment.DeploymentStatus.DEPLOYING.name().equals(status)) {
+                try {
+                    deploymentRepository.deleteById(deployment.getDeploymentId());
+                    deleted++;
+                } catch (Exception e) {
+                    log.warn("删除部署记录失败: deploymentId={}, error={}",
+                            deployment.getDeploymentId(), e.getMessage());
+                }
+            } else {
+                skipped++;
+            }
+        }
+
+        log.info("清空部署记录完成: 总数={}, 删除={}, 跳过={}", total, deleted, skipped);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("total", total);
+        result.put("deleted", deleted);
+        result.put("skipped", skipped);
+        return result;
+    }
+
+    /**
      * 获取上一个模型的名称
      */
     private String getPreviousModelName(String modelId) {

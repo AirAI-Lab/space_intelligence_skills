@@ -163,4 +163,61 @@ public class DeploymentController {
                     .body(ApiResponse.error("获取失败: " + e.getMessage()));
         }
     }
+
+    @DeleteMapping("/{deployment_id}")
+    @Operation(summary = "删除部署记录")
+    public ResponseEntity<ApiResponse<Void>> deleteDeployment(
+            @Parameter(description = "部署ID") @PathVariable("deployment_id") String deploymentId
+    ) {
+        try {
+            deploymentService.deleteDeployment(deploymentId);
+            return ResponseEntity.ok(ApiResponse.success("部署记录已删除", null));
+        } catch (Exception e) {
+            log.error("删除部署记录失败: deploymentId={}", deploymentId, e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("删除失败: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/batch")
+    @Operation(summary = "批量删除部署记录")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> deleteDeployments(
+            @Parameter(description = "部署ID列表") @RequestBody List<String> deploymentIds
+    ) {
+        try {
+            int successCount = 0;
+            int failCount = 0;
+            for (String deploymentId : deploymentIds) {
+                try {
+                    deploymentService.deleteDeployment(deploymentId);
+                    successCount++;
+                } catch (Exception e) {
+                    failCount++;
+                    log.warn("删除部署记录失败: deploymentId={}", deploymentId, e);
+                }
+            }
+            Map<String, Object> result = new HashMap<>();
+            result.put("total", deploymentIds.size());
+            result.put("success", successCount);
+            result.put("failed", failCount);
+            return ResponseEntity.ok(ApiResponse.success("批量删除完成", result));
+        } catch (Exception e) {
+            log.error("批量删除部署记录失败", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("删除失败: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/clear")
+    @Operation(summary = "清空所有已完成/失败/已回滚的部署记录")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> clearCompletedDeployments() {
+        try {
+            Map<String, Object> result = deploymentService.clearCompletedDeployments();
+            return ResponseEntity.ok(ApiResponse.success("清空完成", result));
+        } catch (Exception e) {
+            log.error("清空部署记录失败", e);
+            return ResponseEntity.status(500)
+                    .body(ApiResponse.error("清空失败: " + e.getMessage()));
+        }
+    }
 }

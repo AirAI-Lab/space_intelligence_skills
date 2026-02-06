@@ -272,6 +272,13 @@ public class OtaService {
         status.setProgress(progress);
         deviceUpgradeStatusRepository.save(status);
 
+        // 更新任务的总进度（单设备任务时，直接使用设备进度）
+        OtaTask task = otaTaskRepository.findById(taskId).orElse(null);
+        if (task != null && task.getTotalDevices() == 1) {
+            task.setProgress(progress);
+            otaTaskRepository.save(task);
+        }
+
         log.debug("设备升级进度更新: taskId={}, deviceId={}, progress={}%",
                 taskId, deviceId, progress);
     }
@@ -463,8 +470,12 @@ public class OtaService {
         OtaTask task = otaTaskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("OTA 任务不存在: " + taskId));
 
-        if (task.getStatus() == OtaTask.OtaStatus.RUNNING) {
-            throw new RuntimeException("无法删除运行中的任务");
+        // 如果任务正在运行，先取消
+        if (task.getStatus() == OtaTask.OtaStatus.RUNNING ||
+            task.getStatus() == OtaTask.OtaStatus.SCHEDULED) {
+            task.setStatus(OtaTask.OtaStatus.CANCELLED);
+            otaTaskRepository.save(task);
+            log.info("OTA 任务已取消: taskId={}", taskId);
         }
 
         // 先删除关联的设备升级状态记录
