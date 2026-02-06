@@ -2,26 +2,26 @@ package com.edge.cloud.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
-import org.eclipse.paho.mqttv5.client.IMqttToken;
-import org.eclipse.paho.mqttv5.client.MqttClient;
-import org.eclipse.paho.mqttv5.client.MqttConnectionOptions;
-import org.eclipse.paho.mqttv5.client.MqttDisconnectResponse;
-import org.eclipse.paho.mqttv5.common.MqttException;
-import org.eclipse.paho.mqttv5.common.MqttMessage;
-import org.eclipse.paho.mqttv5.common.packet.MqttProperties;
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import java.io.File;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * MQTT 服务（支持 OTA 升级）
+ * MQTT 服务（支持 OTA 升级）- 使用 MQTT v3.1.1
  */
 @Slf4j
 @Service
@@ -50,20 +50,38 @@ public class MqttService {
         try {
             log.info("MQTT配置: brokerUrl={}, username={}, password={}", brokerUrl, username, "******");
 
-            mqttClient = new MqttClient(brokerUrl, clientId);
-            MqttConnectionOptions options = new MqttConnectionOptions();
+            // 创建持久化目录
+            String persistenceDir = System.getProperty("java.io.tmpdir") + File.separator + "mqtt" + File.separator + clientId;
+            MqttDefaultFilePersistence persistence = new MqttDefaultFilePersistence(persistenceDir);
+
+            mqttClient = new MqttClient(brokerUrl, clientId, persistence);
+            MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
-            // 保持会话，重连后订阅不丢失（参考edge_infer设置）
-            options.setCleanStart(false);
-            // 设置会话过期时间为2小时
-            options.setSessionExpiryInterval(7200L);
+            // 保持会话，重连后订阅不丢失
+            options.setCleanSession(false);
             options.setUserName(username);
-            options.setPassword(password.getBytes());
+            options.setPassword(password.toCharArray());
             options.setConnectionTimeout(30);
-            // 增加keepalive间隔到120秒（参考edge_infer设置，减少断线频率）
             options.setKeepAliveInterval(120);
-            // 启用最大保活间隔协商
-            options.setMaximumPacketSize(256000L);
+            // 设置遗嘱消息
+            options.setWill("edge_cloud_backend/status", "offline".getBytes(), 1, false);
+
+            mqttClient.setCallback(new MqttCallback() {
+                @Override
+                public void connectionLost(Throwable cause) {
+                    log.warn("MQTT 连接丢失: {}", cause.getMessage());
+                }
+
+                @Override
+                public void messageArrived(String topic, MqttMessage message) throws Exception {
+                    handleDeviceMessage(topic, message);
+                }
+
+                @Override
+                public void deliveryComplete(IMqttDeliveryToken token) {
+                    log.debug("MQTT 消息发送完成");
+                }
+            });
 
             mqttClient.connect(options);
             log.info("MQTT 客户端连接成功: brokerUrl={}, clientId={}", brokerUrl, clientId);
@@ -93,46 +111,7 @@ public class MqttService {
      */
     private void subscribeToDeviceStatusTopics() {
         try {
-            // 先设置消息回调，再订阅（重要：顺序不能反）
-            mqttClient.setCallback(new org.eclipse.paho.mqttv5.client.MqttCallback() {
-                @Override
-                public void messageArrived(String topic, MqttMessage message) throws Exception {
-                    handleDeviceMessage(topic, message);
-                }
-
-                @Override
-                public void authPacketArrived(int reasonCode, MqttProperties properties) {
-                    log.debug("MQTT 认证包到达: reasonCode={}", reasonCode);
-                }
-
-                @Override
-                public void connectComplete(boolean reconnect, String serverURI) {
-                    log.info("MQTT 连接{}成功: {}", reconnect ? "重连" : "初始", serverURI);
-                    // 重连后需要重新订阅主题
-                    if (reconnect) {
-                        subscribeToDeviceStatusTopics();
-                    }
-                }
-
-                @Override
-                public void disconnected(MqttDisconnectResponse disconnectResponse) {
-                    int reasonCode = disconnectResponse != null ? disconnectResponse.getReasonCode() : -1;
-                    String reasonString = disconnectResponse != null ? disconnectResponse.getReasonString() : "unknown";
-                    log.warn("MQTT 连接断开: reasonCode={}, reason={}", reasonCode, reasonString);
-                }
-
-                @Override
-                public void mqttErrorOccurred(MqttException exception) {
-                    log.error("MQTT 发生错误: code={}, message={}", exception.getReasonCode(), exception.getMessage(), exception);
-                }
-
-                @Override
-                public void deliveryComplete(IMqttToken token) {
-                    log.debug("MQTT 消息发送完成");
-                }
-            });
-
-            // 然后订阅设备 OTA 状态反馈
+            // 订阅设备 OTA 状态反馈
             String otaStatusTopic = "device/+/ota/status";
             mqttClient.subscribe(otaStatusTopic, 1);
             log.info("订阅 OTA 状态主题成功: {}", otaStatusTopic);
@@ -188,10 +167,10 @@ public class MqttService {
                 case "converting":
                 case "applying":
                 case "installing":
-                    // 通过 OtaService 处理进度更新
+                    // 通过 OtaService 处理进度更新，传递当前阶段
                     try {
-                        otaService.handleDeviceUpgradeProgress(taskId, deviceId, progress);
-                        log.info("设备升级进度: taskId={}, deviceId={}, status={}, progress={}%",
+                        otaService.handleDeviceUpgradeProgress(taskId, deviceId, progress, status);
+                        log.info("设备升级进度: taskId={}, deviceId={}, stage={}, progress={}%",
                                 taskId, deviceId, status, progress);
                     } catch (Exception e) {
                         log.error("处理设备升级进度失败: taskId={}, deviceId={}", taskId, deviceId, e);
@@ -343,15 +322,35 @@ public class MqttService {
                 }
             }
 
-            MqttConnectionOptions options = new MqttConnectionOptions();
+            String persistenceDir = System.getProperty("java.io.tmpdir") + File.separator + "mqtt" + File.separator + clientId;
+            MqttDefaultFilePersistence persistence = new MqttDefaultFilePersistence(persistenceDir);
+            mqttClient = new MqttClient(brokerUrl, clientId, persistence);
+
+            MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
-            options.setCleanStart(false);
-            options.setSessionExpiryInterval(7200L);
+            options.setCleanSession(false);
             options.setUserName(username);
-            options.setPassword(password.getBytes());
+            options.setPassword(password.toCharArray());
             options.setConnectionTimeout(30);
             options.setKeepAliveInterval(120);
-            options.setMaximumPacketSize(256000L);
+            options.setWill("edge_cloud_backend/status", "offline".getBytes(), 1, false);
+
+            mqttClient.setCallback(new MqttCallback() {
+                @Override
+                public void connectionLost(Throwable cause) {
+                    log.warn("MQTT 连接丢失: {}", cause.getMessage());
+                }
+
+                @Override
+                public void messageArrived(String topic, MqttMessage message) throws Exception {
+                    handleDeviceMessage(topic, message);
+                }
+
+                @Override
+                public void deliveryComplete(IMqttDeliveryToken token) {
+                    log.debug("MQTT 消息发送完成");
+                }
+            });
 
             mqttClient.connect(options);
             log.info("MQTT 重连成功");

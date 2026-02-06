@@ -16,6 +16,7 @@ public class DeviceUpgradeStatusDTO {
     private String deviceId;
     private DeviceUpgradeStatus.UpgradeStatus status;
     private Integer progress;
+    private String currentStage;  // 当前阶段: downloading, verifying, converting, applying
     private String errorMessage;
     private LocalDateTime downloadStartTime;
     private LocalDateTime downloadCompleteTime;

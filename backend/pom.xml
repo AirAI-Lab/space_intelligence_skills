@@ -77,10 +77,10 @@
             <artifactId>HikariCP</artifactId>
         </dependency>
 
-        <!-- MQTT Client -->
+        <!-- MQTT Client (v3.1.1 for stability) -->
         <dependency>
             <groupId>org.eclipse.paho</groupId>
-            <artifactId>org.eclipse.paho.mqttv5.client</artifactId>
+            <artifactId>org.eclipse.paho.client.mqttv3</artifactId>
             <version>1.2.5</version>
         </dependency>
 

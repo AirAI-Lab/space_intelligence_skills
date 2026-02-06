@@ -207,6 +207,11 @@ public class OtaService {
      */
     private void sendOtaMessageToDevice(String deviceId, OtaTask task, String downloadUrl) {
         try {
+            // 如果 downloadUrl 为空，重新获取
+            if (downloadUrl == null || downloadUrl.isEmpty()) {
+                downloadUrl = getDownloadUrl(task);
+            }
+
             // 更新设备状态
             DeviceUpgradeStatus status = deviceUpgradeStatusRepository.findByTaskIdAndDeviceId(task.getTaskId(), deviceId)
                     .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
@@ -225,18 +230,17 @@ public class OtaService {
             // 准备 MQTT 消息（使用边缘端期望的字段名）
             Map<String, Object> message = new HashMap<>();
             message.put("task_id", task.getTaskId());
-            message.put("task_name", task.getTaskName()); // 添加任务名称
-            // 边缘端期望 model_name 和 model_version
-            message.put("model_name", task.getModelId()); // 使用 model_id 作为 model_name
-            message.put("model_version", task.getTargetVersion());
-            message.put("download_url", downloadUrl);
+            message.put("task_name", task.getTaskName());
 
-            // 添加模型配置信息（用于 TensorRT 转换时的输入尺寸）
+            // 获取模型信息
+            String modelDisplayName = "model";
+            String modelVersion = task.getTargetVersion();
             if (task.getModelId() != null) {
                 Model model = modelRepository.findById(task.getModelId()).orElse(null);
                 if (model != null) {
+                    modelDisplayName = model.getModelName();
                     message.put("model_id", model.getModelId());
-                    message.put("model_display_name", model.getModelName()); // 实际的模型名称（如 helmet_detect）
+                    message.put("model_display_name", modelDisplayName);
                     if (model.getInputWidth() != null) {
                         message.put("input_width", model.getInputWidth());
                     }
@@ -249,11 +253,20 @@ public class OtaService {
                 }
             }
 
+            // 如果 version 为空，生成一个版本号（使用 task_id 后 8 位，保持与边缘端一致）
+            if (modelVersion == null || modelVersion.isEmpty()) {
+                modelVersion = task.getTaskId().substring(task.getTaskId().length() - 8);
+            }
+
+            message.put("model_name", modelDisplayName);
+            message.put("model_version", modelVersion);
+            message.put("download_url", downloadUrl);
+
             // 发送 MQTT 消息到边缘端订阅的命令主题
             String topic = "device/" + deviceId + "/ota/command";
             mqttService.publish(topic, message);
 
-            log.info("OTA 升级消息已发送: deviceId={}, topic={}", deviceId, topic);
+            log.info("OTA 升级消息已发送: deviceId={}, topic={}, downloadUrl={}", deviceId, topic, downloadUrl);
 
         } catch (Exception e) {
             log.error("发送 OTA 消息失败: deviceId={}", deviceId, e);
@@ -262,25 +275,81 @@ public class OtaService {
     }
 
     /**
+     * 获取模型下载地址
+     */
+    private String getDownloadUrl(OtaTask task) {
+        if (task.getModelId() == null) {
+            return null;
+        }
+
+        Model model = modelRepository.findById(task.getModelId())
+                .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
+
+        // 优先使用 ONNX 文件（Jetson 可本地转换为 Engine）
+        if (model.getOnnxFilePath() != null) {
+            return backendExternalUrl + "/api/v1/files/download?path=" + model.getOnnxFilePath();
+        } else if (model.getEngineFilePath() != null) {
+            return s3ExternalEndpoint + "/" + model.getEngineFilePath();
+        } else {
+            throw new RuntimeException("模型没有可用的文件（ONNX 或 Engine）");
+        }
+    }
+
+    /**
      * 处理设备升级进度更新（MQTT 回调）
+     * @param taskId 任务ID
+     * @param deviceId 设备ID
+     * @param progress 当前进度百分比（0-100）
+     * @param currentStage 当前阶段: downloading, verifying, converting, applying
      */
     @Transactional
-    public void handleDeviceUpgradeProgress(String taskId, String deviceId, int progress) {
+    public void handleDeviceUpgradeProgress(String taskId, String deviceId, int progress, String currentStage) {
         DeviceUpgradeStatus status = deviceUpgradeStatusRepository.findByTaskIdAndDeviceId(taskId, deviceId)
                 .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
 
-        status.setProgress(progress);
+        // 更新当前阶段（用于前端显示）
+        status.setCurrentStage(currentStage);
+
+        // 计算总体进度：将阶段进度映射到 0-100 的总体进度
+        // downloading: 0-25%, verifying: 25-30%, converting: 30-90%, applying: 90-100%
+        int overallProgress = calculateOverallProgress(currentStage, progress);
+        status.setProgress(overallProgress);
         deviceUpgradeStatusRepository.save(status);
 
         // 更新任务的总进度（单设备任务时，直接使用设备进度）
         OtaTask task = otaTaskRepository.findById(taskId).orElse(null);
         if (task != null && task.getTotalDevices() == 1) {
-            task.setProgress(progress);
+            task.setProgress(overallProgress);
             otaTaskRepository.save(task);
         }
 
-        log.debug("设备升级进度更新: taskId={}, deviceId={}, progress={}%",
-                taskId, deviceId, progress);
+        log.debug("设备升级进度更新: taskId={}, deviceId={}, stage={}, stageProgress={}%, overallProgress={}%",
+                taskId, deviceId, currentStage, progress, overallProgress);
+    }
+
+    /**
+     * 根据阶段和阶段内进度计算总体进度
+     * @param stage 当前阶段
+     * @param stageProgress 阶段内进度（0-100）
+     * @return 总体进度（0-100）
+     */
+    private int calculateOverallProgress(String stage, int stageProgress) {
+        return switch (stage) {
+            case "downloading" -> stageProgress / 4;  // 0-25%
+            case "verifying" -> 25 + (stageProgress / 20);  // 25-30%
+            case "converting" -> 30 + (stageProgress * 60 / 100);  // 30-90%
+            case "applying" -> 90 + (stageProgress / 10);  // 90-100%
+            case "installing" -> 90 + (stageProgress / 10);  // 90-100% (备用)
+            default -> stageProgress;
+        };
+    }
+
+    /**
+     * 处理设备升级进度更新（MQTT 回调）- 兼容旧方法
+     */
+    @Transactional
+    public void handleDeviceUpgradeProgress(String taskId, String deviceId, int progress) {
+        handleDeviceUpgradeProgress(taskId, deviceId, progress, "unknown");
     }
 
     /**
@@ -397,6 +466,7 @@ public class OtaService {
     /**
      * 获取设备升级状态
      */
+    @Transactional(readOnly = true)
     public DeviceUpgradeStatusDTO getDeviceUpgradeStatus(String taskId, String deviceId) {
         DeviceUpgradeStatus status = deviceUpgradeStatusRepository.findByTaskIdAndDeviceId(taskId, deviceId)
                 .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
@@ -406,6 +476,7 @@ public class OtaService {
     /**
      * 获取任务的所有设备状态
      */
+    @Transactional(readOnly = true)
     public List<DeviceUpgradeStatusDTO> getTaskDeviceStatuses(String taskId) {
         List<DeviceUpgradeStatus> statuses = deviceUpgradeStatusRepository.findByTaskId(taskId);
         return statuses.stream()
@@ -521,7 +592,10 @@ public class OtaService {
         dto.setUpdatedAt(task.getUpdatedAt());
 
         // 计算进度百分比
-        if (task.getTotalDevices() != null && task.getTotalDevices() > 0) {
+        // 优先使用任务实际的进度值（单设备任务实时更新），否则用完成设备数计算
+        if (task.getProgress() != null && task.getProgress() > 0) {
+            dto.setProgress(task.getProgress());
+        } else if (task.getTotalDevices() != null && task.getTotalDevices() > 0) {
             int progress = (task.getCompletedDevices() * 100) / task.getTotalDevices();
             dto.setProgress(progress);
         } else {
@@ -547,6 +621,7 @@ public class OtaService {
         dto.setDeviceId(status.getDeviceId());
         dto.setStatus(status.getStatus());
         dto.setProgress(status.getProgress());
+        dto.setCurrentStage(status.getCurrentStage());  // 当前阶段
         dto.setErrorMessage(status.getErrorMessage());
         dto.setDownloadStartTime(status.getDownloadStartTime());
         dto.setDownloadCompleteTime(status.getDownloadCompleteTime());
@@ -660,18 +735,12 @@ public class OtaService {
         for (DeviceUpgradeStatus status : failedStatuses) {
             status.setStatus(DeviceUpgradeStatus.UpgradeStatus.PENDING);
             status.setProgress(0);
+            status.setCurrentStage(null);  // 重置阶段
             status.setErrorMessage(null);
             deviceUpgradeStatusRepository.save(status);
 
-            // 重新发送升级消息
-            String downloadUrl = null;
-            if (task.getModelId() != null) {
-                Model model = modelRepository.findById(task.getModelId())
-                        .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
-                downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
-            }
-
-            sendOtaMessageToDevice(status.getDeviceId(), task, downloadUrl);
+            // 重新发送升级消息（downloadUrl 会在方法内部重新获取）
+            sendOtaMessageToDevice(status.getDeviceId(), task, null);
         }
 
         // 更新任务状态
@@ -694,6 +763,7 @@ public class OtaService {
         // 重置状态
         status.setStatus(DeviceUpgradeStatus.UpgradeStatus.PENDING);
         status.setProgress(0);
+        status.setCurrentStage(null);  // 重置阶段
         status.setErrorMessage(null);
         deviceUpgradeStatusRepository.save(status);
 
@@ -701,15 +771,8 @@ public class OtaService {
         OtaTask task = otaTaskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("OTA任务不存在: " + taskId));
 
-        // 重新发送升级消息
-        String downloadUrl = null;
-        if (task.getModelId() != null) {
-            Model model = modelRepository.findById(task.getModelId())
-                    .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
-            downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
-        }
-
-        sendOtaMessageToDevice(deviceId, task, downloadUrl);
+        // 重新发送升级消息（downloadUrl 会在方法内部重新获取）
+        sendOtaMessageToDevice(deviceId, task, null);
 
         log.info("单个设备重试已发送: taskId={}, deviceId={}", taskId, deviceId);
     }
@@ -752,14 +815,8 @@ public class OtaService {
                 .findByTaskIdAndStatus(taskId, DeviceUpgradeStatus.UpgradeStatus.PENDING);
 
         for (DeviceUpgradeStatus status : pendingStatuses) {
-            String downloadUrl = null;
-            if (task.getModelId() != null) {
-                Model model = modelRepository.findById(task.getModelId())
-                        .orElseThrow(() -> new RuntimeException("模型不存在: " + task.getModelId()));
-                downloadUrl = s3Endpoint + "/" + model.getEngineFilePath();
-            }
-
-            sendOtaMessageToDevice(status.getDeviceId(), task, downloadUrl);
+            // 重新发送升级消息（downloadUrl 会在方法内部重新获取）
+            sendOtaMessageToDevice(status.getDeviceId(), task, null);
         }
 
         log.info("升级任务已恢复: taskId={}", taskId);
@@ -870,10 +927,13 @@ public class OtaService {
                 .orElseThrow(() -> new RuntimeException("设备升级状态不存在"));
 
         // 构建engine文件路径
-        // 使用模型版本（优先使用targetVersion，否则使用model.version）
-        String version = (task.getTargetVersion() != null && !task.getTargetVersion().isEmpty())
-                ? task.getTargetVersion()
-                : model.getVersion();
+        // 使用与 sendOtaMessageToDevice 相同的逻辑来确定版本号
+        // 保持与边缘端实际生成的文件名一致
+        String version = task.getTargetVersion();
+        if (version == null || version.isEmpty()) {
+            // 使用 task_id 后 8 位（与边缘端逻辑一致）
+            version = task.getTaskId().substring(task.getTaskId().length() - 8);
+        }
         String engineFileName = task.getTaskName() + "_" + version + ".engine";
         String enginePath = "/home/nvidia/edge_infer/models/" + engineFileName;
 

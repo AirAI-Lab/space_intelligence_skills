@@ -34,6 +34,9 @@ public class DeviceUpgradeStatus {
     @Column(name = "progress")
     private Integer progress = 0;
 
+    @Column(name = "current_stage", length = 20)
+    private String currentStage;  // 边缘端发送的实际阶段: downloading, verifying, converting, applying
+
     @Lob
     @Column(name = "error_message", columnDefinition = "text")
     private String errorMessage;

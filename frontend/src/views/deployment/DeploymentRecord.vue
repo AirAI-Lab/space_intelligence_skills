@@ -418,13 +418,38 @@ const handleDelete = async (row: any) => {
 // 清空所有已完成/失败/已回滚的部署记录
 const handleClearCompleted = async () => {
   try {
+    // 计算可清除的记录数量
+    const clearableRecords = records.value.filter(
+      r => r.status !== 'DEPLOYING'
+    ).length
+
+    if (clearableRecords === 0) {
+      ElMessage.info('没有可清除的部署记录（仅已完成、失败、已回滚的记录可被清除）')
+      return
+    }
+
+    // 二次确认：第一次提示
     await ElMessageBox.confirm(
-      '确定要清空所有已完成、失败和已回滚的部署记录吗？正在进行的部署记录不会被删除。此操作不可恢复。',
-      '确认清空',
+      `将清空所有已完成、失败和已回滚的部署记录（共 ${clearableRecords} 条）。正在部署中的记录不会被删除。`,
+      '清空部署记录',
       {
-        confirmButtonText: '确定',
+        confirmButtonText: '继续',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
+        distinguishCancelAndClose: true
+      }
+    )
+
+    // 二次确认：第二次要求输入确认
+    await ElMessageBox.prompt(
+      '此操作不可恢复！请输入 "CONFIRM" 以确认清空操作。',
+      '最终确认',
+      {
+        confirmButtonText: '确认清空',
+        cancelButtonText: '取消',
+        type: 'error',
+        inputPattern: /^CONFIRM$/,
+        inputErrorMessage: '请输入 CONFIRM 以确认操作'
       }
     )
 
@@ -432,7 +457,7 @@ const handleClearCompleted = async () => {
     ElMessage.success(`清空完成: 删除 ${res.data.deleted} 条，跳过 ${res.data.skipped} 条`)
     fetchRecords()
   } catch (error: any) {
-    if (error !== 'cancel') {
+    if (error !== 'cancel' && error !== 'close') {
       console.error('清空失败:', error)
       ElMessage.error('清空失败: ' + (error.response?.data?.message || error.message || '未知错误'))
     }
