@@ -1,0 +1,22 @@
+{
+  "lastChecks": {
+    "rcmt_training": 1741263540,
+    "code_sync": 1741263540,
+    "daily_report": 1741263540
+  },
+  "lastReportDate": "2026-03-06",
+  "trainingStatus": {
+    "swin_final": {
+      "completed": true,
+      "bestF1": 0.9048,
+      "epoch": 300
+    },
+    "swin_final_v2": {
+      "completed": false,
+      "currentEpoch": 22,
+      "totalEpochs": 300,
+      "currentF1": 0.0995,
+      "currentLoss": 0.0696
+    }
+  }
+}
