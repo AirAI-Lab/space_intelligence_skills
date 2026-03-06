@@ -1,8 +1,8 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741263540,
-    "code_sync": 1741263540,
-    "daily_report": 1741263540
+    "rcmt_training": 1741270740,
+    "code_sync": 1741270740,
+    "daily_report": 1741267140
   },
   "lastReportDate": "2026-03-06",
   "trainingStatus": {
@@ -13,10 +13,20 @@
     },
     "swin_final_v2": {
       "completed": false,
-      "currentEpoch": 22,
+      "currentEpoch": 34,
       "totalEpochs": 300,
-      "currentF1": 0.0995,
-      "currentLoss": 0.0696
+      "currentF1": 0.8063,
+      "currentLoss": 0.0560,
+      "lossTrend": "decreasing",
+      "breakthrough": true,
+      "breakthroughEpoch": 34,
+      "validation": {
+        "precision": 0.8907,
+        "recall": 0.7365,
+        "f1": 0.8063,
+        "iou": 0.6754,
+        "oa": 0.9851
+      }
     }
   }
 }
