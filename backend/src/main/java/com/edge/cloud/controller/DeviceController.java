@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -138,6 +139,38 @@ public class DeviceController {
         } catch (Exception e) {
             log.error("更新设备失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("更新设备失败: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/stats")
+    @Operation(summary = "获取设备统计信息")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getStatistics() {
+        try {
+            // 统计各状态的设备数量
+            List<Object[]> statusCounts = deviceRepository.countByStatus();
+
+            Map<String, Long> statusMap = new HashMap<>();
+            statusMap.put("ONLINE", 0L);
+            statusMap.put("OFFLINE", 0L);
+            statusMap.put("UPGRADING", 0L);
+            statusMap.put("ERROR", 0L);
+
+            long total = 0;
+            for (Object[] row : statusCounts) {
+                Device.DeviceStatus status = (Device.DeviceStatus) row[0];
+                Long count = (Long) row[1];
+                statusMap.put(status.toString(), count);
+                total += count;
+            }
+
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("total", total);
+            stats.put("statusCounts", statusMap);
+
+            return ResponseEntity.ok(ApiResponse.success(stats));
+        } catch (Exception e) {
+            log.error("获取设备统计失败", e);
+            return ResponseEntity.status(500).body(ApiResponse.error("获取失败: " + e.getMessage()));
         }
     }
 }

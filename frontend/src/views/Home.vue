@@ -100,6 +100,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
 import { Monitor, DataLine, Box, FolderOpened } from '@element-plus/icons-vue'
+import { deviceApi, dataApi, modelApi, trainingApi } from '@/api'
 
 const router = useRouter()
 
@@ -108,7 +109,7 @@ const statistics = ref([
   {
     key: 'devices',
     label: '在线设备',
-    value: 42,
+    value: 0,
     icon: Monitor,
     color: '#ecf5ff',
     iconColor: '#409eff'
@@ -116,7 +117,7 @@ const statistics = ref([
   {
     key: 'datasets',
     label: '数据集',
-    value: 18,
+    value: 0,
     icon: FolderOpened,
     color: '#f0f9ff',
     iconColor: '#67c23a'
@@ -124,7 +125,7 @@ const statistics = ref([
   {
     key: 'models',
     label: '模型版本',
-    value: 35,
+    value: 0,
     icon: Box,
     color: '#fef0f0',
     iconColor: '#f56c6c'
@@ -132,7 +133,7 @@ const statistics = ref([
   {
     key: 'trainings',
     label: '训练任务',
-    value: 7,
+    value: 0,
     icon: DataLine,
     color: '#fdf6ec',
     iconColor: '#e6a23c'
@@ -140,48 +141,82 @@ const statistics = ref([
 ])
 
 // 在线设备
-const onlineDevices = ref([
-  {
-    deviceId: 'EDGE_001',
-    deviceName: '机载设备1号',
-    cpuUsage: 45.5,
-    gpuUsage: 60.2,
-    memoryUsage: 12.5,
-    lastHeartbeat: '2025-01-26 10:00:00'
-  },
-  {
-    deviceId: 'EDGE_002',
-    deviceName: '机载设备2号',
-    cpuUsage: 38.2,
-    gpuUsage: 55.8,
-    memoryUsage: 10.2,
-    lastHeartbeat: '2025-01-26 10:00:05'
-  }
-])
+const onlineDevices = ref<any[]>([])
 
 // 最近训练任务
-const recentTrainings = ref([
-  {
-    jobId: 'JOB001',
-    jobName: '安全帽检测v2',
-    status: 'running',
-    progress: 65
-  },
-  {
-    jobId: 'JOB002',
-    jobName: '车辆检测训练',
-    status: 'completed',
-    progress: 100
-  },
-  {
-    jobId: 'JOB003',
-    jobName: '人员识别微调',
-    status: 'pending',
-    progress: 0
-  }
-])
+const recentTrainings = ref<any[]>([])
 
 const deviceStatusChart = ref<HTMLElement>()
+
+// 设备状态统计
+const deviceStatusStats = ref({
+  ONLINE: 0,
+  OFFLINE: 0,
+  UPGRADING: 0,
+  ERROR: 0
+})
+
+// 加载统计数据
+const loadStatistics = async () => {
+  try {
+    // 并行加载所有统计数据
+    const [devicesRes, datasetsRes, modelsRes, trainingsRes] = await Promise.all([
+      deviceApi.getList({ page: 1, pageSize: 1 }), // 只需要总数
+      dataApi.getList({ page: 1, pageSize: 1 }),
+      modelApi.getList({ page: 1, pageSize: 1 }),
+      trainingApi.getList({ page: 1, pageSize: 5 }) // 获取最近5个训练任务
+    ])
+
+    // 更新统计数据
+    statistics.value[0].value = devicesRes.data.total || 0
+    statistics.value[1].value = datasetsRes.data.total || 0
+    statistics.value[2].value = modelsRes.data.total || 0
+    statistics.value[3].value = trainingsRes.data.total || 0
+
+    // 更新训练任务列表
+    recentTrainings.value = (trainingsRes.data.items || []).map((item: any) => ({
+      jobId: item.jobId,
+      jobName: item.jobName,
+      status: item.status.toLowerCase(),
+      progress: item.progress || 0
+    }))
+
+    // 获取设备状态统计
+    const statsRes = await fetch('/api/v1/devices/stats').then(res => res.json())
+    if (statsRes.code === 200 && statsRes.data.statusCounts) {
+      deviceStatusStats.value = statsRes.data.statusCounts
+
+      // 更新在线设备数量（使用ONLINE状态的数量）
+      statistics.value[0].value = statsRes.data.statusCounts.ONLINE || 0
+    }
+
+  } catch (error: any) {
+    console.error('加载统计数据失败:', error)
+  }
+}
+
+// 加载在线设备列表
+const loadOnlineDevices = async () => {
+  try {
+    const response = await deviceApi.getList({
+      page: 1,
+      pageSize: 10,
+      status: 'ONLINE'
+    })
+
+    onlineDevices.value = (response.data.items || []).map((item: any) => ({
+      deviceId: item.deviceId,
+      deviceName: item.deviceName,
+      cpuUsage: item.cpuUsage || 0,
+      gpuUsage: item.gpuUsage || 0,
+      memoryUsage: (item.memoryUsage || 0).toFixed(1),
+      lastHeartbeat: item.lastHeartbeat || '-'
+    }))
+  } catch (error: any) {
+    console.error('加载在线设备失败:', error)
+    onlineDevices.value = []
+  }
+}
 
 // 获取状态类型
 const getStatusType = (status: string) => {
@@ -247,9 +282,10 @@ const initChart = () => {
           show: false
         },
         data: [
-          { value: 35, name: '在线', itemStyle: { color: '#67c23a' } },
-          { value: 5, name: '离线', itemStyle: { color: '#909399' } },
-          { value: 2, name: '故障', itemStyle: { color: '#f56c6c' } }
+          { value: deviceStatusStats.value.ONLINE, name: '在线', itemStyle: { color: '#67c23a' } },
+          { value: deviceStatusStats.value.OFFLINE, name: '离线', itemStyle: { color: '#909399' } },
+          { value: deviceStatusStats.value.UPGRADING, name: '升级中', itemStyle: { color: '#e6a23c' } },
+          { value: deviceStatusStats.value.ERROR, name: '故障', itemStyle: { color: '#f56c6c' } }
         ]
       }
     ]
@@ -262,8 +298,20 @@ const initChart = () => {
   })
 }
 
+// 刷新所有数据
+const refreshData = async () => {
+  await loadStatistics()
+  await loadOnlineDevices()
+  // 更新图表
+  if (deviceStatusChart.value) {
+    initChart()
+  }
+}
+
 onMounted(() => {
-  initChart()
+  refreshData()
+  // 每分钟刷新一次数据
+  setInterval(refreshData, 60000)
 })
 </script>
 

@@ -1,0 +1,20 @@
+{
+  "name": "openclaw-skill-delegate",
+  "version": "1.0.0",
+  "description": "自动子代理委托技能 - 将复杂任务自动拆分为子代理执行",
+  "main": "delegate.js",
+  "keywords": [
+    "openclaw",
+    "skill",
+    "subagent",
+    "delegate",
+    "自动化"
+  ],
+  "openclaw": {
+    "skill": true,
+    "name": "delegate",
+    "emoji": "🔄"
+  },
+  "author": "RCMT-V3 Team",
+  "license": "MIT"
+}

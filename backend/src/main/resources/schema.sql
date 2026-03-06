@@ -261,11 +261,12 @@ CREATE TRIGGER update_device_upgrade_status_updated_at BEFORE UPDATE ON device_u
 -- 插入初始测试数据
 -- ============================================
 
--- 插入测试设备
-INSERT INTO devices (device_id, device_name, device_type, group_id, status, mqtt_topic) VALUES
-('EDGE_DEVICE_001', '边缘设备1', 'jetson_orin', 'group_a', 'ONLINE', 'device/EDGE_DEVICE_001'),
-('EDGE_DEVICE_002', '边缘设备2', 'jetson_xavier', 'group_a', 'OFFLINE', 'device/EDGE_DEVICE_002')
-ON CONFLICT (device_id) DO NOTHING;
+-- 注意：已移除模拟设备数据，避免干扰实际设备状态
+-- 真实设备应通过心跳接口自动注册
+-- INSERT INTO devices (device_id, device_name, device_type, group_id, status, mqtt_topic) VALUES
+-- ('EDGE_DEVICE_001', '边缘设备1', 'jetson_orin', 'group_a', 'ONLINE', 'device/EDGE_DEVICE_001'),
+-- ('EDGE_DEVICE_002', '边缘设备2', 'jetson_xavier', 'group_a', 'OFFLINE', 'device/EDGE_DEVICE_002')
+-- ON CONFLICT (device_id) DO NOTHING;
 
 -- ============================================
 -- 完成

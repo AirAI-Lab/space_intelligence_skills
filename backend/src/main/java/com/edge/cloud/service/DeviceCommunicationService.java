@@ -273,6 +273,32 @@ public class DeviceCommunicationService {
     }
 
     /**
+     * 定期检查并更新设备在线状态
+     * 每1分钟执行一次，将超过5分钟未心跳的在线设备标记为离线
+     */
+    @Scheduled(fixedDelay = 60000) // 每1分钟执行一次
+    @Transactional
+    public void checkAndUpdateDeviceStatus() {
+        try {
+            // 查找超时的在线设备（最后心跳时间超过5分钟）
+            List<Device> offlineDevices = deviceRepository.findOfflineDevices();
+
+            if (!offlineDevices.isEmpty()) {
+                log.info("发现 {} 个设备长时间未心跳，标记为离线", offlineDevices.size());
+
+                for (Device device : offlineDevices) {
+                    log.debug("设备 {} 最后心跳时间: {}，标记为离线",
+                            device.getDeviceId(), device.getLastHeartbeat());
+                    device.setStatus(Device.DeviceStatus.OFFLINE);
+                    deviceRepository.save(device);
+                }
+            }
+        } catch (Exception e) {
+            log.error("检查设备在线状态失败", e);
+        }
+    }
+
+    /**
      * 定期清理过期命令
      */
     @Scheduled(fixedDelay = 300000) // 每5分钟执行一次

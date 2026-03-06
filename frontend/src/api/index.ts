@@ -93,7 +93,13 @@ export const deviceApi = {
    * 删除设备
    */
   delete: (deviceId: string) =>
-    request.delete(`/devices/${deviceId}`)
+    request.delete(`/devices/${deviceId}`),
+
+  /**
+   * 获取设备统计信息
+   */
+  getStats: () =>
+    request.get('/devices/stats')
 }
 
 // ==================== 数据集 API ====================

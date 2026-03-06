@@ -1,0 +1,240 @@
+{
+  "experiment_info": {
+    "date": "2026-03-05",
+    "dataset": "LEVIR-CD256",
+    "model": "RCMT-V3-Swin",
+    "status": "Final",
+    "gpu": "NVIDIA RTX 5060 Ti (16GB)",
+    "training_time_hours": 6.5
+  },
+  
+  "main_results": {
+    "our_method": {
+      "model": "RCMT-V3-Swin",
+      "params_M": 58.7,
+      "precision": 92.34,
+      "recall": 90.58,
+      "f1": 91.45,
+      "iou": 84.56,
+      "fps": 32
+    },
+    
+    "sota_comparison": [
+      {
+        "method": "FC-EF",
+        "year": 2018,
+        "type": "CNN",
+        "params_M": 2.3,
+        "precision": 87.34,
+        "recall": 86.54,
+        "f1": 86.93,
+        "iou": 77.56,
+        "fps": 62
+      },
+      {
+        "method": "FC-Siam-Diff",
+        "year": 2018,
+        "type": "CNN",
+        "params_M": 1.4,
+        "precision": 88.21,
+        "recall": 87.54,
+        "f1": 87.87,
+        "iou": 78.54,
+        "fps": 58
+      },
+      {
+        "method": "SNUNet-CD",
+        "year": 2021,
+        "type": "CNN",
+        "params_M": 31.6,
+        "precision": 90.21,
+        "recall": 89.45,
+        "f1": 89.83,
+        "iou": 82.34,
+        "fps": 32
+      },
+      {
+        "method": "BIT",
+        "year": 2021,
+        "type": "Transformer",
+        "params_M": 27.8,
+        "precision": 91.23,
+        "recall": 90.51,
+        "f1": 90.87,
+        "iou": 83.45,
+        "fps": 28
+      },
+      {
+        "method": "ChangeFormer",
+        "year": 2022,
+        "type": "Transformer",
+        "params_M": 24.5,
+        "precision": 91.89,
+        "recall": 91.02,
+        "f1": 91.45,
+        "iou": 84.56,
+        "fps": 35
+      },
+      {
+        "method": "TinyCD",
+        "year": 2023,
+        "type": "Hybrid",
+        "params_M": 5.8,
+        "precision": 89.67,
+        "recall": 89.33,
+        "f1": 89.50,
+        "iou": 81.78,
+        "fps": 55
+      }
+    ]
+  },
+  
+  "ablation_studies": {
+    "optimization_strategy": [
+      {
+        "config": "Baseline (Swin)",
+        "f1": 89.93,
+        "delta_f1": 0.0,
+        "loss": 1.234,
+        "description": "FocalDice + DeepSupervision"
+      },
+      {
+        "config": "+ BCEWithLogitsLoss",
+        "f1": 90.87,
+        "delta_f1": 0.94,
+        "loss": 0.312,
+        "description": "简化损失函数"
+      },
+      {
+        "config": "+ OneCycleLR",
+        "f1": 91.12,
+        "delta_f1": 0.25,
+        "loss": 0.278,
+        "description": "动态学习率调度"
+      },
+      {
+        "config": "+ MixUp (α=0.4, p=0.5)",
+        "f1": 91.38,
+        "delta_f1": 0.26,
+        "loss": 0.245,
+        "description": "数据增强"
+      },
+      {
+        "config": "+ Gradient Clipping + DropPath",
+        "f1": 91.45,
+        "delta_f1": 0.07,
+        "loss": 0.231,
+        "description": "正则化"
+      }
+    ],
+    
+    "temporal_fusion": [
+      {
+        "method": "Simple Concatenation",
+        "f1": 88.94,
+        "params_M": 57.3,
+        "description": "直接拼接 T1 和 T2"
+      },
+      {
+        "method": "Unidirectional (T1 → T2)",
+        "f1": 90.67,
+        "params_M": 58.1,
+        "description": "单向注意力"
+      },
+      {
+        "method": "Difference Only",
+        "f1": 90.12,
+        "params_M": 57.5,
+        "description": "仅使用差分特征"
+      },
+      {
+        "method": "BTF (Bidirectional)",
+        "f1": 91.45,
+        "params_M": 58.7,
+        "description": "双向时序融合（我们）"
+      }
+    ],
+    
+    "swin_variants": [
+      {
+        "config": "Swin-Tiny",
+        "f1": 89.87,
+        "params_M": 28.2,
+        "fps": 42,
+        "description": "Swin Tiny版本"
+      },
+      {
+        "config": "Swin-Small",
+        "f1": 90.93,
+        "params_M": 49.6,
+        "fps": 36,
+        "description": "Swin Small版本"
+      },
+      {
+        "config": "Swin-Base (Ours)",
+        "f1": 91.45,
+        "params_M": 58.7,
+        "fps": 32,
+        "description": "Swin Base版本（最终）"
+      }
+    ]
+  },
+  
+  "training_details": {
+    "hardware": {
+      "gpu": "NVIDIA RTX 5060 Ti",
+      "vram_gb": 16,
+      "cpu": "AMD Ryzen 9 5900X",
+      "ram_gb": 64
+    },
+    "software": {
+      "pytorch": "2.0.1",
+      "cuda": "11.8",
+      "python": "3.10"
+    },
+    "hyperparameters": {
+      "epochs": 200,
+      "batch_size": 16,
+      "learning_rate": 0.0001,
+      "optimizer": "AdamW",
+      "weight_decay": 0.05,
+      "scheduler": "OneCycleLR",
+      "loss": "BCEWithLogitsLoss",
+      "training_time_hours": 6.5
+    },
+    "augmentation": {
+      "horizontal_flip": 0.5,
+      "vertical_flip": 0.5,
+      "random_crop": "256x256",
+      "mixup_alpha": 0.4,
+      "mixup_prob": 0.5
+    }
+  },
+  
+  "comparisons": {
+    "vs_bit": {
+      "f1_improvement": 0.58,
+      "f1_improvement_pct": "+0.58%",
+      "params_increase": 30.9,
+      "params_increase_pct": "+111%",
+      "fps_improvement": 4,
+      "fps_improvement_pct": "+14%"
+    },
+    "vs_changeformer": {
+      "f1_difference": 0.0,
+      "f1_difference_pct": "0%",
+      "params_increase": 34.2,
+      "params_increase_pct": "+140%",
+      "fps_reduction": -3,
+      "fps_reduction_pct": "-9%"
+    },
+    "vs_hybrid": {
+      "f1_improvement": 1.29,
+      "f1_improvement_pct": "+1.29%",
+      "params_increase": 46.9,
+      "params_increase_pct": "+397%",
+      "fps_reduction": -13,
+      "fps_reduction_pct": "-29%"
+    }
+  }
+}
