@@ -1,7 +1,7 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741286340,
-    "code_sync": 1741286340,
+    "rcmt_training": 1741315740,
+    "code_sync": 1741315740,
     "daily_report": 1741286340
   },
   "lastReportDate": "2026-03-06",
@@ -13,21 +13,24 @@
     },
     "swin_final_v2": {
       "completed": false,
-      "currentEpoch": 46,
+      "currentEpoch": 91,
       "totalEpochs": 300,
-      "currentF1": 0.8475,
-      "currentLoss": 0.0468,
-      "lossTrend": "decreasing",
-      "breakthrough": true,
-      "breakthroughEpoch": 39,
-      "validation": {
-        "precision": 0.8882,
-        "recall": 0.7994,
-        "f1": 0.8415,
-        "iou": 0.7263,
-        "oa": 0.9874
-      },
-      "progressNote": "F1 improved from 0.8227 to 0.8475 in 5 epochs, excellent convergence"
+      "currentF1": 0.8832,
+      "bestF1": 0.8832,
+      "currentLoss": "resuming",
+      "status": "TRAINING",
+      "resumed_at": "2026-03-07 08:30",
+      "fixes_applied": [
+        "Reduced max_lr from 0.001 to 0.0005 (10x -> 5x)",
+        "Added NaN detection and batch skipping",
+        "Fixed MixUp metrics alignment issue",
+        "Reset optimizer to use new learning rate"
+      ],
+      "bestEpoch": 90,
+      "next_steps": [
+        "Monitor for NaN occurrences",
+        "Track F1 improvement beyond 0.8832"
+      ]
     }
   }
 }
