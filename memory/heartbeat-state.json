@@ -1,10 +1,10 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741315740,
-    "code_sync": 1741315740,
-    "daily_report": 1741286340
+    "rcmt_training": 1741432000,
+    "code_sync": 1741432000,
+    "daily_report": 1741432000
   },
-  "lastReportDate": "2026-03-06",
+  "lastReportDate": "2026-03-08",
   "trainingStatus": {
     "swin_final": {
       "completed": true,
@@ -13,24 +13,23 @@
     },
     "swin_final_v2": {
       "completed": false,
-      "currentEpoch": 91,
+      "currentEpoch": 0,
       "totalEpochs": 300,
-      "currentF1": 0.8832,
-      "bestF1": 0.8832,
-      "currentLoss": "resuming",
+      "bestF1": 0.0,
+      "bestEpoch": 0,
       "status": "TRAINING",
-      "resumed_at": "2026-03-07 08:30",
-      "fixes_applied": [
-        "Reduced max_lr from 0.001 to 0.0005 (10x -> 5x)",
-        "Added NaN detection and batch skipping",
-        "Fixed MixUp metrics alignment issue",
-        "Reset optimizer to use new learning rate"
-      ],
-      "bestEpoch": 90,
-      "next_steps": [
-        "Monitor for NaN occurrences",
-        "Track F1 improvement beyond 0.8832"
-      ]
+      "started_at": "2026-03-08 11:06",
+      "config": {
+        "batch_size": 16,
+        "accumulation_steps": 16,
+        "effective_batch_size": 256,
+        "learning_rate": 0.0001,
+        "max_lr": 0.0005,
+        "scheduler": "OneCycleLR",
+        "depths": [2, 2, 2, 2],
+        "num_heads": [2, 4, 8, 16],
+        "temporal_fusion": true
+      }
     }
   }
 }
