@@ -1,7 +1,7 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741432000,
-    "code_sync": 1741432000,
+    "rcmt_training": 1741471000,
+    "code_sync": 1741471000,
     "daily_report": 1741432000
   },
   "lastReportDate": "2026-03-08",
@@ -11,24 +11,21 @@
       "bestF1": 0.9048,
       "epoch": 300
     },
-    "swin_final_v2": {
+    "swin_sota": {
       "completed": false,
-      "currentEpoch": 0,
+      "currentEpoch": 69,
       "totalEpochs": 300,
-      "bestF1": 0.0,
-      "bestEpoch": 0,
+      "bestF1": 0.856,
+      "bestEpoch": 68,
       "status": "TRAINING",
-      "started_at": "2026-03-08 11:06",
+      "started_at": "2026-03-08",
+      "last_check": "2026-03-09 05:47",
       "config": {
         "batch_size": 16,
         "accumulation_steps": 16,
         "effective_batch_size": 256,
         "learning_rate": 0.0001,
-        "max_lr": 0.0005,
-        "scheduler": "OneCycleLR",
-        "depths": [2, 2, 2, 2],
-        "num_heads": [2, 4, 8, 16],
-        "temporal_fusion": true
+        "scheduler": "OneCycleLR"
       }
     }
   }
