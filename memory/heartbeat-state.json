@@ -1,35 +1,37 @@
 {
   "lastChecks": {
-    "rcmt_training": "2026-03-09T17:32:00+08:00",
-    "code_sync": "2026-03-09T17:32:00+08:00",
-    "daily_report": null
+    "rcmt_training": 1773115926,
+    "code_sync": 1773115926,
+    "daily_report": 1773115926
   },
-  "rcmt_status": {
-    "epoch": 177,
-    "total_epochs": 300,
-    "train_f1": 0.9030,
-    "val_f1": 0.8854,
-    "target_f1": 0.92,
-    "status": "training",
-    "log_file": "logs_swin_sota/train.log",
-    "progress": "59.0%",
-    "trend": {
-      "train_f1_change": "+0.0020",
-      "val_f1_change": "+0.0013",
-      "last_hour_epochs": 17
-    },
-    "note": "Training in Docker container rcmt-training, running normally"
+  "trainingStatus": {
+    "version": "V4",
+    "currentEpoch": 20,
+    "totalEpochs": 300,
+    "bestValF1": 0.8496,
+    "targetF1": 0.92,
+    "lastUpdate": "2026-03-10T04:12:05+08:00",
+    "status": "running",
+    "logDir": "logs_swin_v4",
+    "checkpointDir": "checkpoints_swin_v4"
   },
-  "code_commits": {
-    "edge_infer_cloud": {
-      "unpushed": 9,
-      "last_commit": "213d315",
-      "message": "docs: 施工安全实施方案与架构澄清文档"
-    },
-    "edge_infer": {
-      "unpushed": 8,
-      "last_commit": "a5f3f98",
-      "message": "refactor: RCMT训练脚本优化与清理"
-    }
+  "v3Status": {
+    "paused": true,
+    "pausedEpoch": 260,
+    "bestValF1": 0.8907,
+    "checkpointDir": "checkpoints_swin_sota"
+  },
+  "v4Config": {
+    "loss": "BCE(1.0)+Dice(0.3)+Focal(0.1)",
+    "pos_weight": 3.0,
+    "label_smoothing": 0.05,
+    "cutmix": true,
+    "mixup": true,
+    "drop_path": 0.3,
+    "warmup_epochs": 10,
+    "scheduler": "cosine_annealing"
+  },
+  "preferences": {
+    "ttsEnabled": false
   }
 }
