@@ -1,34 +1,35 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741483596,
-    "code_sync": 1741483596,
-    "training_alert": 1741483596,
-    "daily_report": 1741432000
+    "rcmt_training": "2026-03-09T17:32:00+08:00",
+    "code_sync": "2026-03-09T17:32:00+08:00",
+    "daily_report": null
   },
-  "lastReportDate": "2026-03-08",
-  "trainingStatus": {
-    "swin_final": {
-      "completed": true,
-      "bestF1": 0.9048,
-      "epoch": 300
+  "rcmt_status": {
+    "epoch": 177,
+    "total_epochs": 300,
+    "train_f1": 0.9030,
+    "val_f1": 0.8854,
+    "target_f1": 0.92,
+    "status": "training",
+    "log_file": "logs_swin_sota/train.log",
+    "progress": "59.0%",
+    "trend": {
+      "train_f1_change": "+0.0020",
+      "val_f1_change": "+0.0013",
+      "last_hour_epochs": 17
     },
-    "swin_sota": {
-      "completed": false,
-      "currentEpoch": 112,
-      "totalEpochs": 300,
-      "bestF1": 0.9065,
-      "bestEpoch": 110,
-      "status": "TRAINING",
-      "started_at": "2026-03-08",
-      "last_check": "2026-03-09 09:27",
-      "running_in": "container:aaf2c9c5d4f5",
-      "config": {
-        "batch_size": 16,
-        "accumulation_steps": 16,
-        "effective_batch_size": 256,
-        "learning_rate": 0.0001,
-        "scheduler": "OneCycleLR"
-      }
+    "note": "Training in Docker container rcmt-training, running normally"
+  },
+  "code_commits": {
+    "edge_infer_cloud": {
+      "unpushed": 9,
+      "last_commit": "213d315",
+      "message": "docs: 施工安全实施方案与架构澄清文档"
+    },
+    "edge_infer": {
+      "unpushed": 8,
+      "last_commit": "a5f3f98",
+      "message": "refactor: RCMT训练脚本优化与清理"
     }
   }
 }
