@@ -36,7 +36,8 @@ docs/v2_reorganized/
 │   └── REQUIREMENTS.md         # 需求文档
 └── 05_business/                 # 商业文档
     ├── BUSINESS_PLAN.md        # 商业计划
-    └── INVESTOR_GUIDE.md       # 投资人指南
+    ├── INVESTOR_GUIDE.md       # 投资人指南
+    └── IMPLEMENTATION_MASTER_PLAN.md # 落地实施总纲（完整版）
 ```
 
 ## 代码仓库
@@ -72,9 +73,10 @@ docs/v2_reorganized/
 ## 快速开始
 
 1. **新人入职**: 阅读 [01_architecture/OVERVIEW.md](./01_architecture/OVERVIEW.md)
-2. **软件开发**: 阅读 [02_software/EDGE_INFER_FRAMEWORK.md](./02_software/EDGE_INFER_FRAMEWORK.md)
-3. **算法开发**: 阅读 [03_algorithm/RCMT_FRAMEWORK.md](./03_algorithm/RCMT_FRAMEWORK.md)
-4. **产品规划**: 阅读 [04_product/PRODUCT_ROADMAP.md](./04_product/PRODUCT_ROADMAP.md)
+2. **业务实施**: 阅读 [05_business/IMPLEMENTATION_MASTER_PLAN.md](./05_business/IMPLEMENTATION_MASTER_PLAN.md) ⭐ **重要**
+3. **软件开发**: 阅读 [02_software/EDGE_INFER_FRAMEWORK.md](./02_software/EDGE_INFER_FRAMEWORK.md)
+4. **算法开发**: 阅读 [03_algorithm/RCMT_FRAMEWORK.md](./03_algorithm/RCMT_FRAMEWORK.md)
+5. **产品规划**: 阅读 [04_product/PRODUCT_ROADMAP.md](./04_product/PRODUCT_ROADMAP.md)
 
 ---
 
