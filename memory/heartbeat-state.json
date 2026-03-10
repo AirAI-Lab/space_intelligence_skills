@@ -1,19 +1,18 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741607280,
-    "code_sync": 1741607280,
+    "rcmt_training": 1741610880,
+    "code_sync": 1741610880,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 0,
+    "currentEpoch": 3,
     "totalEpochs": 300,
-    "bestValF1": 0.0,
+    "bestValF1": 0.3661,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T18:28:00+08:00",
-    "status": "stopped",
-    "stopReason": "GPU memory fragmentation at Batch 250/637 - needs fix",
-    "logDir": "logs_swin",
+    "lastUpdate": "2026-03-10T19:28:00+08:00",
+    "status": "running_excellently",
+    "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
     "script": "train_rcmt_swin.py",
@@ -21,10 +20,30 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "lastBatch": 250,
-    "totalBatches": 637,
-    "gpuStatus": "idle (0%, 843MB/16GB)",
-    "actionRequired": "Fix memory management and restart training"
+    "runtime": "76 minutes (started 18:12)",
+    "gpuStatus": "91% util, 12.1GB/16GB, 141W",
+    "progress": {
+      "epoch1": {
+        "completed": true,
+        "valF1": 0.1580,
+        "time": "1706s"
+      },
+      "epoch2": {
+        "completed": true,
+        "valF1": 0.3661,
+        "improvement": "+0.2081 (+131.7%)",
+        "time": "1247s",
+        "status": "*** New Best! ***"
+      },
+      "epoch3": {
+        "current": true,
+        "batch": "600/637 (94.2%)",
+        "loss": 0.9200,
+        "status": "Almost complete"
+      }
+    },
+    "breakthrough": "Successfully passed Batch 250 barrier, training stable",
+    "trend": "Val F1 improving rapidly (0.1580 -> 0.3661 in 1 epoch)"
   },
   "v4Status": {
     "completed": true,
@@ -32,30 +51,6 @@
     "bestValF1": 0.9201,
     "checkpointDir": "checkpoints_swin_v4",
     "status": "Target exceeded (F1=0.9201 > 0.92)"
-  },
-  "dailyReport": {
-    "date": "2026-03-10",
-    "trainingProgress": {
-      "v4": {
-        "status": "completed",
-        "f1": 0.9201,
-        "epoch": 257
-      },
-      "v6": {
-        "status": "stopped",
-        "batch": "250/637",
-        "issue": "GPU memory fragmentation"
-      }
-    },
-    "codeChanges": {
-      "edge_infer_cloud": "Documentation and heartbeat updates",
-      "edge_infer": "Memory debugging in train_rcmt_swin.py"
-    },
-    "nextSteps": [
-      "Fix memory management (every 10 batch cleanup)",
-      "Reduce num_workers and batch_size",
-      "Restart V6 training"
-    ]
   },
   "preferences": {
     "ttsEnabled": false
