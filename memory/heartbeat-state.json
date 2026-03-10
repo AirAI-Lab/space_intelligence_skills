@@ -6,13 +6,13 @@
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 1,
+    "currentEpoch": 0,
     "totalEpochs": 300,
     "bestValF1": 0.0,
     "targetF1": 0.92,
     "lastUpdate": "2026-03-10T17:28:00+08:00",
-    "status": "monitoring",
-    "logDir": "logs_swin",
+    "status": "stopped",
+    "logDir": "logs_swin_v6",
     "checkpointDir": "checkpoints_swin_v6",
     "containerId": "aaf2c9c5d4f5",
     "script": "train_rcmt_swin.py",
@@ -20,26 +20,25 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
+    "stopPattern": "Repeatedly stops at Batch 600/637",
+    "lastKnownBatch": 600,
+    "totalBatches": 637,
     "progress": {
-      "epochProgress": "checking",
-      "trainingRate": "~1.5 it/s",
-      "config": {
-        "depths": [2, 2, 2, 2],
-        "embedDim": 96,
-        "numHeads": [2, 4, 8, 16],
-        "windowSize": 7,
-        "useTemporalFusion": true,
-        "mixupProb": 0.5,
-        "cutmixProb": 0.3,
-        "dropPath": 0.3,
-        "posWeight": 5.0,
-        "labelSmoothing": 0.05,
-        "lossWeights": {
-          "bce": 1.0,
-          "dice": 0.3,
-          "focal": 0.1
-        }
-      }
+      "issue": "Training stopped 3 times at same batch location (600/637)",
+      "investigation": "Checking logs for error messages",
+      "possibleCauses": [
+        "DataLoader issue with last 37 batches",
+        "Memory accumulation after 600 batches",
+        "Dataset size not multiple of batch_size (637 * 16 = 10192 samples)",
+        "Corrupted sample at batch 600",
+        "Memory fragmentation"
+      ],
+      "nextSteps": [
+        "Check full log for errors",
+        "Verify dataset integrity",
+        "Try batch_size=12 or 8",
+        "Add batch-level error handling"
+      ]
     }
   },
   "v4Status": {
