@@ -1,27 +1,27 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741578720,
+    "rcmt_training": 1741581180,
     "code_sync": 1741578720,
     "daily_report": 1741526400
   },
   "trainingStatus": {
     "version": "V4",
-    "currentEpoch": 243,
+    "currentEpoch": 257,
     "totalEpochs": 300,
-    "bestValF1": 0.9200,
+    "bestValF1": 0.9201,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T12:03:00+08:00",
+    "lastUpdate": "2026-03-10T12:33:00+08:00",
     "status": "target_exceeded",
     "logDir": "logs_swin_v4",
     "checkpointDir": "checkpoints_swin_v4",
     "progress": {
-      "epochProgress": "81.0%",
+      "epochProgress": "85.7%",
       "trainingRate": "~28 epochs/hour",
-      "improvement": "+0.0704 F1 since 04:00",
-      "gapToTarget": -0.0100,
+      "improvement": "+0.0705 F1 since 04:00",
+      "gapToTarget": -0.0101,
       "targetAchievedEpoch": 207,
       "targetAchievedTime": "2026-03-10T10:42:00+08:00",
-      "latestBestEpoch": 243
+      "latestBestEpoch": 257
     }
   },
   "v3Status": {
