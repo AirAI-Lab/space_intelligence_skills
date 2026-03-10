@@ -1,7 +1,7 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741600316,
-    "code_sync": 1741600316,
+    "rcmt_training": 1741602480,
+    "code_sync": 1741602480,
     "daily_report": 1741526400
   },
   "trainingStatus": {
@@ -10,8 +10,8 @@
     "totalEpochs": 300,
     "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T16:58:36+08:00",
-    "status": "running",
+    "lastUpdate": "2026-03-10T17:28:00+08:00",
+    "status": "monitoring",
     "logDir": "logs_swin",
     "checkpointDir": "checkpoints_swin_v6",
     "containerId": "aaf2c9c5d4f5",
@@ -20,13 +20,8 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "currentBatch": "600/637",
-    "currentLoss": 1.1464,
-    "gpuUtilization": "97%",
-    "gpuMemory": "15.7GB/16GB",
-    "warning": "Training has stopped multiple times at Batch 600/637, monitoring closely",
     "progress": {
-      "epochProgress": "0.3%",
+      "epochProgress": "checking",
       "trainingRate": "~1.5 it/s",
       "config": {
         "depths": [2, 2, 2, 2],
