@@ -1,7 +1,7 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741589484,
-    "code_sync": 1741589484,
+    "rcmt_training": 1741590244,
+    "code_sync": 1741590244,
     "daily_report": 1741526400
   },
   "trainingStatus": {
@@ -10,35 +10,44 @@
     "totalEpochs": 300,
     "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T15:11:00+08:00",
-    "status": "stopped_oom",
-    "logDir": "logs_swin_v6",
-    "checkpointDir": "checkpoints_swin_v6",
+    "lastUpdate": "2026-03-10T15:24:00+08:00",
+    "status": "running",
+    "logDir": "logs_swin_v6/rcmt_swin_20260310_072329",
+    "checkpointDir": "checkpoints_swin_v6/rcmt_swin_20260310_072329",
     "containerId": "aaf2c9c5d4f5",
     "script": "train_rcmt_swin.py",
-    "modelParams": "147.6M (Swin-Temporal)",
-    "error": "CUDA out of memory (batch_size=16)",
-    "solution": "Need to reduce batch_size to 8 and restart",
+    "modelParams": "58.72M (Swin-Tiny)",
+    "adaptivePosWeight": 5.0,
+    "positiveRatio": "4.75%",
     "progress": {
-      "epochProgress": "0%",
-      "trainingRate": "Stopped",
+      "epochProgress": "0.3%",
+      "trainingRate": "~1.5 it/s",
+      "currentLoss": 1.15,
+      "batchSize": 16,
       "config": {
-        "batchSize": 16,
-        "embedDim": 128,
-        "depths": [2, 2, 18, 2],
-        "numHeads": [4, 8, 16, 32],
+        "depths": [2, 2, 2, 2],
+        "embedDim": 96,
+        "numHeads": [2, 4, 8, 16],
         "windowSize": 7,
         "useTemporalFusion": true,
         "mixupProb": 0.5,
+        "cutmixProb": 0.3,
         "dropPath": 0.3,
-        "posWeight": 3.0
+        "posWeight": 5.0,
+        "labelSmoothing": 0.05,
+        "lossWeights": {
+          "bce": 1.0,
+          "dice": 0.3,
+          "focal": 0.1
+        }
+      },
+      "fixes": {
+        "trainValGap": "Fixed (using original hard labels)",
+        "adaptivePosWeight": "Implemented",
+        "fullMetrics": "F1, IoU, Precision, Recall, OA",
+        "trainingHistory": "JSON format for paper figures"
       }
     }
-  },
-  "v5Status": {
-    "attempted": true,
-    "script": "train_rcmt_v3_swin_temporal.py",
-    "status": "stopped by user (wrong script)"
   },
   "v4Status": {
     "completed": true,
