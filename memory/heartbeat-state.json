@@ -1,16 +1,16 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741621680,
-    "code_sync": 1741621680,
+    "rcmt_training": 1741623480,
+    "code_sync": 1741623480,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 4,
+    "currentEpoch": 6,
     "totalEpochs": 300,
-    "bestValF1": 0.4693,
+    "bestValF1": 0.6839,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T22:28:00+08:00",
+    "lastUpdate": "2026-03-10T22:58:00+08:00",
     "status": "excellent_progress",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
@@ -20,31 +20,27 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "38 minutes (started 21:50)",
-    "gpuStatus": "100% util, 15.7GB/16GB, 54W, 44C",
+    "runtime": "68 minutes (started 21:50)",
+    "gpuStatus": "98% util, 15.9GB/16GB, 77W, 47C",
     "progress": {
-      "epoch1": {
+      "epoch4": {
         "completed": true,
-        "valF1": 0.1663,
-        "time": "721s (12 min)"
+        "valF1": 0.6364,
+        "valOA": 0.9624,
+        "time": "736s (12.3 min)"
       },
-      "epoch2": {
+      "epoch5": {
         "completed": true,
-        "valF1": 0.3944,
-        "improvement": "+0.2281 (+137.2%)",
-        "time": "721s (12 min)"
-      },
-      "epoch3": {
-        "completed": true,
-        "valF1": 0.4693,
-        "improvement": "+0.0749 (+19.0%)",
-        "time": "816s (13.6 min)",
+        "valF1": 0.6839,
+        "valOA": 0.9638,
+        "improvement": "+0.0475 (+7.5%)",
+        "time": "742s (12.4 min)",
         "status": "*** New Best! ***"
       },
-      "epoch4": {
+      "epoch6": {
         "current": true,
-        "batch": "50/637 (7.8%)",
-        "loss": 0.8947,
+        "batch": "450/637 (70.6%)",
+        "loss": 0.8144,
         "status": "In progress"
       }
     },
@@ -52,10 +48,13 @@
       "epoch1": 0.1663,
       "epoch2": 0.3944,
       "epoch3": 0.4693,
-      "improvement": "2.8x increase in 3 epochs",
-      "progress": "51.0% to target (0.92)"
+      "epoch4": 0.6364,
+      "epoch5": 0.6839,
+      "improvement": "4.1x increase in 5 epochs",
+      "progress": "74.3% to target (0.92)",
+      "remaining": 0.2361
     },
-    "stability": "Training extremely stable (38 min, no crashes)"
+    "stability": "Training extremely stable (68 min, 5 epochs completed)"
   },
   "v4Status": {
     "completed": true,
