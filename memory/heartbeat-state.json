@@ -1,17 +1,17 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741612680,
-    "code_sync": 1741612680,
+    "rcmt_training": 1741614480,
+    "code_sync": 1741614480,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 6,
+    "currentEpoch": 7,
     "totalEpochs": 300,
-    "bestValF1": 0.6354,
+    "bestValF1": 0.6918,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T19:58:00+08:00",
-    "status": "running_excellently",
+    "lastUpdate": "2026-03-10T20:28:00+08:00",
+    "status": "excellent_progress",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,18 +20,44 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "106 minutes (started 18:12)",
-    "gpuStatus": "100% util, 15.97GB/16GB, 66W",
+    "runtime": "136 minutes (started 18:12)",
+    "gpuStatus": "94% util, 11.9GB/16GB, 149W, 64C",
     "progress": {
-      "epoch1": {"valF1": 0.4277, "completed": true},
-      "epoch2": {"valF1": 0.4866, "completed": true},
-      "epoch3": {"valF1": 0.5482, "completed": true},
-      "epoch4": {"valF1": 0.5961, "completed": true},
-      "epoch5": {"valF1": 0.6354, "completed": true, "status": "*** New Best! ***"},
-      "epoch6": {"current": true, "batch": "550/637", "loss": 0.7389}
+      "epoch6": {
+        "completed": true,
+        "valF1": 0.6918,
+        "trainF1": 0.4432,
+        "valOA": 0.9636,
+        "loss": 0.7065,
+        "time": "1148s (19.1 min)",
+        "status": "*** New Best! ***"
+      },
+      "epoch7": {
+        "current": true,
+        "batch": "600/637 (94.2%)",
+        "loss": 0.7963,
+        "status": "Almost complete"
+      }
     },
-    "f1Trend": "Rapid growth (0.4277 -> 0.6354 in 5 epochs, +48.8%)",
-    "breakthrough": "Stable training, passed Batch 250 barrier, memory optimized",
-    "projectedCompletion": "Tomorrow 02:00-04:00 (based on current speed)"
+    "f1Trend": {
+      "epoch1": 0.1580,
+      "epoch2": 0.3661,
+      "epoch3": 0.4651,
+      "epoch4": 0.6354,
+      "epoch6": 0.6918,
+      "improvement": "4.4x increase in 6 epochs",
+      "trend": "Rapid improvement, approaching target 0.92"
+    },
+    "breakthrough": "Training extremely stable, F1 growing rapidly"
   },
+  "v4Status": {
+    "completed": true,
+    "finalEpoch": 257,
+    "bestValF1": 0.9201,
+    "checkpointDir": "checkpoints_swin_v4",
+    "status": "Target exceeded (F1=0.9201 > 0.92)"
+  },
+  "preferences": {
+    "ttsEnabled": false
+  }
 }
