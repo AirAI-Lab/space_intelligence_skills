@@ -1,17 +1,17 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741630680,
-    "code_sync": 1741630680,
+    "rcmt_training": 1741632480,
+    "code_sync": 1741632480,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 18,
+    "currentEpoch": 21,
     "totalEpochs": 300,
     "bestValF1": 0.8301,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-11T00:58:00+08:00",
-    "status": "near_target",
+    "lastUpdate": "2026-03-11T01:28:00+08:00",
+    "status": "stable_progress",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,49 +20,43 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "188 minutes (started 21:50)",
-    "gpuStatus": "98% util, 16.0GB/16GB, 94W, 52C",
+    "runtime": "218 minutes (started 21:50)",
+    "gpuStatus": "98% util, 16.0GB/16GB, 91W, 55C",
     "progress": {
-      "epoch15": {
+      "epoch19": {
         "completed": true,
-        "valF1": 0.8109,
-        "valOA": 0.9800,
-        "valIoU": 0.6819,
-        "status": "*** New Best! ***"
+        "valF1": 0.8195,
+        "valOA": 0.9809,
+        "valIoU": 0.6943,
+        "time": "517s (8.6 min)"
       },
-      "epoch16": {
+      "epoch20": {
         "completed": true,
-        "valF1": 0.8301,
-        "valOA": 0.9825,
-        "valIoU": 0.7096,
-        "improvement": "+0.0192 (+2.4%)",
-        "time": "512s (8.5 min)",
-        "status": "*** New Best! ***"
+        "valF1": 0.7871,
+        "valOA": 0.9762,
+        "valIoU": 0.6489,
+        "time": "517s (8.6 min)",
+        "status": "Fluctuation"
       },
-      "epoch17": {
-        "completed": true,
-        "valF1": 0.8110,
-        "valOA": 0.9798,
-        "time": "509s (8.5 min)"
-      },
-      "epoch18": {
+      "epoch21": {
         "current": true,
-        "batch": "1/637 (0.2%)",
-        "loss": 0.6354,
-        "status": "Just started"
+        "batch": "350/637 (55.0%)",
+        "loss": 0.7183,
+        "status": "In progress"
       }
     },
     "f1Trend": {
-      "epoch13": 0.7844,
-      "epoch14": 0.7804,
-      "epoch15": 0.8109,
       "epoch16": 0.8301,
       "epoch17": 0.8110,
+      "epoch18": "N/A",
+      "epoch19": 0.8195,
+      "epoch20": 0.7871,
       "best": 0.8301,
       "progress": "90.2% to target (0.92)",
-      "remaining": 0.0899
+      "remaining": 0.0899,
+      "note": "F1 fluctuating around 0.80-0.83, best remains 0.8301"
     },
-    "milestone": "Major breakthrough: F1 reached 0.8301, only 9.8% away from target 0.92"
+    "stability": "Training extremely stable (218 min, 20 epochs completed)"
   },
   "v4Status": {
     "completed": true,
