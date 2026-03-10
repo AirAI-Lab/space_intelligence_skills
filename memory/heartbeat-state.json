@@ -1,7 +1,7 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741602480,
-    "code_sync": 1741602480,
+    "rcmt_training": 1741605480,
+    "code_sync": 1741605480,
     "daily_report": 1741526400
   },
   "trainingStatus": {
@@ -10,34 +10,30 @@
     "totalEpochs": 300,
     "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T17:28:00+08:00",
+    "lastUpdate": "2026-03-10T17:58:00+08:00",
     "status": "stopped",
-    "logDir": "logs_swin_v6",
-    "checkpointDir": "checkpoints_swin_v6",
+    "stopReason": "GPU memory fragmentation at Batch 250/637",
+    "logDir": "logs_swin",
+    "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
     "script": "train_rcmt_swin.py",
     "modelParams": "58.72M (Swin-Tiny)",
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "stopPattern": "Repeatedly stops at Batch 600/637",
-    "lastKnownBatch": 600,
+    "lastBatch": 250,
     "totalBatches": 637,
-    "progress": {
-      "issue": "Training stopped 3 times at same batch location (600/637)",
-      "investigation": "Checking logs for error messages",
-      "possibleCauses": [
-        "DataLoader issue with last 37 batches",
-        "Memory accumulation after 600 batches",
-        "Dataset size not multiple of batch_size (637 * 16 = 10192 samples)",
-        "Corrupted sample at batch 600",
-        "Memory fragmentation"
-      ],
-      "nextSteps": [
-        "Check full log for errors",
-        "Verify dataset integrity",
-        "Try batch_size=12 or 8",
-        "Add batch-level error handling"
+    "gpuStatus": "idle (0%, 843MB/16GB)",
+    "rootCause": {
+      "issue": "GPU memory fragmentation",
+      "evidence": "Reserved memory oscillating 3.29GB-16.47GB",
+      "impact": "System killed process at Batch 250",
+      "solution": [
+        "More aggressive memory cleanup (every 10 batches)",
+        "Reduce num_workers from 8 to 4",
+        "Reduce batch_size from 16 to 12",
+        "Disable gradient checkpointing",
+        "Add memory warning mechanism"
       ]
     }
   },
