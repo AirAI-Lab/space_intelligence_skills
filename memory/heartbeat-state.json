@@ -1,44 +1,52 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741588388,
-    "code_sync": 1741588388,
+    "rcmt_training": 1741588280,
+    "code_sync": 1741588280,
     "daily_report": 1741526400
   },
   "trainingStatus": {
-    "version": "V4",
-    "currentEpoch": 257,
+    "version": "V5",
+    "currentEpoch": 0,
     "totalEpochs": 300,
-    "bestValF1": 0.9201,
+    "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T13:33:00+08:00",
-    "status": "target_exceeded",
-    "logDir": "logs_swin_v4",
-    "checkpointDir": "checkpoints_swin_v4",
+    "lastUpdate": "2026-03-10T14:58:00+08:00",
+    "status": "running",
+    "logDir": "logs_swin_v5",
+    "checkpointDir": "checkpoints_swin_v5",
+    "containerId": "aaf2c9c5d4f5",
+    "script": "train_rcmt_v3_swin_temporal.py",
+    "modelParams": "147.6M",
     "progress": {
-      "epochProgress": "85.7%",
-      "trainingRate": "~28 epochs/hour",
-      "improvement": "+0.0705 F1 since 04:00",
-      "gapToTarget": -0.0101,
-      "targetAchievedEpoch": 207,
-      "targetAchievedTime": "2026-03-10T10:42:00+08:00",
-      "latestBestEpoch": 257
+      "epochProgress": "0.3%",
+      "trainingRate": "Just started",
+      "currentLoss": 1.63,
+      "config": {
+        "batchSize": 16,
+        "accumulationSteps": 16,
+        "effectiveBatchSize": 256,
+        "depths": [2, 2, 18, 2],
+        "numHeads": [2, 4, 8, 16],
+        "embedDim": 128,
+        "windowSize": 7,
+        "useTemporalFusion": true,
+        "mixupProb": 0.5,
+        "dropPath": 0.3
+      }
     }
+  },
+  "v4Status": {
+    "completed": true,
+    "finalEpoch": 257,
+    "bestValF1": 0.9201,
+    "checkpointDir": "checkpoints_swin_v4",
+    "status": "Target exceeded (F1=0.9201 > 0.92)"
   },
   "v3Status": {
     "paused": true,
     "pausedEpoch": 260,
     "bestValF1": 0.8907,
     "checkpointDir": "checkpoints_swin_sota"
-  },
-  "v4Config": {
-    "loss": "BCE(1.0)+Dice(0.3)+Focal(0.1)",
-    "pos_weight": 3.0,
-    "label_smoothing": 0.05,
-    "cutmix": true,
-    "mixup": true,
-    "drop_path": 0.3,
-    "warmup_epochs": 10,
-    "scheduler": "cosine_annealing"
   },
   "preferences": {
     "ttsEnabled": false
