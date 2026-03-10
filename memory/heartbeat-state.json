@@ -1,7 +1,7 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741591208,
-    "code_sync": 1741591208,
+    "rcmt_training": 1741591636,
+    "code_sync": 1741591636,
     "daily_report": 1741526400
   },
   "trainingStatus": {
@@ -10,10 +10,10 @@
     "totalEpochs": 300,
     "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T15:40:00+08:00",
+    "lastUpdate": "2026-03-10T15:53:00+08:00",
     "status": "running",
-    "logDir": "logs_swin_v6/rcmt_swin_20260310_073812",
-    "checkpointDir": "checkpoints_swin_v6/rcmt_swin_20260310_073812",
+    "logDir": "logs_swin_v6/rcmt_swin_20260310_075245",
+    "checkpointDir": "checkpoints_swin_v6/rcmt_swin_20260310_075245",
     "containerId": "aaf2c9c5d4f5",
     "script": "train_rcmt_swin.py",
     "modelParams": "58.72M (Swin-Tiny)",
@@ -21,8 +21,7 @@
     "positiveRatio": "4.75%",
     "progress": {
       "epochProgress": "0%",
-      "trainingRate": "~1.5 it/s",
-      "currentLoss": "unknown (waiting for first epoch)",
+      "trainingRate": "~1.5 it/s (estimated)",
       "batchSize": 16,
       "config": {
         "depths": [2, 2, 2, 2],
@@ -35,6 +34,13 @@
         "dropPath": 0.3,
         "posWeight": 5.0,
         "labelSmoothing": 0.05
+      },
+      "fixes": {
+        "trainValGap": "Fixed (using original hard labels)",
+        "adaptivePosWeight": "Implemented",
+        "fullMetrics": "F1, IoU, Precision, Recall, OA",
+        "trainingHistory": "JSON format for paper figures",
+        "logFormat": "Simplified (optimized-style, every 50 batches)"
       }
     }
   },
