@@ -1,17 +1,17 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741628100,
-    "code_sync": 1741627080,
+    "rcmt_training": 1741628880,
+    "code_sync": 1741628880,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 11,
+    "currentEpoch": 14,
     "totalEpochs": 300,
-    "bestValF1": 0.7698,
+    "bestValF1": 0.7844,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-11T00:15:00+08:00",
-    "status": "excellent_progress",
+    "lastUpdate": "2026-03-11T00:28:00+08:00",
+    "status": "breakthrough_progress",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,18 +20,44 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "145 minutes (started 21:50)",
-    "gpuStatus": "91% util, 15.6GB/16GB",
-    "progress": "83.7% to target",
-    "milestone": "User requested latest training results - sent via Feishu",
-    "bestEpoch": {
-      "epoch": 9,
-      "valF1": 0.7698,
-      "valOA": 0.9760,
-      "valIoU": 0.6257,
-      "precision": 0.4270,
-      "recall": 0.6113
-    }
+    "runtime": "158 minutes (started 21:50)",
+    "gpuStatus": "91% util, 15.7GB/16GB, 146W, 57C",
+    "progress": {
+      "epoch12": {
+        "completed": true,
+        "valF1": 0.7698,
+        "valOA": 0.9742,
+        "valIoU": 0.6257,
+        "time": "619s (10.3 min)",
+        "status": "*** New Best! ***"
+      },
+      "epoch13": {
+        "completed": true,
+        "valF1": 0.7844,
+        "valOA": 0.9765,
+        "valIoU": 0.6453,
+        "improvement": "+0.0146 (+1.9%)",
+        "time": "619s (10.3 min)",
+        "status": "*** New Best! ***"
+      },
+      "epoch14": {
+        "current": true,
+        "batch": "600/637 (94.2%)",
+        "loss": 0.7434,
+        "status": "Almost complete"
+      }
+    },
+    "f1Trend": {
+      "epoch9": 0.7698,
+      "epoch10": 0.7228,
+      "epoch11": 0.7698,
+      "epoch12": 0.7698,
+      "epoch13": 0.7844,
+      "best": 0.7844,
+      "progress": "85.3% to target (0.92)",
+      "remaining": 0.1356
+    },
+    "milestone": "New best F1 0.7844 achieved, rapid improvement continues"
   },
   "v4Status": {
     "completed": true,
