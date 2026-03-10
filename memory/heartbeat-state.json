@@ -1,30 +1,31 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741598465,
-    "code_sync": 1741591636,
+    "rcmt_training": 1741598880,
+    "code_sync": 1741598880,
     "daily_report": 1741526400
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 0,
+    "currentEpoch": 1,
     "totalEpochs": 300,
     "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T16:21:00+08:00",
+    "lastUpdate": "2026-03-10T16:28:00+08:00",
     "status": "running",
-    "logDir": "logs_swin_v6",
-    "checkpointDir": "checkpoints_swin_v6",
+    "logDir": "logs_swin_v6/rcmt_swin_20260310_082514",
+    "checkpointDir": "checkpoints_swin_v6/rcmt_swin_20260310_082514",
     "containerId": "aaf2c9c5d4f5",
     "script": "train_rcmt_swin.py",
     "modelParams": "58.72M (Swin-Tiny)",
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
+    "currentLoss": 1.1761,
+    "currentBatch": "150/637 (Epoch 1)",
     "progress": {
-      "epochProgress": "0%",
+      "epochProgress": "0.3%",
       "trainingRate": "~1.5 it/s",
-      "currentLoss": "1.1765 (Epoch 1 Batch 50)",
-      "restartReason": "Training stopped at Epoch 1 Batch 600/637 (unknown reason, restarted)",
+      "restartNote": "Training restarted at 16:25 after unexpected stop at Batch 600/637",
       "config": {
         "depths": [2, 2, 2, 2],
         "embedDim": 96,
@@ -41,13 +42,6 @@
           "dice": 0.3,
           "focal": 0.1
         }
-      },
-      "fixes": {
-        "trainValGap": "Fixed (using original hard labels)",
-        "adaptivePosWeight": "Implemented",
-        "fullMetrics": "F1, IoU, Precision, Recall, OA",
-        "trainingHistory": "JSON format for paper figures",
-        "logFormat": "Simplified (optimized-style, every 50 batches)"
       }
     }
   },
