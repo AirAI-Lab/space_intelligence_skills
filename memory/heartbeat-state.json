@@ -1,7 +1,7 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741618080,
-    "code_sync": 1741618080,
+    "rcmt_training": 1741619880,
+    "code_sync": 1741619880,
     "daily_report": 1741607280
   },
   "trainingStatus": {
@@ -10,8 +10,8 @@
     "totalEpochs": 300,
     "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T21:28:00+08:00",
-    "status": "restarted",
+    "lastUpdate": "2026-03-10T21:58:00+08:00",
+    "status": "running_new_instance",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,23 +20,38 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "3 minutes (restarted 21:25)",
-    "gpuStatus": "100% util, 16.0GB/16GB, 86W, 54C",
-    "previousRun": {
-      "runtime": "196 minutes (18:12-21:25)",
-      "bestValF1": 0.7552,
-      "lastEpoch": 8,
-      "status": "Stopped/restarted at 21:25"
+    "runtime": "8 minutes (started 21:50)",
+    "gpuStatus": "100% util, 15.9GB/16GB, 77W, 51C",
+    "instanceHistory": {
+      "first": {
+        "start": "18:12",
+        "stop": "21:25",
+        "runtime": "196 min",
+        "bestF1": 0.7552,
+        "lastEpoch": 8
+      },
+      "second": {
+        "start": "21:25",
+        "stop": "21:50",
+        "runtime": "~25 min",
+        "status": "Unknown (logs deleted)"
+      },
+      "third": {
+        "start": "21:50",
+        "current": true,
+        "runtime": "8 min",
+        "epoch": 1,
+        "batch": "600/637"
+      }
     },
     "progress": {
       "epoch1": {
         "current": true,
-        "batch": "200/637 (31.4%)",
-        "loss": 1.1792,
-        "status": "In progress (new run)"
+        "batch": "600/637 (94.2%)",
+        "loss": 1.1455,
+        "status": "Almost complete"
       }
-    },
-    "note": "Training restarted from scratch, checking if this is intentional"
+    }
   },
   "v4Status": {
     "completed": true,
