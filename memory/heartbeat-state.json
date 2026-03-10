@@ -1,17 +1,17 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741616280,
-    "code_sync": 1741616280,
+    "rcmt_training": 1741618080,
+    "code_sync": 1741618080,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 9,
+    "currentEpoch": 1,
     "totalEpochs": 300,
-    "bestValF1": 0.7552,
+    "bestValF1": 0.0,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T20:58:00+08:00",
-    "status": "exceptional_progress",
+    "lastUpdate": "2026-03-10T21:28:00+08:00",
+    "status": "restarted",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,43 +20,23 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "166 minutes (started 18:12)",
-    "gpuStatus": "100% util, 16.0GB/16GB, 33W, 37C",
+    "runtime": "3 minutes (restarted 21:25)",
+    "gpuStatus": "100% util, 16.0GB/16GB, 86W, 54C",
+    "previousRun": {
+      "runtime": "196 minutes (18:12-21:25)",
+      "bestValF1": 0.7552,
+      "lastEpoch": 8,
+      "status": "Stopped/restarted at 21:25"
+    },
     "progress": {
-      "epoch7": {
-        "completed": true,
-        "valF1": 0.6624,
-        "status": "Completed"
-      },
-      "epoch8": {
-        "completed": true,
-        "valF1": 0.7552,
-        "valOA": 0.9744,
-        "trainF1": 0.4894,
-        "loss": 0.6964,
-        "time": "1410s (23.5 min)",
-        "status": "*** New Best! ***"
-      },
-      "epoch9": {
+      "epoch1": {
         "current": true,
         "batch": "200/637 (31.4%)",
-        "loss": 0.7805,
-        "status": "In progress"
+        "loss": 1.1792,
+        "status": "In progress (new run)"
       }
     },
-    "f1Trend": {
-      "epoch1": 0.1580,
-      "epoch2": 0.3661,
-      "epoch3": 0.4651,
-      "epoch4": 0.6354,
-      "epoch6": 0.6918,
-      "epoch7": 0.6624,
-      "epoch8": 0.7552,
-      "bestToTarget": 0.1648,
-      "progress": "82.1% to target",
-      "trend": "Rapid improvement, approaching target 0.92"
-    },
-    "breakthrough": "Exceptional progress, training extremely stable"
+    "note": "Training restarted from scratch, checking if this is intentional"
   },
   "v4Status": {
     "completed": true,
