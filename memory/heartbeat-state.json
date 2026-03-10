@@ -1,6 +1,6 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741627080,
+    "rcmt_training": 1741628100,
     "code_sync": 1741627080,
     "daily_report": 1741607280
   },
@@ -10,8 +10,8 @@
     "totalEpochs": 300,
     "bestValF1": 0.7698,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T23:58:00+08:00",
-    "status": "excellent_recovery",
+    "lastUpdate": "2026-03-11T00:15:00+08:00",
+    "status": "excellent_progress",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,48 +20,18 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "128 minutes (started 21:50)",
-    "gpuStatus": "91% util, 15.6GB/16GB, 146W, 64C",
-    "progress": {
-      "epoch9": {
-        "completed": true,
-        "valF1": 0.7698,
-        "valOA": 0.9760,
-        "valIoU": 0.6257,
-        "time": "706s (11.8 min)",
-        "status": "*** New Best! ***"
-      },
-      "epoch10": {
-        "completed": true,
-        "valF1": 0.7228,
-        "valOA": 0.9686,
-        "change": "-0.0470 (-6.1%)",
-        "time": "704s (11.7 min)",
-        "status": "Minor fluctuation"
-      },
-      "epoch11": {
-        "current": true,
-        "batch": "600/637 (94.2%)",
-        "loss": 0.7715,
-        "status": "Almost complete"
-      }
-    },
-    "f1Trend": {
-      "epoch1": 0.1663,
-      "epoch2": 0.3944,
-      "epoch3": 0.4693,
-      "epoch4": 0.6364,
-      "epoch5": 0.6839,
-      "epoch6": 0.7183,
-      "epoch7": 0.5784,
-      "epoch8": 0.6569,
-      "epoch9": 0.7698,
-      "epoch10": 0.7228,
-      "best": 0.7698,
-      "progress": "83.7% to target (0.92)",
-      "remaining": 0.1502
-    },
-    "milestone": "New best F1 achieved after fluctuation, training recovered well"
+    "runtime": "145 minutes (started 21:50)",
+    "gpuStatus": "91% util, 15.6GB/16GB",
+    "progress": "83.7% to target",
+    "milestone": "User requested latest training results - sent via Feishu",
+    "bestEpoch": {
+      "epoch": 9,
+      "valF1": 0.7698,
+      "valOA": 0.9760,
+      "valIoU": 0.6257,
+      "precision": 0.4270,
+      "recall": 0.6113
+    }
   },
   "v4Status": {
     "completed": true,
