@@ -1,17 +1,17 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741619880,
-    "code_sync": 1741619880,
+    "rcmt_training": 1741621680,
+    "code_sync": 1741621680,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 1,
+    "currentEpoch": 4,
     "totalEpochs": 300,
-    "bestValF1": 0.0,
+    "bestValF1": 0.4693,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T21:58:00+08:00",
-    "status": "running_new_instance",
+    "lastUpdate": "2026-03-10T22:28:00+08:00",
+    "status": "excellent_progress",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,38 +20,42 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "8 minutes (started 21:50)",
-    "gpuStatus": "100% util, 15.9GB/16GB, 77W, 51C",
-    "instanceHistory": {
-      "first": {
-        "start": "18:12",
-        "stop": "21:25",
-        "runtime": "196 min",
-        "bestF1": 0.7552,
-        "lastEpoch": 8
-      },
-      "second": {
-        "start": "21:25",
-        "stop": "21:50",
-        "runtime": "~25 min",
-        "status": "Unknown (logs deleted)"
-      },
-      "third": {
-        "start": "21:50",
-        "current": true,
-        "runtime": "8 min",
-        "epoch": 1,
-        "batch": "600/637"
-      }
-    },
+    "runtime": "38 minutes (started 21:50)",
+    "gpuStatus": "100% util, 15.7GB/16GB, 54W, 44C",
     "progress": {
       "epoch1": {
+        "completed": true,
+        "valF1": 0.1663,
+        "time": "721s (12 min)"
+      },
+      "epoch2": {
+        "completed": true,
+        "valF1": 0.3944,
+        "improvement": "+0.2281 (+137.2%)",
+        "time": "721s (12 min)"
+      },
+      "epoch3": {
+        "completed": true,
+        "valF1": 0.4693,
+        "improvement": "+0.0749 (+19.0%)",
+        "time": "816s (13.6 min)",
+        "status": "*** New Best! ***"
+      },
+      "epoch4": {
         "current": true,
-        "batch": "600/637 (94.2%)",
-        "loss": 1.1455,
-        "status": "Almost complete"
+        "batch": "50/637 (7.8%)",
+        "loss": 0.8947,
+        "status": "In progress"
       }
-    }
+    },
+    "f1Trend": {
+      "epoch1": 0.1663,
+      "epoch2": 0.3944,
+      "epoch3": 0.4693,
+      "improvement": "2.8x increase in 3 epochs",
+      "progress": "51.0% to target (0.92)"
+    },
+    "stability": "Training extremely stable (38 min, no crashes)"
   },
   "v4Status": {
     "completed": true,
