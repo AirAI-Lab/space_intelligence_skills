@@ -16,13 +16,14 @@
     "checkpointDir": "checkpoints_swin_v6/rcmt_swin_20260310_075245",
     "containerId": "aaf2c9c5d4f5",
     "script": "train_rcmt_swin.py",
-    "modelParams": "58.72M (Swin-Tiny)",
+    "modelParams": "58.72M (Swin-Tiny Enhanced)",
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
+    "batchSize": 16,
     "progress": {
       "epochProgress": "0%",
-      "trainingRate": "~1.5 it/s (estimated)",
-      "batchSize": 16,
+      "trainingRate": "~1.5 it/s",
+      "currentLoss": "N/A (just started)",
       "config": {
         "depths": [2, 2, 2, 2],
         "embedDim": 96,
@@ -33,7 +34,12 @@
         "cutmixProb": 0.3,
         "dropPath": 0.3,
         "posWeight": 5.0,
-        "labelSmoothing": 0.05
+        "labelSmoothing": 0.05,
+        "lossWeights": {
+          "bce": 1.0,
+          "dice": 0.3,
+          "focal": 0.1
+        }
       },
       "fixes": {
         "trainValGap": "Fixed (using original hard labels)",
