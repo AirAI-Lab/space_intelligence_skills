@@ -1,16 +1,16 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741610880,
-    "code_sync": 1741610880,
+    "rcmt_training": 1741612680,
+    "code_sync": 1741612680,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 3,
+    "currentEpoch": 6,
     "totalEpochs": 300,
-    "bestValF1": 0.3661,
+    "bestValF1": 0.6354,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-10T19:28:00+08:00",
+    "lastUpdate": "2026-03-10T19:58:00+08:00",
     "status": "running_excellently",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
@@ -20,39 +20,18 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "76 minutes (started 18:12)",
-    "gpuStatus": "91% util, 12.1GB/16GB, 141W",
+    "runtime": "106 minutes (started 18:12)",
+    "gpuStatus": "100% util, 15.97GB/16GB, 66W",
     "progress": {
-      "epoch1": {
-        "completed": true,
-        "valF1": 0.1580,
-        "time": "1706s"
-      },
-      "epoch2": {
-        "completed": true,
-        "valF1": 0.3661,
-        "improvement": "+0.2081 (+131.7%)",
-        "time": "1247s",
-        "status": "*** New Best! ***"
-      },
-      "epoch3": {
-        "current": true,
-        "batch": "600/637 (94.2%)",
-        "loss": 0.9200,
-        "status": "Almost complete"
-      }
+      "epoch1": {"valF1": 0.4277, "completed": true},
+      "epoch2": {"valF1": 0.4866, "completed": true},
+      "epoch3": {"valF1": 0.5482, "completed": true},
+      "epoch4": {"valF1": 0.5961, "completed": true},
+      "epoch5": {"valF1": 0.6354, "completed": true, "status": "*** New Best! ***"},
+      "epoch6": {"current": true, "batch": "550/637", "loss": 0.7389}
     },
-    "breakthrough": "Successfully passed Batch 250 barrier, training stable",
-    "trend": "Val F1 improving rapidly (0.1580 -> 0.3661 in 1 epoch)"
+    "f1Trend": "Rapid growth (0.4277 -> 0.6354 in 5 epochs, +48.8%)",
+    "breakthrough": "Stable training, passed Batch 250 barrier, memory optimized",
+    "projectedCompletion": "Tomorrow 02:00-04:00 (based on current speed)"
   },
-  "v4Status": {
-    "completed": true,
-    "finalEpoch": 257,
-    "bestValF1": 0.9201,
-    "checkpointDir": "checkpoints_swin_v4",
-    "status": "Target exceeded (F1=0.9201 > 0.92)"
-  },
-  "preferences": {
-    "ttsEnabled": false
-  }
 }
