@@ -1,17 +1,17 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741634280,
-    "code_sync": 1741634280,
+    "rcmt_training": 1741636080,
+    "code_sync": 1741636080,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 24,
+    "currentEpoch": 28,
     "totalEpochs": 300,
-    "bestValF1": 0.8448,
+    "bestValF1": 0.8522,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-11T01:58:00+08:00",
-    "status": "major_breakthrough",
+    "lastUpdate": "2026-03-11T02:28:00+08:00",
+    "status": "near_target_breakthrough",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
     "containerId": "aaf2c9c5d4f5",
@@ -20,48 +20,50 @@
     "adaptivePosWeight": 5.0,
     "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "248 minutes (started 21:50)",
-    "gpuStatus": "95% util, 16.0GB/16GB, 152W, 61C",
+    "runtime": "278 minutes (started 21:50)",
+    "gpuStatus": "99% util, 16.0GB/16GB, 84W, 47C",
     "progress": {
-      "epoch21": {
+      "epoch25": {
         "completed": true,
-        "valF1": 0.8448,
-        "valOA": 0.9842,
-        "valIoU": 0.7314,
+        "valF1": 0.8334,
+        "valOA": 0.9824,
+        "valIoU": 0.7144
+      },
+      "epoch26": {
+        "completed": true,
+        "valF1": 0.8522,
+        "valOA": 0.9848,
+        "valIoU": 0.7425,
+        "improvement": "+0.0188 (+2.2%)",
+        "time": "530s (8.8 min)",
         "status": "*** NEW BEST! ***",
-        "milestone": "Major breakthrough, F1 reaches 0.8448"
+        "milestone": "Major breakthrough, F1 reaches 0.8522"
       },
-      "epoch22": {
+      "epoch27": {
         "completed": true,
-        "valF1": 0.8367,
-        "valOA": 0.9832,
-        "valIoU": 0.7192,
-        "time": "530s (8.8 min)"
+        "valF1": 0.8174,
+        "valOA": 0.9802,
+        "valIoU": 0.6912,
+        "time": "530s (8.8 min)",
+        "status": "Fluctuation"
       },
-      "epoch23": {
-        "completed": true,
-        "valF1": 0.8266,
-        "valOA": 0.9816,
-        "valIoU": 0.7045,
-        "time": "530s (8.8 min)"
-      },
-      "epoch24": {
+      "epoch28": {
         "current": true,
-        "batch": "600/637 (94.2%)",
-        "loss": 0.7230,
-        "status": "Almost complete"
+        "batch": "150/637 (23.5%)",
+        "loss": 0.7061,
+        "status": "In progress"
       }
     },
     "f1Trend": {
-      "epoch16": 0.8301,
       "epoch21": 0.8448,
-      "epoch22": 0.8367,
-      "epoch23": 0.8266,
-      "best": 0.8448,
-      "progress": "91.8% to target (0.92)",
-      "remaining": 0.0752
+      "epoch25": 0.8334,
+      "epoch26": 0.8522,
+      "epoch27": 0.8174,
+      "best": 0.8522,
+      "progress": "92.6% to target (0.92)",
+      "remaining": 0.0678
     },
-    "milestone": "F1 breakthrough to 0.8448, only 8.2% away from target 0.92"
+    "milestone": "F1 breakthrough to 0.8522, only 7.4% away from target 0.92!"
   },
   "v4Status": {
     "completed": true,
