@@ -1,73 +1,40 @@
 {
   "lastChecks": {
-    "rcmt_training": 1741641480,
-    "code_sync": 1741641480,
+    "rcmt_training": 1741675351,
+    "code_sync": 1741675351,
     "daily_report": 1741607280
   },
   "trainingStatus": {
     "version": "V6",
-    "currentEpoch": 37,
+    "currentEpoch": 47,
     "totalEpochs": 300,
-    "bestValF1": 0.8613,
+    "bestValF1": 0.8744,
     "targetF1": 0.92,
-    "lastUpdate": "2026-03-11T03:58:00+08:00",
-    "status": "near_target_breakthrough",
+    "lastUpdate": "2026-03-11T12:22:31+08:00",
+    "status": "training",
     "logDir": "logs",
     "checkpointDir": "checkpoints",
-    "containerId": "aaf2c9c5d4f5",
+    "containerName": "rcmt-training",
     "script": "train_rcmt_swin.py",
     "modelParams": "58.72M (Swin-Tiny)",
-    "adaptivePosWeight": 5.0,
-    "positiveRatio": "4.75%",
     "batchSize": 16,
-    "runtime": "368 minutes (started 21:50)",
-    "gpuStatus": "93% util, 15.9GB/16GB, 148W, 56C",
-    "progress": {
-      "epoch34": {
-        "completed": true,
-        "valF1": 0.8270,
-        "valOA": 0.9812,
-        "valIoU": 0.7051
-      },
-      "epoch35": {
-        "completed": true,
-        "valF1": 0.8385,
-        "valOA": 0.9828,
-        "valIoU": 0.7219,
-        "time": "556s (9.3 min)"
-      },
-      "epoch36": {
-        "completed": true,
-        "valF1": 0.8613,
-        "valOA": 0.9857,
-        "valIoU": 0.7564,
-        "improvement": "+0.0029 (+0.3%)",
-        "time": "558s (9.3 min)",
-        "status": "*** NEW BEST! ***",
-        "milestone": "Major breakthrough, F1 reaches 0.8613"
-      },
-      "epoch37": {
-        "current": true,
-        "batch": "600/637 (94.2%)",
-        "loss": 0.7088,
-        "status": "Almost complete"
-      }
-    },
     "f1Trend": {
-      "epoch28": 0.8584,
-      "epoch36": 0.8613,
-      "best": 0.8613,
-      "progress": "93.6% to target (0.92)",
-      "remaining": 0.0587
+      "epoch42": 0.8696,
+      "epoch45": 0.8744,
+      "epoch46": 0.8677,
+      "best": 0.8744,
+      "progress": "95.0% to target (0.92)",
+      "remaining": 0.0456
     },
-    "milestone": "F1 breakthrough to 0.8613, only 6.4% away from target 0.92!"
+    "estimatedCompletion": "~253 epochs remaining (~6.3 days)",
+    "performanceIssue": "Identified bottleneck in metrics.py - GPU→CPU transfers per batch causing 46min/epoch. Proposed GPU optimization to reduce to ~5min/epoch. Awaiting approval."
   },
   "v4Status": {
     "completed": true,
-    "finalEpoch": 257,
-    "bestValF1": 0.9201,
+    "finalEpoch": 300,
+    "bestValF1": 0.9207,
     "checkpointDir": "checkpoints_swin_v4",
-    "status": "Target exceeded (F1=0.9201 > 0.92)"
+    "status": "Target exceeded (F1=0.9207 > 0.92)"
   },
   "preferences": {
     "ttsEnabled": false
