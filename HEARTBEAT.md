@@ -2,16 +2,18 @@
 
 # 空中智能体 - 定期检查任务
 
-## RCMT V4论文版训练监控 (每30分钟)
-- 检查V4论文版训练状态（容器：rcmt-training）
-- 脚本: `train_rcmt_v4_paper.py` (400 epochs)
-- 目录: `logs_swin_v4_paper/` + `checkpoints_swin_v4_paper/`
-- 数据同步: Volume映射（零延迟、零开销）
-- **📢 通知规则**: 出现新的Best F1时 → 飞书通知用户（6位小数精度）
-- 通知指标: F1, IoU, Precision, Recall, OA（全部6位小数）
-- 训练完成（F1>0.92）时发送飞书通知
-- ✅ **训练完成**: F1=**0.896282** (Epoch 317/400) ✅ 02:47 - 已通知用户
-- **200 Epoch对比结果**: F1=**0.893730** (Epoch 195) → 可用于与ChangeFormer对比 🎯
+## V6训练监控 (每30分钟)
+- 检查V6论文版训练状态（容器：rcmt-training）
+- 脚本: `train_rcmt_v6_paper.py` (400 epochs)
+- 目录: `logs_swin_v6_paper/` + `checkpoints_swin_v6_paper/`
+- **📢 通知规则**: 出现新的Best F1时 → 飞书通知用户
+- 当前状态: 🔄 **训练中** - 刚启动 (Epoch 0/400)
+- 数据集: ✅ **7,120 train + 1,024 val** (正确的7:2:1划分)
+
+## V4训练 ✅ 已完成
+- **最终结果**: F1=**0.896282** (Epoch 317/400)
+- **200 Epoch对比**: F1=**0.893730** (Epoch 195)
+- 模型: `checkpoints_swin_v4_paper/best_model.pth`
 
 ## 代码同步检查 (每4小时)
 - 检查edge_infer_cloud未提交的代码变更
