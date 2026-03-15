@@ -6,11 +6,35 @@
 - 检查V6论文版训练状态（容器：rcmt-training）
 - 脚本: `train_rcmt_v6_paper.py` (400 epochs)
 - 目录: `logs_swin_v6_paper/` + `checkpoints_swin_v6_paper/`
-- **📢 通知规则**: 出现新的Best F1时 → 飞书通知用户
-- 当前状态: 🔄 **训练中** - Epoch 0/400 (刚重启)
-- **参数量**: ✅ **58.7M** (Swin-Tiny, depths=[2,2,2,2])
-- 数据集: ✅ **7,120 train + 1,024 val** (正确的7:2:1划分)
-- **⚠️ 修正记录**: 02:55发现参数量错误(65.8M→58.7M)，已重启
+
+### 📢 新Best F1检测 (每次heartbeat执行)
+1. 获取best_model修改时间：
+   ```bash
+   docker exec rcmt-training stat -c '%Y %y' /workspace/rcmt_v3/checkpoints_swin_v6_paper/best_model.pth
+   ```
+2. 比较状态文件：`memory/v6_best_f1_state.json`
+3. 如果修改时间更新，从日志提取新Best F1：
+   ```bash
+   docker exec rcmt-training tail -300 /workspace/rcmt_v3/logs_swin_v6_paper/nohup.log | grep -B8 'New Best Model'
+   ```
+4. **立即发送通知**到飞书
+
+### ⚠️ 卡死检测
+- 单epoch >10分钟，如果超时>1小时则续训
+- 日志追加，不替换（使用 `>>` 追加模式）
+
+### 🔄 200 Epoch自动备份
+- 脚本: `/tmp/check_v6_200ep_backup.sh`
+- 触发条件: Epoch >= 200
+- 备份: `best_model.pth` → `best_model_200ep.pth`
+- 标记: `.backup_200ep_done`
+
+### 📊 当前状态 (17:53 UTC+8)
+- Epoch: 138/400 (34.5%)
+- Best F1: **0.8861** (Epoch 132)
+- 参数量: **58.7M** (Swin-Tiny)
+- 数据集: 7,120 train + 1,024 val ✅
+- 200 epoch备份: 未触发（剩余62 epochs）
 
 ## V4训练 ✅ 已完成
 - **最终结果**: F1=**0.896282** (Epoch 317/400)
@@ -40,21 +64,26 @@
 | P1 | 用户文档更新 | ⏳ 待开始 |
 | P1 | API文档补充 | ⏳ 待开始 |
 
-### 📊 训练状态 (2026-03-15 02:53 UTC+8)
+### 📊 训练状态 (2026-03-15 09:41 UTC+8)
 
 **V4 (BTFormer)**: ✅ **完成**
 - Best F1: **0.896282** (Epoch 317/400)
+- 200 epoch内: F1=0.893730 (Epoch 195)
+- 200 epoch后提升: **0.26%**
 - 数据集: 7,120 train + 1,024 val ✅
 
 **V6 (Swin-Temporal)**: 🔄 **进行中**
-- 当前: Epoch 0/400
+- 当前: Epoch 138/400 (34.5%)
+- Best F1: **0.8861** (Epoch 132) ✅距V4仅差1%
 - 数据集: 7,120 train + 1,024 val ✅
-- 预计完成: ~77小时 (约3月18日)
+- 预计完成: ~38小时 (约3月17日 02:00)
+
+**📌 200 Epoch备份任务**: 当V6到达200 epoch时，备份best_model为`best_model_200ep.pth`
 
 ### 📈 V4 vs V6 公平对比
 | 项目 | V4 (Hybrid) | V6 (Swin) |
 |------|-------------|-----------|
-| 参数量 | 11.8M | 65.8M |
+| 参数量 | 11.8M | **58.7M** |
 | Best F1 | 0.8963 | 训练中 |
 | 数据集 | 7:2:1 ✅ | 7:2:1 ✅ |
 

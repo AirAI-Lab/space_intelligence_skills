@@ -1,0 +1,11 @@
+{
+  "task": "v6_200_epoch_backup",
+  "status": "pending",
+  "target_epoch": 200,
+  "current_epoch": 62,
+  "last_check": "2026-03-15T09:50:00+08:00",
+  "backup_file": "best_model_200ep.pth",
+  "marker_file": ".backup_200ep_done",
+  "checkpoint_dir": "/workspace/rcmt_v3/checkpoints_swin_v6_paper/",
+  "notes": "当V6训练到达200 epoch时，自动备份best_model.pth为best_model_200ep.pth用于与ChangeFormer公平对比"
+}

@@ -1,0 +1,18 @@
+{
+  "last_best_f1": 0.8861,
+  "last_epoch": 132,
+  "last_model_mtime": "2026-03-15T09:14:27+00:00",
+  "last_model_mtime_unix": 1773566067,
+  "last_check": "2026-03-15T17:53:00+08:00",
+  "checkpoint_path": "/workspace/rcmt_v3/checkpoints_swin_v6_paper/best_model.pth",
+  "log_path": "/workspace/rcmt_v3/logs_swin_v6_paper/nohup.log",
+  "notification_sent": true,
+  "last_metrics": {
+    "f1": 0.8861,
+    "iou": 0.7955,
+    "precision": 0.8879,
+    "recall": 0.8843,
+    "oa": 0.9905,
+    "val_loss": 0.2562
+  }
+}
