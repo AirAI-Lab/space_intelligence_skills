@@ -3,11 +3,11 @@
   "last_epoch": 347,
   "last_model_mtime": "2026-03-16T09:23:10+00:00",
   "last_model_mtime_unix": 1773652990,
-  "last_check": "2026-03-16T18:50:00+08:00",
+  "last_check": "2026-03-16T20:29:00+08:00",
   "checkpoint_path": "/workspace/rcmt_v3/checkpoints_swin_v6_paper/best_model.pth",
   "log_path": "/workspace/rcmt_v3/logs_swin_v6_paper/nohup.log",
   "notification_sent": true,
-  "current_epoch": 347,
+  "current_epoch": 351,
   "last_metrics": {
     "f1": 0.8955,
     "iou": 0.8107,
