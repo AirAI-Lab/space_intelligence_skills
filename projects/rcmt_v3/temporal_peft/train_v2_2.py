@@ -32,10 +32,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+from torchvision import transforms
 from pathlib import Path
 from tqdm import tqdm
 import argparse
 from datetime import datetime
+import subprocess
 
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent))
@@ -43,9 +45,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 # 导入v2.0模型
 from train_v2 import TemporalPEFTv2, AdvancedCombinedLoss, calculate_metrics
 
-# 使用标准LEVIR-CD数据集
-sys.path.insert(0, '/workspace/rcmt_v3')
-from data.levir_cd import LEVIRCDDataset
+# 使用修正版LEVIR-CD数据集加载器
+sys.path.insert(0, '/workspace/rcmt_v3/temporal_peft')
+from data.levir_cd_fixed import LEVIRCDDataset
 
 
 class EarlyStopping:
@@ -175,6 +177,174 @@ class TrainingHistory:
         return self.history
 
 
+class NotificationSender:
+    """飞书通知发送器"""
+    
+    def __init__(self, webhook_url: str = None):
+        self.webhook_url = webhook_url
+    
+    def send_best_model_notification(self, epoch: int, metrics: dict, best_f1: float, model_params: float):
+        """发送最佳模型通知到飞书"""
+        if not self.webhook_url:
+            return
+        
+        try:
+            # 计算F1/Param效率
+            f1_per_param = best_f1 / model_params
+            vs_peftcd = f1_per_param / 9.23
+            
+            # 构建消息
+            message = {
+                "msg_type": "interactive",
+                "card": {
+                    "header": {
+                        "title": {
+                            "tag": "plain_text",
+                            "content": "🏆 Temporal PEFT v2.2 - 新Best模型！"
+                        },
+                        "template": "blue"
+                    },
+                    "elements": [
+                        {
+                            "tag": "div",
+                            "fields": [
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**Epoch:** {epoch}/200"
+                                    }
+                                },
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**时间:** {datetime.now().strftime('%H:%M:%S')}"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tag": "div",
+                            "fields": [
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**F1:** {metrics['f1']*100:.2f}%"
+                                    }
+                                },
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**IoU:** {metrics['iou']*100:.2f}%"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tag": "div",
+                            "fields": [
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**Precision:** {metrics['precision']*100:.2f}%"
+                                    }
+                                },
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**Recall:** {metrics['recall']*100:.2f}%"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tag": "div",
+                            "fields": [
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**Val Loss:** {metrics['loss']:.4f}"
+                                    }
+                                },
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**OA:** {metrics['oa']*100:.2f}%"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tag": "hr"
+                        },
+                        {
+                            "tag": "div",
+                            "fields": [
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**参数量:** {model_params:.2f}M"
+                                    }
+                                },
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**F1/Param:** {f1_per_param:.2f}"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "tag": "div",
+                            "fields": [
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**vs PeftCD:** {vs_peftcd:.2f}x"
+                                    }
+                                },
+                                {
+                                    "is_short": True,
+                                    "text": {
+                                        "tag": "lark_md",
+                                        "content": f"**vs 目标(90%):** {(best_f1 - 0.90)*100:+.2f}%"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+            
+            # 检查是否达到里程碑
+            if best_f1 >= 0.923:
+                message["card"]["header"]["title"]["content"] = "🏆🏆🏆 超越PeftCD (92.3%)！"
+                message["card"]["header"]["template"] = "green"
+            elif best_f1 >= 0.90:
+                message["card"]["header"]["title"]["content"] = "🎉 达到目标F1 (≥90%)！"
+                message["card"]["header"]["template"] = "turquoise"
+            
+            # 发送请求
+            response = requests.post(self.webhook_url, json=message, timeout=5)
+            if response.status_code == 200:
+                print(f"   📢 通知已发送到飞书")
+            else:
+                print(f"   ⚠️ 通知发送失败: {response.status_code}")
+                
+        except Exception as e:
+            print(f"   ⚠️ 通知发送异常: {str(e)}")
+
+
 class TrainerV22:
     """Temporal PEFT v2.2 - 参考V6的保存策略"""
     
@@ -233,11 +403,20 @@ class TrainerV22:
         self.history.set_config(config)
         self.history.set_total_epochs(config.get('epochs', 200))
 
+        # 飞书通知发送器
+        # 注意：这里使用环境变量或配置文件中的webhook URL
+        self.notifier = NotificationSender(
+            webhook_url=os.getenv('FEISHU_WEBHOOK_URL', None)
+        )
+
         # 训练状态
         self.start_epoch = 1
         self.best_f1 = 0.0
         self.best_epoch = 0
         self.global_step = 0
+
+        # 模型参数（用于通知）
+        self.model_params = sum(p.numel() for p in model.parameters()) / 1e6
 
         # 打印模型信息
         total_params = sum(p.numel() for p in model.parameters())
@@ -435,6 +614,14 @@ class TrainerV22:
                 self.best_epoch = epoch
                 print(f"\n✅ 新Best F1: {self.best_f1:.4f}")
                 
+                # 发送飞书通知
+                self.notifier.send_best_model_notification(
+                    epoch=epoch,
+                    metrics=val_metrics,
+                    best_f1=self.best_f1,
+                    model_params=self.model_params
+                )
+                
                 # 检查是否达到目标
                 if self.best_f1 >= 0.90:
                     print(f"🎉 已达到目标F1 (≥90%)！")
@@ -501,23 +688,37 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"✅ 使用设备: {device}")
 
-    # 数据集
+    # 数据集（使用标准LEVIR-CD256配置）
     data_root = "/home/developer/workspace/datasets/LEVIR-CD256"
     
     print(f"\n📂 数据集路径: {data_root}")
+    print(f"✅ 使用标准划分: 7,120 train / 1,024 val / 2,048 test")
+    
+    # 图像变换
+    train_transform = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+    
+    val_transform = transforms.Compose([
+        transforms.Resize((256, 256)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
     
     train_dataset = LEVIRCDDataset(
-        root_dir=f"{data_root}/train",
+        root_dir=data_root,
         split='train',
-        augment=True,
-        format='standard'
+        transform=train_transform,
+        augment=True
     )
     
     val_dataset = LEVIRCDDataset(
-        root_dir=f"{data_root}/val",
+        root_dir=data_root,
         split='val',
-        augment=False,
-        format='standard'
+        transform=val_transform,
+        augment=False
     )
     
     # 数据加载器
