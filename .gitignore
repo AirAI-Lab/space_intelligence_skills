@@ -45,8 +45,8 @@ vendor/
 .env.local
 .env.*.local
 
-# Data
-data/
+# Data (only root level)
+/data/
 models/
 runs/
 *.ckpt

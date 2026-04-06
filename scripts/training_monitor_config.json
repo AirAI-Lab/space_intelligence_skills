@@ -1,0 +1,13 @@
+{
+  "TrainingLogPath": "",
+  "StatusFilePath": "",
+  "ContainerName": "rcmt-training",
+  "ContainerLogPath": "/workspace/peftcd_repro/peftcd_repro/artifacts/logs/acta_train.log",
+  "CheckIntervalMinutes": 5,
+  "FeishuWebhook": "",
+  "NotificationChatId": "",
+  "MetricsToTrack": ["val_iou", "val_f1", "val_p", "val_r"],
+  "BestMetricKey": "val_iou",
+  "TrainingType": "ACTA+ViT-Large",
+  "ProjectName": "PeftCD+ACTA"
+}

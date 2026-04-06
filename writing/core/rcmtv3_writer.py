@@ -22,6 +22,19 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
 import re
+import sys
+import os
+
+# 添加当前目录到路径以导入新组件
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# 导入新的质量保证组件
+from ai_pattern_detector import AIPatternDetector, PatternDetectionResult
+from citation_verifier import CitationVerifier, VerificationResult
+from style_consistency_checker import StyleConsistencyChecker, StyleReport
+from quality_scorer import QualityScorer, QualityReport
+from iterative_improver import IterativeImprover, IterationResult
+from related_work_generator import RelatedWorkGenerator
 
 
 # ==================== 数据结构 ====================
@@ -127,7 +140,7 @@ class RCMTV3Writer:
 
     def __init__(self, experiment_data_path: Optional[str] = None):
         """
-        初始化
+        初始化（增强版，集成QA系统）
 
         参数：
             experiment_data_path: 实验结果JSON文件路径
@@ -152,7 +165,28 @@ class RCMTV3Writer:
             'language': 'en'
         }
 
+        # ==================== NEW: 集成QA系统 ====================
+        # AI模式检测器
+        self.ai_detector = AIPatternDetector(strict_mode=False)
+
+        # 引用验证器（使用知识库）
+        kb_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "knowledge_base", "verified_references.json")
+        self.citation_verifier = CitationVerifier(reference_db_path=kb_path)
+
+        # 风格一致性检查器
+        self.style_checker = StyleConsistencyChecker(strict_mode=False)
+
+        # 质量评分器
+        self.quality_scorer = QualityScorer()
+
+        # 迭代改进器
+        self.iterative_improver = IterativeImprover(quality_threshold=80.0, max_iterations=5)
+
+        # Related Work生成器
+        self.related_work_generator = RelatedWorkGenerator(reference_db_path=kb_path)
+
         print(f"[RCMTV3Writer] Initialized for {self.data.model}")
+        print(f"[RCMTV3Writer] QA Systems integrated: AI detection, citation verification, style checking, quality scoring")
 
     def load_experiment_data(self, experiment_data_path: str):
         """
@@ -251,7 +285,7 @@ class RCMTV3Writer:
             'domain': 'Change detection in remote sensing images',
             'subtask1': 'detecting changes',
             'subtask2': 'classifying change types',
-            'method_name': 'RCMT-V3-Hybrid',
+            'method_name': 'BiTemporal Hybrid Fusion Detector',
             'architecture': 'CNN-Transformer hybrid framework',
             'key_innovation': 'systematic optimization and bidirectional temporal fusion',
             'goal': 'improve performance and efficiency',
@@ -265,7 +299,14 @@ class RCMTV3Writer:
             'field': 'semantic change detection'
         }
 
-        template = getattr(AbstractTemplates, f"{style}_style")(project_info)
+        # 使用正确的模板方法名
+        if style == "changeforemer":
+            template = AbstractTemplates.changeformer_style(project_info)
+        elif style == "tinycd":
+            template = AbstractTemplates.tinycd_style(project_info)
+        else:  # bit (default)
+            template = AbstractTemplates.bit_style(project_info)
+
         quality = self.strategies.check_ai_patterns(template)
 
         print(f"[RCMTV3Writer] Generated {style} style abstract (Quality Score: {100 - quality['count']})")
@@ -345,9 +386,10 @@ class RCMTV3Writer:
         # 优化策略消融
         if self.data.ablation_optimization:
             for ablation in self.data.ablation_optimization:
+                f1_change = ablation.get('f1_improvement', ablation.get('f1_change', 0.0))
                 experiments.append(ExperimentTemplates.ablation_studies(
                     ablation['component'],
-                    ablation['f1_change']
+                    f1_change
                 ))
 
         experiments.append(ExperimentTemplates.conclusion())
@@ -371,7 +413,7 @@ class RCMTV3Writer:
         else:
             paper.append(f"\\title{{{self.paper_config['title_en']}}}")
 
-        paper.append(f"\\author{{\\IEEEauthorblockN{{{' '.join(self.paper_config['authors'])}}}}")
+        paper.append("\\author{\\IEEEauthorblockN{" + ' '.join(self.paper_config['authors']) + "}}")
         paper.append("\\IEEEauthorblockA{\\textit{" + self.paper_config['affiliation'] + "}}")
         paper.append("\\IEEEauthorblockA{\\texttt{" + self.paper_config['email'] + "}}")
 
@@ -458,9 +500,185 @@ class RCMTV3Writer:
             'grade': 'A' if quality_score >= 80 else 'B' if quality_score >= 60 else 'C'
         }
 
+    # ==================== NEW: Related Work生成 ====================
+
+    def generate_related_work_auto(self) -> str:
+        """
+        自动生成Related Work部分
+
+        返回:
+            LaTeX格式的Related Work
+        """
+        method_info = {
+            "name": "RCMT-V3",
+            "f1": self.data.f1,
+            "params": self.data.params_M,
+            "dataset": self.data.dataset
+        }
+
+        related_work = self.related_work_generator.generate_related_work(method_info)
+
+        print(f"[RCMTV3Writer] Generated Related Work section")
+        return related_work
+
+    # ==================== NEW: 增强质量检查 ====================
+
+    def check_quality_enhanced(self, text: str) -> Dict[str, Any]:
+        """
+        增强质量检查（使用新的QA系统）
+
+        参数：
+            text: 要检查的文本
+
+        返回：
+            详细的质量检查结果
+        """
+        results = {}
+
+        # 1. AI模式检测
+        print("[QA] Running AI pattern detection...")
+        ai_result = self.ai_detector.detect_patterns(text)
+        results['ai_patterns'] = ai_result
+        results['ai_score'] = ai_result.overall_score
+
+        # 2. 引用验证
+        print("[QA] Running citation verification...")
+        citation_issues = self.citation_verifier.verify_text_citations(text)
+        results['citation_issues'] = citation_issues
+        results['citation_score'] = max(0, 100 - len(citation_issues) * 10)
+
+        # 3. 风格一致性检查
+        print("[QA] Running style consistency check...")
+        style_report = self.style_checker.check_consistency(text)
+        results['style_report'] = style_report
+        results['style_score'] = style_report.overall_score
+
+        # 4. 综合质量评分
+        print("[QA] Calculating overall quality score...")
+        additional_data = {
+            "f1": self.data.f1,
+            "params": self.data.params_M,
+            "dataset": self.data.dataset
+        }
+        quality_report = self.quality_scorer.calculate_quality(text, additional_data)
+        results['quality_report'] = quality_report
+        results['overall_score'] = quality_report.overall_score
+        results['grade'] = quality_report.grade
+
+        # 5. 综合得分
+        results['comprehensive_score'] = (
+            ai_result.overall_score * 0.25 +
+            results['citation_score'] * 0.15 +
+            style_report.overall_score * 0.20 +
+            quality_report.overall_score * 0.40
+        )
+
+        return results
+
+    # ==================== NEW: 带QA的完整论文生成 ====================
+
+    def generate_full_paper_with_qa(self, language: str = "en", style: str = "ieee",
+                                   auto_improve: bool = True) -> Dict[str, Any]:
+        """
+        生成完整论文（带质量保证）
+
+        参数：
+            language: 语言 (en, zh)
+            style: 论文风格
+            auto_improve: 是否自动改进
+
+        返回：
+            包含论文和QA报告的字典
+        """
+        print(f"[RCMTV3Writer] Generating full paper with QA...")
+
+        # 1. 生成初始论文
+        paper = self.generate_full_paper(output_format="latex", language=language)
+
+        # 2. 运行QA检查
+        qa_results = self.check_quality_enhanced(paper)
+
+        # 3. 自动改进（如果需要）
+        improvements_made = []
+        if auto_improve and qa_results['overall_score'] < 80:
+            print(f"[RCMTV3Writer] Auto-improving paper (current score: {qa_results['overall_score']:.1f})...")
+
+            # 使用迭代改进器
+            additional_data = {
+                "f1": self.data.f1,
+                "params": self.data.params_M,
+                "dataset": self.data.dataset
+            }
+            iteration_result = self.iterative_improver.iterate_to_quality(
+                paper,
+                target_score=80.0,
+                additional_data=additional_data
+            )
+
+            paper = iteration_result.improved_paper
+            improvements_made = iteration_result.actions_taken
+
+            # 重新检查质量
+            qa_results = self.check_quality_enhanced(paper)
+            print(f"[RCMTV3Writer] Final quality score: {qa_results['overall_score']:.1f}")
+
+        # 4. 生成QA报告
+        qa_report = self._generate_qa_report(qa_results, improvements_made)
+
+        return {
+            'paper': paper,
+            'quality_score': qa_results['overall_score'],
+            'grade': qa_results['grade'],
+            'ai_score': qa_results['ai_score'],
+            'citation_score': qa_results['citation_score'],
+            'style_score': qa_results['style_score'],
+            'qa_report': qa_report,
+            'improvements_made': improvements_made
+        }
+
+    def _generate_qa_report(self, qa_results: Dict, improvements: List) -> str:
+        """生成QA报告"""
+        report = ["=== Quality Assurance Report ==="]
+        report.append(f"Overall Score: {qa_results['overall_score']:.1f}/100 (Grade: {qa_results['grade']})")
+        report.append(f"AI Pattern Score: {qa_results['ai_score']:.1f}/100")
+        report.append(f"Citation Score: {qa_results['citation_score']:.1f}/100")
+        report.append(f"Style Score: {qa_results['style_score']:.1f}/100")
+
+        # AI模式详情
+        if qa_results['ai_patterns'].all_patterns:
+            report.append(f"\n--- AI Patterns Detected ({len(qa_results['ai_patterns'].all_patterns)}) ---")
+            for pattern in qa_results['ai_patterns'].all_patterns[:5]:
+                report.append(f"  - [{pattern.severity}] {pattern.pattern_name}")
+
+        # 引用问题
+        if qa_results['citation_issues']:
+            report.append(f"\n--- Citation Issues ({len(qa_results['citation_issues'])}) ---")
+            for issue in qa_results['citation_issues'][:5]:
+                report.append(f"  - {issue.description}")
+
+        # 风格问题
+        if qa_results['style_report'].terminology_issues:
+            report.append(f"\n--- Style Issues ({len(qa_results['style_report'].terminology_issues)}) ---")
+            for issue in qa_results['style_report'].terminology_issues[:3]:
+                report.append(f"  - {issue.explanation}")
+
+        # 改进记录
+        if improvements:
+            report.append(f"\n--- Improvements Applied ({len(improvements)}) ---")
+            for improvement in improvements[:3]:
+                report.append(f"  - {improvement.reason}")
+
+        # 建议
+        if qa_results['quality_report'].improvement_priorities:
+            report.append(f"\n--- Priority Improvements ---")
+            for priority in qa_results['quality_report'].improvement_priorities[:3]:
+                report.append(f"  - {priority}")
+
+        return "\n".join(report)
+
     def improve_paper(self, text: str, quality: Dict[str, Any]) -> str:
         """
-        改进论文
+        改进论文（使用新的QA系统）
 
         参数：
             text: 要改进的文本
@@ -469,9 +687,16 @@ class RCMTV3Writer:
         返回：
             改进后的文本
         """
-        # 这里可以添加自动改进逻辑
-        # 目前返回原文本
-        return text
+        # 使用迭代改进器
+        additional_data = {
+            "f1": self.data.f1,
+            "params": self.data.params_M,
+            "dataset": self.data.dataset
+        }
+
+        iteration_result = self.iterative_improver.improve_paper(text, quality['quality_report'])
+
+        return iteration_result
 
     def save_paper(self, output_path: str, format: str = "latex", language: str = "en"):
         """
@@ -579,7 +804,23 @@ class ExperimentTemplates:
 
     @staticmethod
     def results_analysis(our_method, baseline, dataset):
-        return f"RCMT-V3 achieves {our_method['f1']:.2f}% F1 on {dataset}, outperforming {baseline['name']} by {our_method['f1'] - baseline['f1']:.2f} percentage points."
+        # Handle both dict and RCMTV3ExperimentData object
+        if hasattr(our_method, 'f1'):
+            our_f1 = our_method.f1
+        else:
+            our_f1 = our_method['f1']
+
+        if hasattr(baseline, 'name'):
+            baseline_name = baseline.name
+        else:
+            baseline_name = baseline['name']
+
+        if hasattr(baseline, 'f1'):
+            baseline_f1 = baseline.f1
+        else:
+            baseline_f1 = baseline['f1']
+
+        return f"RCMT-V3 achieves {our_f1:.2f}% F1 on {dataset}, outperforming {baseline_name} by {our_f1 - baseline_f1:.2f} percentage points."
 
     @staticmethod
     def ablation_studies(component, f1_change):

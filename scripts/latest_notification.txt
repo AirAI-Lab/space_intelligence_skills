@@ -1,0 +1,11 @@
+[!] 新的最佳 IoU 结果！
+
+Epoch: 103/200
+最佳 IoU: 0.8459
+F1 Score: 0.9165
+Precision: 0.9193
+Recall: 0.9138
+Train Loss: 0.0114
+Val Loss: 0.0211
+
+提升: +0.02%

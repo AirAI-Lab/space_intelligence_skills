@@ -1,0 +1,22 @@
+# C-RADIOv4 云端推理服务依赖
+# PyTorch 由 Dockerfile 单独安装 (CUDA 12.8)
+
+# C-RADIOv4 核心
+safetensors>=0.4.0
+transformers>=4.36.0
+timm>=0.9.0
+einops>=0.7.0
+
+# 图像处理
+numpy>=1.24.0
+opencv-python-headless>=4.8.0
+pillow>=9.5.0
+
+# MQTT 通信
+paho-mqtt>=1.6.0
+
+# 配置
+pyyaml>=6.0
+
+# COCO 工具 (GT 评估, RLE mask 解码)
+pycocotools>=2.0.6

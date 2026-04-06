@@ -1,0 +1,286 @@
+cloud:
+  radio:
+    classes:
+      background:
+        is_background: true
+        prompts:
+        - concrete embankment and buildings on river bank
+        - trees and green vegetation along river shore
+        - sky and clouds above river scene
+        zh: 背景
+      black_water:
+        use_color_check: true
+        min_prob: 0.30
+        prompts:
+        - clear transparent river water with balanced RGB channels
+        - clean unpolluted water body showing natural blue gray tone
+        - crystal clear water surface without visible color tint
+        - healthy water with balanced RGB where no single channel dominates
+        min_prob: 0.25
+        prompts:
+        - dark blackish gray water with all RGB channels below 130
+        - opaque polluted water with RGB range less than 25
+        - dark contaminated water appearing uniformly black gray
+        - black sewage water with low brightness around 122
+        use_color_check: true
+        zh: 黑水
+      turbid_water:
+        color_hint:
+        - 115
+        - 135
+        - 142
+        min_prob: 0.22
+        prompts:
+        - yellowish brown muddy water with R channel around 142
+        - tea colored turbid water with R channel higher than G
+        - ochre yellow water from soil runoff with warm tone
+        - coffee brown murky water with earth color tint
+        use_color_check: true
+        zh: 浑浊水
+      red_water:
+        color_hint:
+        - 120
+        - 132
+        - 172
+        min_prob: 0.25
+        prompts:
+        - bright vivid red rust colored water with R channel above 170
+        - reddish pink contaminated water with R much higher than G and B
+        - crimson scarlet tinted sewage with saturated red color
+        - rusty red water with R channel clearly dominant not brown
+        use_color_check: true
+        zh: 红水
+      green_water:
+        color_hint:
+        - 94
+        - 136
+        - 122
+        min_prob: 0.20
+        prompts:
+        - thick bright green algae bloom with G channel around 136
+        - dark green eutrophic water where G channel exceeds B by more than 30
+        - green algae scum layer with visible green tint on water
+        - emerald green turbid water with G channel clearly above R and B
+        use_color_check: true
+        zh: 绿水/藻类
+      milky_foam_water:
+        color_hint:
+        - 145
+        - 147
+        - 146
+        min_prob: 0.18
+        prompts:
+        - milky white gray turbid water with brightness above 145
+        - thick white foam bubbles clustered on water surface
+        - cloudy opaque water body with RGB channels all high around 146
+        - dense frothy white patches with low saturation high brightness
+        use_color_check: true
+        zh: 乳白水
+      dam_seepage:
+        color_hint:
+        - 137
+        - 140
+        - 143
+        min_prob: 0.25
+        min_water_overlap: 0.05
+        prompts:
+        # 强调材质和结构特征 (不仅仅是水)
+        - dark wet water seepage stain on gray concrete dam or wall surface
+        - fresh water leakage mark on concrete structure with visible wet patch
+        - damp dark patch on cement dam wall indicating active seepage through crack
+        - water stain spreading from crack or joint in concrete embankment
+        - moisture streak running down vertical concrete surface of dam
+        - wet discolored area on stone or concrete channel wall near water
+        # 强调位置特征 (在结构上，不在水中)
+        - seepage on man-made concrete structure above water level
+        - water infiltration visible on dam face or channel wall
+        use_color_check: true
+        zh: 坝体渗水
+      normal_water:
+        color_hint:
+        - 136
+        - 139
+        - 127
+        is_background: true
+        min_prob: 0.30
+        prompts:
+        - clear transparent river water with balanced RGB channels
+        - clean unpolluted water body showing natural blue gray tone
+        - crystal clear water surface without visible color tint
+        - healthy water with balanced RGB where no single channel dominates
+        use_color_check: true
+        zh: 正常水质
+    inference:
+      class_thresholds:
+        black_water: 0.25
+        turbid_water: 0.10
+        red_water: 0.20
+        green_water: 0.10
+        milky_foam_water: 0.40
+        dam_seepage: 0.15
+      cluster:
+        min_centroid_y: 0.15
+        min_prob: 0.3
+        min_water_overlap: 0.5
+        vs_background_margin: 0.02
+        vs_normal_margin: 0.05
+      color:
+        enable_per_class: true
+        fusion_alpha: 0.20
+        max_dist: 100
+        strict_prob: 0.65
+      image_gate: 0.08
+      input_size: 896
+      min_area: 0.003
+      patch:
+        min_overlap_threshold: 0.5
+        num_patches: 64
+        overlap_weight: 1.5
+        patch_selection_strategy: top_k
+        top_k_patches: 10
+      postprocess:
+        erode_kernel: 2
+        max_components: 3
+        min_component_pixels: 50
+        open_kernel: 2
+      prompt:
+        negative_weight: 0.35
+        temperature: 6.0
+      threshold: 0.25
+      water:
+        erode_kernel: 7
+        min_ratio: 0.05
+    model:
+      adaptor_names:
+      - siglip2-g
+      device: cuda
+      path: checkpoints/model.safetensors
+      prefer_online: true
+      version: c-radio_v4-h
+data:
+  radio:
+    masks: data/prompts/masks/
+    samples: data/prompts/water_quality/
+  yolo:
+    labels: data/processed/labels
+    test: data/processed/images/test
+    train: data/processed/images/train
+    val: data/processed/images/val
+deployment:
+  alerts:
+    enabled: true
+    facility:
+    - outlet_active
+    - pipe_damaged
+    - dam_seepage
+    min_area: 0.01
+    person_behavior:
+    - fishing_person
+    - swimming_person
+    - playing_person
+    - intruding_person
+    water_quality:
+    - black_water
+    - turbid_water
+    - red_water
+    - green_water
+    - milky_foam_water
+    - dam_seepage
+  cloud:
+    enabled: true
+    fps_target: 10
+    model: c-radio_v4-h
+    upload_interval: 30
+  edge:
+    device: jetson
+    fps_target: 30
+    model: yolo
+    precision: fp16
+output:
+  output_dir: outputs/
+  save_alerts: true
+  save_detections: true
+  save_masks: true
+  visualization:
+    draw_bbox: true
+    draw_label: true
+    draw_mask: true
+    enabled: true
+system:
+  device: cuda
+  name: water_inspection
+  version: '3.3'
+training:
+  yolo:
+    augment:
+      degrees: 10
+      fliplr: 0.5
+      hsv_h: 0.015
+      hsv_s: 0.7
+      hsv_v: 0.4
+      mixup: 0.1
+      mosaic: 1.0
+      scale: 0.5
+      translate: 0.1
+    batch: 12
+    epochs: 300
+    lr0: 0.001
+    lrf: 0.01
+    optimizer: AdamW
+    patience: 50
+    warmup_epochs: 5
+yolo:
+  classes:
+    0:
+      name: person
+      weight: 1.0
+      zh: 人员
+    1:
+      name: fishing_person
+      weight: 2.0
+      zh: 钓鱼
+    2:
+      name: swimming_person
+      weight: 2.0
+      zh: 游泳
+    3:
+      name: playing_person
+      weight: 2.5
+      zh: 嬉水
+    4:
+      name: intruding_person
+      weight: 2.5
+      zh: 闯入
+    5:
+      name: water_gauge
+      weight: 1.5
+      zh: 水位尺
+    6:
+      name: outlet_pipe
+      weight: 1.5
+      zh: 排污口
+    7:
+      name: outlet_active
+      weight: 3.0
+      zh: 排污中
+    8:
+      name: pipe_damaged
+      weight: 5.0
+      zh: 管道破损
+    9:
+      name: boat
+      weight: 1.0
+      zh: 船舶
+    10:
+      name: floating_debris
+      weight: 2.0
+      zh: 漂浮物
+  inference:
+    conf_threshold: 0.25
+    device: cuda
+    iou_threshold: 0.45
+    max_detections: 300
+  model:
+    input_size: 640
+    type: yolov8x-pose
+    weights: checkpoints/yolov8_water.onnx

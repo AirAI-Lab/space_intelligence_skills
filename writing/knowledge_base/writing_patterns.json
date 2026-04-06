@@ -1,0 +1,227 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "description": "Professor-level writing patterns and templates for academic papers",
+    "last_updated": "2026-03-24"
+  },
+  "quantitative_comparison_patterns": {
+    "outperforming": [
+      "Our method achieves {value}% {metric}, outperforming {baseline} by {improvement} percentage points.",
+      "Compared to {baseline}, our method improves {metric} from {baseline_value}% to {our_value}% (Δ={improvement}).",
+      "We surpass {baseline} by {improvement} percentage points in {metric} score."
+    ],
+    "parameter_efficiency": [
+      "While using {reduction}% fewer parameters than {baseline}, our method achieves {value}% {metric}.",
+      "Our method achieves {value}% {metric} with only {params}M parameters, which is {reduction}% of {baseline}'s parameters.",
+      "We maintain competitive performance while reducing parameters by {reduction}% compared to {baseline}."
+    ],
+    "balanced_performance": [
+      "Our method achieves a better accuracy-efficiency trade-off, with {value}% {metric} using only {params}M parameters.",
+      "Compared to {baseline} ({baseline_value}% {metric}, {baseline_params}M parameters), our method achieves {our_value}% {metric} with {our_params}M parameters."
+    ]
+  },
+  "first_innovation_patterns": {
+    "formal": [
+      "To our knowledge, this is the first work to {action} in {field}.",
+      "We are the first to propose {method} for {task}.",
+      "This represents the first systematic study on {topic} in {field}."
+    ],
+    "moderate": [
+      "Unlike previous approaches, our work introduces {innovation}.",
+      "We present a novel framework that {innovation}.",
+      "This work pioneers the application of {technique} to {domain}."
+    ]
+  },
+  "technical_description_patterns": {
+    "motivation": [
+      "The key insight is that {insight}.",
+      "Motivated by {motivation}, we design {method}.",
+      "To address {challenge}, we propose {solution}.",
+      "Building on the observation that {observation}, we introduce {innovation}."
+    ],
+    "mechanism": [
+      "We employ {technique} to {goal}, which {benefit}.",
+      "By incorporating {mechanism}, we enable the model to {benefit}.",
+      "Our approach uses {method} to achieve {objective}.",
+      "{Technique} allows us to capture {property}, which is critical for {task}."
+    ],
+    "design_rationale": [
+      "We chose {design} because {reason}.",
+      "The design of {component} is motivated by {factor}.",
+      "Unlike {alternative}, our approach {advantage}.",
+      "We adopt {technique} to address {limitation} of existing methods."
+    ]
+  },
+  "transition_patterns": {
+    "contrast": [
+      "However,",
+      "In contrast,",
+      "Conversely,",
+      "On the other hand,",
+      "Nevertheless,",
+      "Unlike these approaches,",
+      "While existing methods..."
+    ],
+    "enhancement": [
+      "Furthermore,",
+      "Moreover,",
+      "Additionally,",
+      "In addition,",
+      "Beyond this,",
+      "Building on this,"
+    ],
+    "cause_effect": [
+      "Therefore,",
+      "Consequently,",
+      "As a result,",
+      "Thus,",
+      "Hence,"
+    ],
+    "purpose": [
+      "To address this,",
+      "To tackle this challenge,",
+      "To achieve this goal,",
+      "For this purpose,",
+      "With this objective,"
+    ],
+    "evidence": [
+      "Specifically,",
+      "In particular,",
+      "Notably,",
+      "For example,",
+      "To illustrate,"
+    ]
+  },
+  "claim_support_patterns": {
+    "quantitative": [
+      "Our method achieves {value}% {metric} on {dataset}, outperforming {baseline} by {improvement} percentage points.",
+      "Experiments on {dataset} show that our method improves {metric} from {baseline}% to {ours}% (Δ={improvement}, p<0.01).",
+      "We achieve {value}% {metric} with {params}M parameters, representing a {reduction}% reduction compared to {baseline}."
+    ],
+    "citation_based": [
+      "This is critical for {application} ({citation_1}), {application_2} ({citation_2}), and {application_3} ({citation_3}).",
+      "While {method} ({citation}) achieves strong results, it struggles with {limitation}.",
+      "Recent work has shown that {finding} ({citation_1}, {citation_2})."
+    ],
+    "theoretical": [
+      "Theoretically, this approach is justified because {reason}.",
+      "This design follows from {principle}, which states that {explanation}.",
+      "The formulation in Equation {N} captures {relationship} between {entities}."
+    ]
+  },
+  "abstract_templates": {
+    "bit_style": {
+      "structure": [
+        "Problem statement (1 sentence)",
+        "Method introduction (2 sentences)",
+        "Specific innovation (1 sentence)",
+        "Results (2 sentences)",
+        "Contribution summary (1 sentence)"
+      ],
+      "length_words": 180,
+      "template": "{Domain} is a challenging task that requires not only {subtask1} but also {subtask2}. We present {Method}, a {Architecture} that incorporates {Innovation} to {goal}. {Method} consists of {N} key components: {Component1}, {Component2}, and {Component3}. Experiments on {Dataset1} and {Dataset2} demonstrate that {Method} achieves {result}, outperforming {Baseline} by {X%} while using {Y%} fewer parameters. To our knowledge, this is the first work to {key_innovation} in {Field}."
+    },
+    "changeforemer_style": {
+      "structure": [
+        "Importance (1 sentence)",
+        "Background (1 sentence)",
+        "Method introduction (2 sentences)",
+        "Technical details (2 sentences)",
+        "Results (1 sentence)",
+        "Contribution summary (1 sentence)"
+      ],
+      "length_words": 190,
+      "template": "{Domain} plays a crucial role in {application1}, {application2}, and {application3}. While deep learning has achieved significant progress, most existing methods rely on {Method}, which have {limitation}. We present {Method}, a {Architecture} approach that {benefit}. {Method} consists of {N} key components: {Component1} and {Component2}. The encoder uses {technique1} to {goal1}, while {Component2} employs {technique2} to {goal2}. Experiments on {Dataset1}, {Dataset2}, and {Dataset3} demonstrate that {Method} achieves {result}, outperforming {Baseline} by {X%} while using only {Y}M parameters. To our knowledge, this is the first work to {key_innovation} in {Field}."
+    },
+    "tinycd_style": {
+      "structure": [
+        "Context challenge (1 sentence)",
+        "Method introduction (1 sentence)",
+        "Results (1 sentence)",
+        "Technical details (1 sentence)",
+        "Comparison (1 sentence)",
+        "Contribution summary (1 sentence)"
+      ],
+      "length_words": 130,
+      "template": "{Context} has limited {resource}, making it challenging to deploy {complex_task}. We propose {Method}, an extremely lightweight {Architecture} with {params} parameters. Despite its small size, {Method} achieves {result} on {dataset}, making it suitable for {scenario}. Our approach uses {technique} to balance efficiency and performance. Compared to state-of-the-art {Baseline}, {Method} uses {X%} fewer {resource} while maintaining competitive performance. To our knowledge, this is the first work to achieve high performance with {X}M parameters for {Task}."
+    },
+    "nature_style": {
+      "structure": [
+        "Broad significance (1 sentence)",
+        "Contextual challenge (1 sentence)",
+        "Our innovation (2 sentences)",
+        "Key results with impact (1 sentence)",
+        "Broader implications (1 sentence)"
+      ],
+      "length_words": 150,
+      "template": "{Domain} is essential for addressing global challenges in {field}. However, existing approaches face significant limitations in {aspect}. We developed {Method}, a {innovation} that fundamentally improves how we approach {task}. By incorporating {technique}, our method achieves {result} on {dataset}, representing a {improvement}% improvement over current state-of-the-art. This advancement has significant implications for {application} and opens new directions for {future_direction}."
+    },
+    "cvpr_style": {
+      "structure": [
+        "Motivation (1 sentence)",
+        "Problem formulation (1 sentence)",
+        "Technical approach (2 sentences)",
+        "Key innovations (1 sentence)",
+        "Results with comparisons (2 sentences)"
+      ],
+      "length_words": 200,
+      "template": "{Domain} has seen rapid progress, yet achieving {goal} remains challenging due to {limitation}. We formulate this as {formulation} and propose {Method}, a novel {architecture} that addresses these challenges through {innovation}. Our key technical contributions include: (1) {contribution1}, (2) {contribution2}, and (3) {contribution3}. Extensive experiments on {dataset} demonstrate that our method achieves {result}, outperforming previous state-of-the-art methods including {baseline1} ({value1}%) and {baseline2} ({value2}%). Notably, our approach achieves these results with {efficiency_advantage}."
+    }
+  },
+  "introduction_patterns": {
+    "background_motivation": [
+      "{Domain} is a critical task for {application1}, {application2}, and {application3}. This task involves {task_definition} and is essential for {importance}.",
+      "{Domain} aims to {goal}, which is fundamental to {field}. Recent advances in {technology} have revolutionized this area.",
+      "The ability to accurately {task} has significant implications for {application1}, {application2}, and {application3}."
+    ],
+    "existing_methods_limitation": [
+      "While existing methods have achieved notable success, they struggle with three key challenges: {challenge1}, {challenge2}, and {challenge3}.",
+      "Current approaches predominantly rely on {method}, which has limitations in {aspect1} and {aspect2}.",
+      "Despite progress in {area}, achieving both {goal1} and {goal2} remains challenging."
+    ],
+    "our_approach": [
+      "To address these challenges, we present {Method}, a {architecture} that {advantage}. Our framework comprises {N} key components: {component1}, {component2}, and {component3}.",
+      "We propose {Method}, which introduces {innovation} to address {challenge}. Unlike previous approaches, our method {differentiation}.",
+      "This work presents {Method}, a novel framework for {task} that achieves {goal} through {mechanism}."
+    ],
+    "contributions": [
+      "The main contributions of this work are: (1) **{Contribution1}**: We propose {technique}, which improves {metric} by {X%}. (2) **{Contribution2}**: {Description}. (3) **{Contribution3}**: {Description}. To our knowledge, this is the first work to {key_innovation} in {field}.",
+      "We make the following contributions: First, we introduce {innovation}, which {benefit}. Second, we demonstrate {finding}. Third, we achieve {result} through {approach}.",
+      "Our contributions are threefold: (i) We propose {method} for {task}; (ii) We introduce {technique} that {benefit}; (iii) We achieve {result} on {dataset}."
+    ]
+  },
+  "methodology_patterns": {
+    "problem_formulation": [
+      "Given {input}, we aim to {goal}. Formally, let {notation} denote {entity}. Our objective is to {objective}.",
+      "The problem of {task} can be formulated as {formulation}. We define {notation} as {definition}.",
+      "We address the problem of {task} by {approach}. Mathematically, we express this as {equation}."
+    ],
+    "module_description": [
+      "We propose {Module} to address {challenge}. {Module} consists of {N} sub-modules: {component1} and {component2}. The key insight is that {insight}.",
+      "{Module} is designed to {goal}. It employs {technique} to achieve {objective}. The formulation is shown in Equation {N}.",
+      "To capture {property}, we introduce {Module}. This module operates by {mechanism}, which enables {benefit}."
+    ],
+    "design_rationale": [
+      "We chose {design} because {reason}. This design choice ensures that {benefit}.",
+      "The architecture of {component} is motivated by {factor}. Unlike {alternative}, our approach {advantage}.",
+      "{Technique} is particularly suitable for {task} because {reason}."
+    ]
+  },
+  "experiment_patterns": {
+    "results_description": [
+      "Our method achieves {value}% {metric} on {dataset}, outperforming {baseline} by {improvement} percentage points.",
+      "On {dataset}, our method achieves {value}% {metric}, which represents a {improvement}% improvement over {baseline}.",
+      "We achieve state-of-the-art performance on {dataset}, with {value}% {metric} surpassing previous best by {improvement}%."
+    ],
+    "ablation_study": [
+      "To understand the contribution of each component, we conduct ablation studies. Table {N} shows that removing {Component} reduces {metric} by {X%}, confirming its importance.",
+      "Ablation studies reveal the effectiveness of each component. Specifically, {Component1} contributes +{X1}% {metric}, while {Component2} provides an additional +{X2}% improvement.",
+      "We systematically ablate each component to assess its contribution. Results show that the full model achieves {value}% {metric}, while removing {Component} reduces performance to {ablated_value}%."
+    ],
+    "failure_analysis": [
+      "While our method achieves strong performance, it still struggles with {scenario}. This limitation is shared with most existing methods and represents an active research area.",
+      "We observe that our method is less effective in {condition}. This is likely due to {reason}, which could be addressed in future work.",
+      "Qualitative analysis reveals failure cases in {scenario}. These typically occur when {condition}, suggesting room for improvement."
+    ]
+  }
+}

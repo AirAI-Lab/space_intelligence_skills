@@ -1,0 +1,154 @@
+# 水质异常检测提示词库 v4.1
+# 场景: 城市河道水质巡检
+# 设计原则:
+#   1. 正样本提示词 (positive): 描述异常的视觉特征 (颜色、纹理、形态)
+#   2. 负样本提示词 (negative): 描述容易混淆的正常场景 (用于对比学习)
+#   3. 提示词应具体、可区分，避免泛化描述
+# 更新日期: 2026-04-05
+# 基于100张标注图像，合并为7类：
+#   - 黑水、浑浊水(黄水+褐色水)、红水、绿水/藻类、乳白水(泡沫水)、坝体渗水、正常水质
+#
+# 问题诊断：
+#   - normal_water: 0/24 正确，全部误分类为 green_water
+#   - 需要强调：正常水体透明、G通道不主导；绿水必须有明显绿色调
+
+water_quality_detection:
+  # ════════════════════════════════════════════════════════════════════════
+  # 7类水质检测 (6类异常 + 1类正常)
+  # ════════════════════════════════════════════════════════════════════════
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 黑水: 不透明的深黑色/暗灰色污水表面
+  # 关键区分: 表面颜色深且不透明 vs 正常水体透明显示深色河底
+  # ────────────────────────────────────────────────────────────────────────
+  black_water:
+    positive:
+      - opaque black polluted water with dark surface blocking all light
+      - blackish gray sewage water surface with no transparency visibility
+      - dark contaminated water appearing uniformly black on surface
+      - black sewage covering river with muddy opaque texture
+      - deep black water body with surface pollution not showing riverbed
+    negative:
+      - clear transparent water showing dark riverbed through depth
+      - clean water with deep blue natural tone still transparent
+      - shadow on water surface with clear edges from bridge or trees
+      - normal water appearing dark due to lighting but still transparent
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 浑浊水: 黄色/褐色/茶色浑浊水体，含有悬浮泥沙
+  # 关键特征: 黄褐色调、有明显的泥沙颜色、不透明
+  # ────────────────────────────────────────────────────────────────────────
+  turbid_water:
+    positive:
+      - yellowish brown muddy water with distinct earth tone on river
+      - tea colored water with suspended sediment creating turbidity
+      - ochre yellow turbid water from soil runoff not green or white
+      - coffee brown murky water with visible mud particles suspended
+      - yellow brown polluted water distinctly not green algae color
+      - tan colored turbid water with brown yellow earth hue
+      - muddy yellowish water with low transparency from sediment
+    negative:
+      - clear transparent water without turbidity or brown tint
+      - green algae water with obvious green not brown yellow color
+      - milky white water with gray white tone not yellow brown
+      - black polluted water with very dark color not brown yellow
+      - normal water with natural blue gray clear transparent appearance
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 红水: 红色/红褐色/粉色污水，含铁锈或化学污染物
+  # 关键特征: R通道明显较高、红色调明显
+  # ────────────────────────────────────────────────────────────────────────
+  red_water:
+    positive:
+      - bright vivid red rust colored polluted water with R channel dominant
+      - reddish pink contaminated water with obvious red hue not brown
+      - crimson scarlet tinted sewage with saturated red color spreading
+      - rusty reddish water with high iron oxide content red tone
+      - deep red colored water from chemical discharge distinctly red
+    negative:
+      - red brick wall or building near river not in water body
+      - orange sunset reflection on clean water surface temporary
+      - brown muddy water with brown tone not red pink hue
+      - pink flower or object reflection on water not actual red water
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 绿水/藻类: G通道主导的绿色水体，由藻类繁殖导致
+  # 关键特征: G通道明显高于B和R (G>B且G>R)、不透明、有藻类感
+  # 与正常水体区别: 正常水体B通道略高或平衡，绿水G通道必须明显高
+  # ────────────────────────────────────────────────────────────────────────
+  green_water:
+    positive:
+      - thick bright green algae bloom with G channel clearly higher than B and R
+      - dark green eutrophic water with saturated green color not blue
+      - green algae scum layer with visible texture on opaque water surface
+      - emerald green turbid water from algae proliferation distinctly green
+      - concentrated green algae patches with G channel dominance G greater than B
+      - opaque green water body where green is the dominant color channel
+      - algae covered water surface with non uniform green patches texture
+    negative:
+      - clear blue transparent water with B channel higher than G natural tone
+      - clean water appearing bluish due to sky reflection not green algae
+      - green vegetation reflection on transparent clean water surface
+      - normal water with balanced RGB or slight blue tint G channel not dominant
+      - water with slight greenish hue but still transparent not algae bloom
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 乳白水/泡沫水: 白色/灰白色浑浊水体或泡沫覆盖
+  # 关键特征: 白色/灰白色调、低饱和度、可能有泡沫纹理
+  # ────────────────────────────────────────────────────────────────────────
+  milky_foam_water:
+    positive:
+      - milky white gray turbid water with very low saturation on river surface
+      - thick white foam bubbles clustered on polluted water with bubble texture
+      - cloudy opaque water body with uniform whitish gray haze appearance
+      - dense frothy white patches floating on river visible bubble edges
+      - pale bluish gray murky water with milky creamy appearance
+      - white foam accumulation with distinct bubble formations on water
+      - whitish turbid water distinctly not yellow brown or green color
+    negative:
+      - clear transparent clean river water with high visibility
+      - white sunlight glare creating bright reflection spots temporary
+      - blue sky with white clouds reflected on clean transparent water
+      - yellow brown muddy water belongs to turbid water class not white
+      - normal water with natural appearance no white gray haze
+
+  # ────────────────────────────────────────────────────────────────────────
+  # 坝体渗水: 混凝土坝体表面的渗水痕迹
+  # 关键特征: 在混凝土结构上、湿润深色斑块、非水体区域
+  # ────────────────────────────────────────────────────────────────────────
+  dam_seepage:
+    positive:
+      - dark wet water seepage stain on concrete dam or wall surface
+      - fresh water leakage mark on gray concrete structure active moisture
+      - damp dark patch on dam wall indicating active water seepage
+      - water stain trail on concrete sluice dam or embankment structure
+      - wet seeping area on river concrete infrastructure not in water body
+    negative:
+      - dry concrete surface with old dark stains no active moisture
+      - normal intact concrete dam with no water seepage marks
+      - green moss growing on concrete not active water leakage
+      - shadow on concrete structure from overhead object
+      - water body itself not seepage on concrete structure
+
+  # ════════════════════════════════════════════════════════════════════════
+  # 正常水质: 清洁、透明、无异常色调的河水
+  # 关键特征: 透明、B通道略高或RGB平衡、G通道**不**主导、无污染
+  # 与绿水区别: 绿水G通道必须明显高；正常水B通道略高或平衡
+  # ────────────────────────────────────────────────────────────────────────
+  normal_water:
+    positive:
+      - perfectly clear transparent river water with no color tint high visibility
+      - clean unpolluted water showing natural blue gray tone B channel slightly higher
+      - crystal clear water surface without green brown or black abnormal coloration
+      - fresh river water in pristine condition transparent and clear
+      - typical healthy urban river water with balanced RGB no dominant green channel
+      - water with natural appearance where B channel equals or exceeds G channel
+      - transparent water body reflecting surroundings without colored pollution
+    negative:
+      - green algae bloom water with G channel clearly dominant G greater than B
+      - yellow brown turbid water with muddy suspended particles opaque
+      - black opaque polluted water with dark surface color not transparent
+      - milky white gray water with low visibility and haze opaque
+      - red rust colored water with R channel dominant abnormal color
+      - white foam floating on water surface with bubble texture
+      - any water showing distinct abnormal coloration G or R channel dominant

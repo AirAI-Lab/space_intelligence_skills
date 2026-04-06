@@ -1,0 +1,5 @@
+{
+  "webhook": "YOUR_FEISHU_WEBHOOK_URL_HERE",
+  "description": "飞书机器人Webhook地址",
+  "how_to_get": "1. 在飞书群中添加'自定义机器人'\n2. 获取Webhook地址\n3. 替换上面的YOUR_FEISHU_WEBHOOK_URL_HERE"
+}
