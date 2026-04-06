@@ -1,0 +1,30 @@
+{
+  "image": "16.jpeg",
+  "active_class": "milky_foam_water",
+  "classes": [
+    {
+      "class": "turbid_water",
+      "class_zh": "浑浊水",
+      "area_ratio": 0.31235582388715355,
+      "bbox": [
+        0,
+        1488,
+        5401,
+        3559
+      ],
+      "mask_file": "16__turbid_water.png"
+    },
+    {
+      "class": "milky_foam_water",
+      "class_zh": "乳白水/泡沫",
+      "area_ratio": 0.0943730896601174,
+      "bbox": [
+        4,
+        2532,
+        5157,
+        3591
+      ],
+      "mask_file": "16__milky_foam_water.png"
+    }
+  ]
+}

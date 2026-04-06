@@ -1,0 +1,18 @@
+{
+  "image": "68.jpeg",
+  "active_class": "milky_foam_water",
+  "classes": [
+    {
+      "class": "milky_foam_water",
+      "class_zh": "乳白水/泡沫",
+      "area_ratio": 0.21032697116844964,
+      "bbox": [
+        461,
+        348,
+        1215,
+        764
+      ],
+      "mask_file": "68__milky_foam_water.png"
+    }
+  ]
+}

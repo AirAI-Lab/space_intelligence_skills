@@ -1,0 +1,661 @@
+{
+  "total": 109,
+  "correct": 92,
+  "accuracy": 0.8440366972477065,
+  "results": [
+    {
+      "image": "1.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "10.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "100.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "101.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "102.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "103.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "104.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "105.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "106.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "107.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "108.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "109.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "11.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "12.jpg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "13.jpeg",
+      "gt": "green_water",
+      "pred": "normal_water",
+      "correct": false
+    },
+    {
+      "image": "14.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "15.png",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "16.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "green_water",
+      "correct": false
+    },
+    {
+      "image": "17.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "18.jpeg",
+      "gt": "turbid_water",
+      "pred": "normal_water",
+      "correct": false
+    },
+    {
+      "image": "19.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "2.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "20.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "21.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "correct": true
+    },
+    {
+      "image": "22.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "23.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "correct": true
+    },
+    {
+      "image": "24.jpg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "correct": true
+    },
+    {
+      "image": "25.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "26.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "27.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "28.png",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "29.jpeg",
+      "gt": "normal_water",
+      "pred": "turbid_water",
+      "correct": false
+    },
+    {
+      "image": "3.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "30.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "correct": true
+    },
+    {
+      "image": "31.jpg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "32.png",
+      "gt": "milky_foam_water",
+      "pred": "black_water",
+      "correct": false
+    },
+    {
+      "image": "33.png",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "34.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "35.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "normal_water",
+      "correct": false
+    },
+    {
+      "image": "36.jpg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "37.jpg",
+      "gt": "turbid_water",
+      "pred": "normal_water",
+      "correct": false
+    },
+    {
+      "image": "38.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "39.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "4.jpeg",
+      "gt": "normal_water",
+      "pred": "red_water",
+      "correct": false
+    },
+    {
+      "image": "40.jpg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "41.jpg",
+      "gt": "normal_water",
+      "pred": "turbid_water",
+      "correct": false
+    },
+    {
+      "image": "42.jpeg",
+      "gt": "black_water",
+      "pred": "dam_seepage",
+      "correct": false
+    },
+    {
+      "image": "43.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "44.png",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "45.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "46.jpeg",
+      "gt": "black_water",
+      "pred": "milky_foam_water",
+      "correct": false
+    },
+    {
+      "image": "47.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "correct": true
+    },
+    {
+      "image": "48.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "49.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "5.jpeg",
+      "gt": "turbid_water",
+      "pred": "black_water",
+      "correct": false
+    },
+    {
+      "image": "50.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "51.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "52.png",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "53.jpeg",
+      "gt": "turbid_water",
+      "pred": "red_water",
+      "correct": false
+    },
+    {
+      "image": "54.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "55.jpg",
+      "gt": "green_water",
+      "pred": "black_water",
+      "correct": false
+    },
+    {
+      "image": "56.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "57.jpg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "58.jpg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "59.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "6.jpeg",
+      "gt": "turbid_water",
+      "pred": "milky_foam_water",
+      "correct": false
+    },
+    {
+      "image": "60.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "61.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "62.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "63.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "correct": true
+    },
+    {
+      "image": "64.png",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "65.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "66.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "67.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "68.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "69.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "7.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "70.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "correct": true
+    },
+    {
+      "image": "71.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "correct": true
+    },
+    {
+      "image": "72.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "73.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "74.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "75.jpeg",
+      "gt": "normal_water",
+      "pred": "green_water",
+      "correct": false
+    },
+    {
+      "image": "76.jpeg",
+      "gt": "normal_water",
+      "pred": "green_water",
+      "correct": false
+    },
+    {
+      "image": "77.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "78.jpg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "79.jpg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "correct": true
+    },
+    {
+      "image": "8.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "80.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "81.jpg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "82.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "83.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "84.png",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "85.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "86.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "87.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "88.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "89.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "9.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "90.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "correct": true
+    },
+    {
+      "image": "91.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "92.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "correct": true
+    },
+    {
+      "image": "93.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "94.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "95.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "96.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "97.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "correct": true
+    },
+    {
+      "image": "98.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    },
+    {
+      "image": "99.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "correct": true
+    }
+  ]
+}

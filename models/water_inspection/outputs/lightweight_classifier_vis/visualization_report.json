@@ -1,0 +1,918 @@
+{
+  "timestamp": "2026-04-06T01:43:17.439630",
+  "total_samples": 109,
+  "correct": 93,
+  "accuracy": 0.8532110091743119,
+  "classifier": "SVM (RBF)",
+  "class_stats": {
+    "black_water": {
+      "total": 16,
+      "correct": 14,
+      "accuracy": 0.875
+    },
+    "turbid_water": {
+      "total": 24,
+      "correct": 19,
+      "accuracy": 0.7916666666666666
+    },
+    "red_water": {
+      "total": 9,
+      "correct": 9,
+      "accuracy": 1.0
+    },
+    "green_water": {
+      "total": 13,
+      "correct": 11,
+      "accuracy": 0.8461538461538461
+    },
+    "milky_foam_water": {
+      "total": 15,
+      "correct": 12,
+      "accuracy": 0.8
+    },
+    "dam_seepage": {
+      "total": 7,
+      "correct": 7,
+      "accuracy": 1.0
+    },
+    "normal_water": {
+      "total": 25,
+      "correct": 21,
+      "accuracy": 0.84
+    }
+  },
+  "results": [
+    {
+      "image": "1.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6609794044483543,
+      "iou": 0.24542274466012112,
+      "correct": true
+    },
+    {
+      "image": "10.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6508441886264349,
+      "iou": 0.0016236547126829504,
+      "correct": true
+    },
+    {
+      "image": "100.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.7008090348347717,
+      "iou": 0.001456740343708008,
+      "correct": true
+    },
+    {
+      "image": "101.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6590048140596189,
+      "iou": 0.018035141183199672,
+      "correct": true
+    },
+    {
+      "image": "102.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6588452580610709,
+      "iou": 0.00010197689494885867,
+      "correct": true
+    },
+    {
+      "image": "103.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6738043545346596,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "104.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6558111199936747,
+      "iou": 8.035279604059067e-05,
+      "correct": true
+    },
+    {
+      "image": "105.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.7207586461834823,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "106.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6644165569431928,
+      "iou": 0.1196160081370327,
+      "correct": true
+    },
+    {
+      "image": "107.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6831635677565437,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "108.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6641054705811329,
+      "iou": 0.1288147746826936,
+      "correct": true
+    },
+    {
+      "image": "109.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6645745665258267,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "11.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.655617502781835,
+      "iou": 0.007980803947466747,
+      "correct": true
+    },
+    {
+      "image": "12.jpg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6669913827466235,
+      "iou": 3.0870562202325154e-05,
+      "correct": true
+    },
+    {
+      "image": "13.jpeg",
+      "gt": "green_water",
+      "pred": "normal_water",
+      "confidence": 0.6599759176686845,
+      "iou": 0.03840573624497657,
+      "correct": false
+    },
+    {
+      "image": "14.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6462953262802646,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "15.png",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6666138187304719,
+      "iou": 0.6721510648467575,
+      "correct": true
+    },
+    {
+      "image": "16.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "green_water",
+      "confidence": 0.6458433402205733,
+      "iou": 0.002976147472151975,
+      "correct": false
+    },
+    {
+      "image": "17.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6511777437092958,
+      "iou": 0.03524368785003024,
+      "correct": true
+    },
+    {
+      "image": "18.jpeg",
+      "gt": "turbid_water",
+      "pred": "normal_water",
+      "confidence": 0.7708214147881216,
+      "iou": 0.0,
+      "correct": false
+    },
+    {
+      "image": "19.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.654214188300669,
+      "iou": 0.37815677612738496,
+      "correct": true
+    },
+    {
+      "image": "2.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6563251992501677,
+      "iou": 0.015023925444525027,
+      "correct": true
+    },
+    {
+      "image": "20.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6644694145088359,
+      "iou": 0.6845763153935257,
+      "correct": true
+    },
+    {
+      "image": "21.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "confidence": 0.6663860889667325,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "22.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6556342219534986,
+      "iou": 0.005149150752120355,
+      "correct": true
+    },
+    {
+      "image": "23.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "confidence": 0.7016891284723987,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "24.jpg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "confidence": 0.6586319928214908,
+      "iou": 0.0016397493752011464,
+      "correct": true
+    },
+    {
+      "image": "25.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6978272120321857,
+      "iou": 0.07301280347519266,
+      "correct": true
+    },
+    {
+      "image": "26.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6970094625528908,
+      "iou": 0.000664278997177486,
+      "correct": true
+    },
+    {
+      "image": "27.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.7105135145789022,
+      "iou": 0.0010312337932900386,
+      "correct": true
+    },
+    {
+      "image": "28.png",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.672442983376679,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "29.jpeg",
+      "gt": "normal_water",
+      "pred": "turbid_water",
+      "confidence": 0.36129900583528757,
+      "iou": 0.2773423233587239,
+      "correct": false
+    },
+    {
+      "image": "3.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6807898607293993,
+      "iou": 0.6013696252650205,
+      "correct": true
+    },
+    {
+      "image": "30.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "confidence": 0.654403908587643,
+      "iou": 0.06852640565424628,
+      "correct": true
+    },
+    {
+      "image": "31.jpg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6940408736106994,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "32.png",
+      "gt": "milky_foam_water",
+      "pred": "black_water",
+      "confidence": 0.6507614182441144,
+      "iou": 0.03643686836626421,
+      "correct": false
+    },
+    {
+      "image": "33.png",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6587888677389073,
+      "iou": 0.6262185911370755,
+      "correct": true
+    },
+    {
+      "image": "34.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6724947804220148,
+      "iou": 0.040836445851471115,
+      "correct": true
+    },
+    {
+      "image": "35.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "normal_water",
+      "confidence": 0.6876562220825889,
+      "iou": 0.7333376535671556,
+      "correct": false
+    },
+    {
+      "image": "36.jpg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6594463762254987,
+      "iou": 0.011671986163323388,
+      "correct": true
+    },
+    {
+      "image": "37.jpg",
+      "gt": "turbid_water",
+      "pred": "normal_water",
+      "confidence": 0.6457489708390917,
+      "iou": 0.0,
+      "correct": false
+    },
+    {
+      "image": "38.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.7081521364346882,
+      "iou": 0.04630681937903612,
+      "correct": true
+    },
+    {
+      "image": "39.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6519923540498281,
+      "iou": 0.17422885675846278,
+      "correct": true
+    },
+    {
+      "image": "4.jpeg",
+      "gt": "normal_water",
+      "pred": "red_water",
+      "confidence": 0.6470141406680247,
+      "iou": 0.6308307112217962,
+      "correct": false
+    },
+    {
+      "image": "40.jpg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6695820576143037,
+      "iou": 0.31082853328870325,
+      "correct": true
+    },
+    {
+      "image": "41.jpg",
+      "gt": "normal_water",
+      "pred": "turbid_water",
+      "confidence": 0.6456805975229252,
+      "iou": 0.0038096281352484637,
+      "correct": false
+    },
+    {
+      "image": "42.jpeg",
+      "gt": "black_water",
+      "pred": "dam_seepage",
+      "confidence": 0.3818278556338813,
+      "iou": 0.5871018497119673,
+      "correct": false
+    },
+    {
+      "image": "43.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.668717984911221,
+      "iou": 0.0353108452124262,
+      "correct": true
+    },
+    {
+      "image": "44.png",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6739654746813547,
+      "iou": 0.529290955864969,
+      "correct": true
+    },
+    {
+      "image": "45.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.659542403661684,
+      "iou": 0.02104600440693409,
+      "correct": true
+    },
+    {
+      "image": "46.jpeg",
+      "gt": "black_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6736263350222241,
+      "iou": 0.0020265692480771072,
+      "correct": false
+    },
+    {
+      "image": "47.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "confidence": 0.6586803584789581,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "48.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6529608701928755,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "49.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6483713765244284,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "5.jpeg",
+      "gt": "turbid_water",
+      "pred": "black_water",
+      "confidence": 0.3128296709093985,
+      "iou": 0.0,
+      "correct": false
+    },
+    {
+      "image": "50.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6566560950699726,
+      "iou": 0.0034967658667594353,
+      "correct": true
+    },
+    {
+      "image": "51.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6870921731556827,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "52.png",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.656948724248832,
+      "iou": 0.0002167962927828059,
+      "correct": true
+    },
+    {
+      "image": "53.jpeg",
+      "gt": "turbid_water",
+      "pred": "red_water",
+      "confidence": 0.6572637747585042,
+      "iou": 0.000993460641598923,
+      "correct": false
+    },
+    {
+      "image": "54.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6513059022375633,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "55.jpg",
+      "gt": "green_water",
+      "pred": "black_water",
+      "confidence": 0.6485322431444848,
+      "iou": 0.19532023203742244,
+      "correct": false
+    },
+    {
+      "image": "56.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.656658024459437,
+      "iou": 0.18132909836640013,
+      "correct": true
+    },
+    {
+      "image": "57.jpg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6560004860590536,
+      "iou": 0.05993523095237815,
+      "correct": true
+    },
+    {
+      "image": "58.jpg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6592932012070589,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "59.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6583488145017893,
+      "iou": 0.18327533397952298,
+      "correct": true
+    },
+    {
+      "image": "6.jpeg",
+      "gt": "turbid_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6574571478887655,
+      "iou": 0.004830994059796924,
+      "correct": false
+    },
+    {
+      "image": "60.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6614834722205151,
+      "iou": 0.024029952348263786,
+      "correct": true
+    },
+    {
+      "image": "61.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6660376351714018,
+      "iou": 0.1023446644094967,
+      "correct": true
+    },
+    {
+      "image": "62.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6770533368454238,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "63.jpg",
+      "gt": "red_water",
+      "pred": "red_water",
+      "confidence": 0.6704363519957934,
+      "iou": 0.004369271302072087,
+      "correct": true
+    },
+    {
+      "image": "64.png",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6614484572476377,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "65.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6938794090568289,
+      "iou": 0.6628840042358252,
+      "correct": true
+    },
+    {
+      "image": "66.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6632343656837443,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "67.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6562173438302833,
+      "iou": 0.03823496438114644,
+      "correct": true
+    },
+    {
+      "image": "68.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.788966452875631,
+      "iou": 0.4681692162966776,
+      "correct": true
+    },
+    {
+      "image": "69.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6710774466435568,
+      "iou": 0.5048320226374505,
+      "correct": true
+    },
+    {
+      "image": "7.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6675339727739704,
+      "iou": 0.06300800067843416,
+      "correct": true
+    },
+    {
+      "image": "70.jpeg",
+      "gt": "milky_foam_water",
+      "pred": "milky_foam_water",
+      "confidence": 0.6725988545224149,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "71.jpeg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "confidence": 0.7223719658533445,
+      "iou": 0.04037848856649681,
+      "correct": true
+    },
+    {
+      "image": "72.jpeg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6623043791970222,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "73.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6522842032524474,
+      "iou": 0.01785996210923907,
+      "correct": true
+    },
+    {
+      "image": "74.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6820980713691852,
+      "iou": 0.5885247032636601,
+      "correct": true
+    },
+    {
+      "image": "75.jpeg",
+      "gt": "normal_water",
+      "pred": "green_water",
+      "confidence": 0.6423169673383516,
+      "iou": 0.7814921285052713,
+      "correct": false
+    },
+    {
+      "image": "76.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6435952364194513,
+      "iou": 0.6115838366580953,
+      "correct": true
+    },
+    {
+      "image": "77.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6535701797420408,
+      "iou": 0.03731360106379936,
+      "correct": true
+    },
+    {
+      "image": "78.jpg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6459684857317927,
+      "iou": 0.000956419486412484,
+      "correct": true
+    },
+    {
+      "image": "79.jpg",
+      "gt": "dam_seepage",
+      "pred": "dam_seepage",
+      "confidence": 0.783433314791095,
+      "iou": 0.0051577768944553746,
+      "correct": true
+    },
+    {
+      "image": "8.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6758391793741784,
+      "iou": 0.5580826618654865,
+      "correct": true
+    },
+    {
+      "image": "80.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6439749118203132,
+      "iou": 0.41157525229389563,
+      "correct": true
+    },
+    {
+      "image": "81.jpg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.66367287945844,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "82.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6669527312783372,
+      "iou": 0.0033440142532962817,
+      "correct": true
+    },
+    {
+      "image": "83.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6630630459923108,
+      "iou": 0.37254416910022303,
+      "correct": true
+    },
+    {
+      "image": "84.png",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.7018220794641399,
+      "iou": 0.30880364021943524,
+      "correct": true
+    },
+    {
+      "image": "85.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6637789131779146,
+      "iou": 0.3996393698021253,
+      "correct": true
+    },
+    {
+      "image": "86.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6439749118203132,
+      "iou": 0.41172902051598514,
+      "correct": true
+    },
+    {
+      "image": "87.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6556679617567098,
+      "iou": 0.3022379943340097,
+      "correct": true
+    },
+    {
+      "image": "88.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6862101710852991,
+      "iou": 0.005037310298311354,
+      "correct": true
+    },
+    {
+      "image": "89.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.7041360717715291,
+      "iou": 0.10007331448817429,
+      "correct": true
+    },
+    {
+      "image": "9.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6510101327215762,
+      "iou": 0.7086422972207719,
+      "correct": true
+    },
+    {
+      "image": "90.jpeg",
+      "gt": "black_water",
+      "pred": "black_water",
+      "confidence": 0.6503500103198431,
+      "iou": 0.6152054518732188,
+      "correct": true
+    },
+    {
+      "image": "91.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6531075682434079,
+      "iou": 0.30801047522841324,
+      "correct": true
+    },
+    {
+      "image": "92.jpg",
+      "gt": "green_water",
+      "pred": "green_water",
+      "confidence": 0.6520805023236013,
+      "iou": 0.11024449480878637,
+      "correct": true
+    },
+    {
+      "image": "93.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6500057718119868,
+      "iou": 0.6119380259489889,
+      "correct": true
+    },
+    {
+      "image": "94.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6507838340336761,
+      "iou": 0.6294136634825548,
+      "correct": true
+    },
+    {
+      "image": "95.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6644694145088359,
+      "iou": 0.6799480366731796,
+      "correct": true
+    },
+    {
+      "image": "96.jpeg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6588817366008605,
+      "iou": 0.10938166550602066,
+      "correct": true
+    },
+    {
+      "image": "97.jpeg",
+      "gt": "turbid_water",
+      "pred": "turbid_water",
+      "confidence": 0.6545536132231493,
+      "iou": 0.0,
+      "correct": true
+    },
+    {
+      "image": "98.png",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6817468417548973,
+      "iou": 0.4285018254463418,
+      "correct": true
+    },
+    {
+      "image": "99.jpg",
+      "gt": "normal_water",
+      "pred": "normal_water",
+      "confidence": 0.6624435218726481,
+      "iou": 0.5619806125648571,
+      "correct": true
+    }
+  ]
+}

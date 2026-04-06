@@ -1,0 +1,37 @@
+{
+  "image": {
+    "image_id": 396,
+    "license": 1,
+    "file_name": "171__png.rf.45c6bdce30d541a627cb397bf0594a0a.jpg",
+    "height": 960,
+    "width": 960,
+    "date_captured": "2026-04-02T01:26:30+00:00",
+    "extra": {
+      "name": "171_.png"
+    }
+  },
+  "annotations": [
+    {
+      "id": 770,
+      "bbox": [
+        223,
+        0,
+        285,
+        956.250001
+      ],
+      "area": 272531.250285,
+      "segmentation": {
+        "counts": "oSa62lm06I7J6J6I7J6J6I7J6J6I7J6J6I7J6JO0M43M3L4M>Bc0\\Od0]Ob0^Oc0_O`0@1O2N1O2N1O2N1O2N1O1O2N1Z^ObIh;`6fCWJS<j5X@^I_1_1R>U5X@oIi0b1h>`4X@cJ1d1`?k3W@ROb?o0W@^Ob?g7I8H7H8I7I7I7I7I7kFm_Oo3Z`0cKo_O[4\\b0SIm]Ok6Ub0mHS^OQ7oa0fHZ^OX7ha0_Ha^Oe0`NT5Qc0oIg^Od0aN[5jb0hIn^Oc0bNc5bb0aIU_Oc0bNj5ld0lI^[OR6dd0dIf[OZ6Rf0N2N2N2N2N2Nh0XOh0XO1O1O1O2N1O1O1O1O2N1O1O1O1O1O2kLPVOV2Qj0YMbVOd2_j0N3M2N3M3L3N3M2N3M2N3M2N3M2N3M5K9G:F9G:F5K000000000000000000000000000000000000000000000000000000000O1000000000000000000000000000000000000000000000000000000000000000000000001O000000000000000O10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000O1000000000000000000000000000000000000000000001O1O1O1O1O1O2N1O1O1Oe0[Oo0QOn0ROo0QOn0ROn0ROo0POo0POP1QOP1POo0POQ1POo0QO?YJa5@?A`0@?B?@?A`0[Od0kMU2lMU2kMgZW=",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    }
+  ],
+  "class_name": "red_water",
+  "class_name_cn": "红水",
+  "class_prob": 0.9825
+}

@@ -1,0 +1,37 @@
+{
+  "image": {
+    "image_id": 365,
+    "license": 1,
+    "file_name": "146__png.rf.41798ffe0aaf58d3c3c75b747a729911.jpg",
+    "height": 960,
+    "width": 960,
+    "date_captured": "2026-04-02T01:26:30+00:00",
+    "extra": {
+      "name": "146_.png"
+    }
+  },
+  "annotations": [
+    {
+      "id": 715,
+      "bbox": [
+        368,
+        0,
+        215.125,
+        960
+      ],
+      "area": 206520,
+      "segmentation": {
+        "counts": "idi:=]m0j0VOh0[VOTNle0[2]YO_NQf0Q2WYOiNWf0f1PYOVO_9_Mh2U7dLeIe2m6gLlI`2h6kLRJY2e6RMTJS2c6YMVJi1g6^MnId1`7WMQIo1i7aMfHR2`7eMQIo1S7hM]In1f6jMjIj1Z6`JhBS3_7Q2m5lJmBa2f7X2a5WKSCo1l7^2U5cKYC\\1R8g2h4mK_Cj0Z8m2[4YLeC8_8T3P4dLZNP3j1PM]Nc2i1]M_NT2h1lM`Ne1g1[N`NW1g1iNaNh0f1XOaN9g1GY>0O10000000000000000000000000000000000000000000000000000000000000000000000000000O10000000000000000000000000000000000000000000000000000000000000000000000000000O1000000000000000000000000000000000000000000000000000000000O100000000000000000O10000000000000000000000000000000000000000000000000000000000000000000000000000O100000000000000000000000000000000000000UOm0POo0dDP4hCPM]9X=VMZ3eL`4`KY^Q;",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    }
+  ],
+  "class_name": "red_water",
+  "class_name_cn": "红水",
+  "class_prob": 0.0232
+}

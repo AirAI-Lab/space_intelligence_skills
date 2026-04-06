@@ -1,0 +1,83 @@
+black_water:
+  negative:
+  - bright clear transparent water with high visibility
+  - white milky foam water with brightness above 150
+  - red rust colored water with R channel dominant
+  - green algae water with G channel clearly highest
+  positive:
+  - dark blackish gray water with all RGB channels below 130
+  - opaque polluted water with RGB range less than 25
+  - dark contaminated water appearing uniformly black gray
+  - black sewage water with low brightness around 121
+dam_seepage:
+  negative:
+  - water body in river channel with flowing water
+  - clear transparent lake water surface
+  - green algae bloom floating on water
+  - milky foam on water surface
+  - submerged underwater scene
+  - water reflection on calm lake
+  positive:
+  - dark wet water seepage stain on gray concrete dam or wall surface
+  - fresh water leakage mark on concrete structure with visible wet patch
+  - damp dark patch on cement dam wall indicating active seepage through crack
+  - water stain spreading from crack or joint in concrete embankment
+  - moisture streak running down vertical concrete surface of dam
+  - wet discolored area on stone or concrete channel wall near water
+  - seepage on man-made concrete structure above water level
+  - water infiltration visible on dam face or channel wall
+green_water:
+  negative:
+  - clear transparent river water without algae
+  - yellow brown muddy water with R dominant
+  - black opaque sewage water
+  - white milky foam water with balanced RGB
+  positive:
+  - thick bright green algae bloom with G channel around 136
+  - dark green eutrophic water where G channel exceeds B by more than 30
+  - green algae scum layer with visible green tint on water
+  - emerald green turbid water with G channel clearly above R and B
+milky_foam_water:
+  negative:
+  - clear transparent water with high visibility
+  - dark black opaque water with low brightness
+  - green algae bloom with obvious color tint
+  - red rust water with dominant R channel
+  positive:
+  - milky white gray turbid water with brightness above 146
+  - thick white foam bubbles clustered on water surface
+  - cloudy opaque water body with RGB channels all high around 146
+  - dense frothy white patches with low saturation high brightness
+normal_water:
+  negative:
+  - bright vivid red rust colored water
+  - thick bright green algae bloom
+  - milky white gray turbid foam water
+  - blackish gray sewage water
+  positive:
+  - clear transparent river water with balanced RGB channels
+  - clean unpolluted water body showing natural blue gray tone
+  - crystal clear water surface without visible color tint
+  - healthy river water with G channel around 120 to 140
+red_water:
+  negative:
+  - yellow brown turbid water with earth tone
+  - clear transparent normal water
+  - dark black gray opaque water
+  - white milky foam water with low saturation
+  positive:
+  - bright vivid red rust colored water with R channel above 172
+  - reddish pink contaminated water with R much higher than G and B
+  - crimson scarlet tinted sewage with saturated red color
+  - rusty red water with R channel clearly dominant
+turbid_water:
+  negative:
+  - clear transparent water without sediment
+  - bright green algae bloom with G dominant
+  - black opaque water with all channels low
+  - white milky foam water with high brightness
+  positive:
+  - yellowish brown muddy water with R channel around 142
+  - tea colored turbid water with R channel higher than G
+  - ochre yellow water from soil runoff with warm tone
+  - coffee brown murky water with earth color tint

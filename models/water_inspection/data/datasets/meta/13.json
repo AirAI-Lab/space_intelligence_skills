@@ -1,0 +1,30 @@
+{
+  "image": "13.jpeg",
+  "active_class": "green_water",
+  "classes": [
+    {
+      "class": "green_water",
+      "class_zh": "绿水/藻类",
+      "area_ratio": 0.01185413808870599,
+      "bbox": [
+        254,
+        429,
+        814,
+        625
+      ],
+      "mask_file": "13__green_water.png"
+    },
+    {
+      "class": "normal_water",
+      "class_zh": "正常水质",
+      "area_ratio": 0.3138145861911294,
+      "bbox": [
+        0,
+        407,
+        833,
+        809
+      ],
+      "mask_file": "13__normal_water.png"
+    }
+  ]
+}

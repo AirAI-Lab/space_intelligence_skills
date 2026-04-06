@@ -1,0 +1,49 @@
+{
+  "class_thresholds": {
+    "black_water": 0.25,
+    "turbid_water": 0.1,
+    "red_water": 0.2,
+    "green_water": 0.1,
+    "milky_foam_water": 0.4,
+    "dam_seepage": 0.15
+  },
+  "search_report": {
+    "black_water": {
+      "threshold": 0.25,
+      "f1": 0.39215686274509803,
+      "precision": 0.24390243902439024,
+      "recall": 1.0
+    },
+    "turbid_water": {
+      "threshold": 0.1,
+      "f1": 0.46153846153846156,
+      "precision": 0.3157894736842105,
+      "recall": 0.8571428571428571
+    },
+    "red_water": {
+      "threshold": 0.2,
+      "f1": 0.09302325581395349,
+      "precision": 0.04878048780487805,
+      "recall": 1.0
+    },
+    "green_water": {
+      "threshold": 0.1,
+      "f1": 0.19354838709677416,
+      "precision": 0.1111111111111111,
+      "recall": 0.75
+    },
+    "milky_foam_water": {
+      "threshold": 0.4,
+      "f1": 0.1276595744680851,
+      "precision": 0.07142857142857142,
+      "recall": 0.6
+    },
+    "dam_seepage": {
+      "threshold": 0.15,
+      "f1": 0.3125,
+      "precision": 0.18518518518518517,
+      "recall": 1.0
+    }
+  },
+  "color_fusion_alpha": 0.2
+}

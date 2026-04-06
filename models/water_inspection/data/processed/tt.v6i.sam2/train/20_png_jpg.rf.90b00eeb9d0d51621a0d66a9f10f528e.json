@@ -1,0 +1,37 @@
+{
+  "image": {
+    "image_id": 145,
+    "license": 1,
+    "file_name": "20_png_jpg.rf.90b00eeb9d0d51621a0d66a9f10f528e.jpg",
+    "height": 960,
+    "width": 960,
+    "date_captured": "2026-04-02T01:26:30+00:00",
+    "extra": {
+      "name": "20_png.jpg"
+    }
+  },
+  "annotations": [
+    {
+      "id": 295,
+      "bbox": [
+        0,
+        351,
+        960,
+        585
+      ],
+      "area": 561600,
+      "segmentation": {
+        "counts": "d?S3h2QMcN`0da0c5h_ORJ_Nd1``0[4]^OiI`27cNS2YOgMX`0V6\\_OiI`27cNU2TOiM[`0T6\\_OhIb26cNW2oNjM8ILY1Y>R5QDkIcNX2mNjM9JKX1[>Q5QDkIdNW2lNkM8LJW1]>Q5PDjIeNW2lNlM5NKV1]>P5RDiIeNW2kNmM5OJU1_>o4SDhIdNX2kNmM4b1Y>a4TDhIdNX2kNnM2b1[>`4TDiIcNW2kNoM2c1[>^4UDiIcNf2kNUO\\>^4UDgIdNj4W=_1UDgIdNk4V=^1VDgIdNk4V=^1WDfIcNm4T=^1YDeIdNl4S=_1YDeIdNl4S=`1XDdIeNm4R=_1WDfIgNk4R=_1UDhIiNj4P=_1UDjIjNg4Q=_1SDlIlNe4Q=_1QDnInNd4P=_1oCPJPOa4P=`1nCQJRO`4o<_1lCUJTO\\4P=_1jCWJWOZ4n<_1iCZJXOW4o<_1hC\\JXOU4o<a1hCZJYOU4o<a1gC\\JYOS4P=a1fC]JZOR4P=a1fC^JYOQ4P=b1fC_JYOo3Q=b1fC_JYOo3Q=c1dC`JZOm3R=c1dC`JZOm3R=c1cCbJ[Oj3Q=e1dCaJ[Oj3Q=e1cCcJ[Oh3R=e1cCdJZOh3R=e1cCcJ[Oh3Q=f1dCcJZOg3R=f1dCcJZOg3R=f1dCdJYOf3S=f1dCdJYOf3S=f1dCdJYOf3R=h1dCbJZOf3R=h1dCbJZOf3R=h1dCbJ[Oe3Q=i1dCbJ[Oe3P=j1eCaJ[Oe3P=j1eCbJZOd3Q=k1dCaJ[Od3Q=k1dCaJ[Od3P=l1eC`J[Od3P=l1eC`J[Od3P=l1eC`J[Oe3o<l1eC_J\\Oe3o<l1eC_J\\Oe3n<m1fC_J\\Oc3n<n1fC_J\\Oc3n<n1fC`J[Ob3o<n1fCbJYO`3P=P2gC`JXO`3Q=P2gCaJWO_3R=P2gCbJVO^3S=P2gCcJUO]3T=P2gCdJTO\\3T=Q2hCdJSO[3U=R2gCeJROY3W=R2gCfJROW3W=S2gCgJQOV3W=T2hCgJoNV3Y=S2hChJnNU3Z=S2hChJnNV3Y=S2hCgJoNV3Y=S2hChJnNU3Y=T2iCgJnNU3Y=T2iCgJnNU3Y=T2iChJmNT3Z=T2iChJmNT3Y=V2iCfJnNT3Y=V2iCgJmNS3Z=V2iCgJlNT3[=U2iCgJlNT3[=U2iChJkNS3[=V2jCgJkNS3[=W2iCfJlNS3[=W2iCgJkNR3\\=W2iCgJkNR3\\=W2iCgJkNR3\\=W2iChJjNQ3]=W2iC6V<KiC5W<KiC5V<LjC4V<LjC4V<LjC4V<LkC3U<NjC2V<NjC2V<NjC2V<NjC2V<NjC2V<NjC2V<OiC1W<OiC1W<OiC1W<OiC1W<OiC1W<OiC2V<OiC1W<OiC1W<OiC1W<OiC1W<OiC1W<0hC0X<0hC0X<0hC0X<1gCOY<1gCOY<1gCOY<2fCNZ<2fCNZ<2fCNZ<3eCM[<3eCM[<3eCNZ<3eCM[<3eCM[<3eCM[<4dCL\\<4dCL\\<4eCK[<6dCJ\\<6dCJ\\<6dCJ\\<7cCI]<7cCI]<7cCI]<8bCH^<8bCH^<8bCH^<8bCH]<:bCF^<:bCGWO[Ho<n7jCGWO\\Hn<n7jCFXO\\Hn<n7jCFXO\\Hn<n7jCFXO\\Hn<o7iCEYO\\Hn<o7iCEXO^Hn<m7jCEXO^Hn<n7iCDYO^Hn<n7iCDYO^Hn<n7iCDYO_Hm<n7iCCYO`Hn<m7iCCYO`Hn<m7iCEWO^HP=n7hCLX<4hCMW<3iCMW<4hCLX<4hCLX<4hCMW<4hCKY<5gCKY<6gCHZ<8fCHZ<9eCG[<9eCF\\<;bCF^<;aCD`<<`CD`<=_CCa<=^CDb<=]CDb<=]CCc<=]CDa<>^CBb<?\\CCc<=]CCc<>\\CBd<>\\CCb<?\\CBd<?[CBd<>\\CBd<?ZCCe<=YCEf<=WCEi<j8O2N4L2M100000000O100000000O10000000N1O2M3N2O10O1000000O100000000O100000000O100000000O100000000O100000000O100000000O100000000O1000000O100000000O101O00000O100mC\\^Oj;ea0UD[^Ok;ea0TD\\^Ol;da0TD\\^Ol;da0SD]^Om;ca0SD]^Om;ca0RD^^On;ba0RD^^On;ca0PD^^OP<ba0PD^^OP<ba0oC_^OR<`a0nC`^OR<ga00001O000000000000000000000000000001O00000001O00L4K5L4L42N2fC`^OP<aa0nCa^OQ<aa0lC`^OT<fa001O0000ZOlCa_OT<^`0lCb_OT<^`0lCb_OT<^`0lCc_OS<]`0mCV_O2OR<k`0mCU_O4Mo;n`0mCU_O8Ik;Ra0mCU_O8Ik;Ra0mCU_O8Ik;Ra0nCT_O7Jk;Ra0nCT_O7Jk;Ra0nCT_O7Il;Ra0nCU_O6Il;Ra0nCU_O6Il;Ra0oCT_O\\<l`0dCT_O\\<l`0dCU_O[<k`0eCU_O[<k`0fCQ_O]<o?RDX@AG_<Q`0PDX@Y<g?gCY@Y<g?gCY@Y<g?fCZ@Z<f?fCZ@Z<f?fCZ@Z<f?fCZ@Z<f?fCZ@Z<f?fCZ@Z<f?fCZ@Z<f?fCZ@Z<f?fCZ@Z<f?fCY@[<g?dCZ@\\<f?dCZ@\\<f?dCZ@\\<f?dCZ@\\<f?dCZ@\\<f?dCZ@\\<f?dCZ@]<e?cC[@]<e?cC[@]<e?bC\\@^<d?bC\\@^<d?bC\\@^<d?bC\\@^<b?dC^@\\<a?eC_@[<`?fC`@Z<^?hCb@X<]?iCc@W<\\?jCc@W<^?gCc@Y<^?fCb@Z<^?fCb@Z<_?eCa@[<`?dC`@\\<a?cC_@]<b?bC^@_<b?`C^@`<b?`C^@`<a?aC_@_<_?bCb@^<\\?dCd@\\<Z?gCe@Y<Y?iCg@W<W?kCi@U<W?kCi@U<X?jCh@V<X?jCh@V<X?jCh@V<X?jCg@W<Y?iCg@W<Y?iCg@W<Y?iCg@W<Z?hCf@X<Z?hCf@X<Z?hCf@Y<Y?hCf@X<Z?hCf@X<Z?hCf@X<[?gCe@Y<[?gCe@Y<[?gCe@Y<[?gCe@Y<[?gCe@Y<[?gCe@Y<[?gCe@Y<\\?fCd@Z<\\?fCd@Z<\\?fCc@[<]?eCc@[<\\?gCc@Y<]?gCc@Y<]?gCc@Y<]?gCc@Y<\\?hCd@Y<[?gCe@Y<[?gCe@Y<[?gCe@Y<Z?hCf@X<Z?hCf@X<Z?hCf@X<Z?hCf@X<Y?iCg@W<Y?iCg@W<Y?jCf@V<Y?kCg@U<Y?kCg@U<Y?kCg@U<Y?kCf@V<Y?kCg@U<Z?jCf@V<[?iCe@W<\\?hCd@X<]?gCc@Z<\\?fCd@Z<]?eCc@[<^?dCb@\\<_?cCa@]<`?cC_@]<a?cC_@]<a?cC_@]<a?cC_@]<`?dC`@\\<`?dC`@\\<`?dC`@\\<`?dC`@\\<`?dC`@\\<`?dC_@]<a?cC_@]<a?cC_@]<a?cC_@]<a?cC_@]<a?dC^@]<a?cC_@]<a?cC_@]<`?dC`@\\<`?dC`@\\<`?dC`@\\<`?dC`@\\<`?dC`@\\<`?dC`@\\<`?cCa@]<`?bC`@^<a?aC_@_<b?_C_@a<b?^C^@b<c?]C]@c<d?[C]@e<d?ZC\\@f<d?ZC\\@f<c?ZC^@f<a?[C_@f<_?[Ca@e<^?[Cc@e<\\?\\Cd@d<[?iB^@>8h<`?WCa@i<_?XC`@h<`?XC`@h<`?XC`@h<`?YC_@g<b?XC^@h<d?WC[@i<i?SCW@m<j?RCV@n<j?SCU@m<l?nBo_OJ5X=l?nBX@R=h?nBX@R=h?nBX@R=h?mBY@T=f?lBZ@T=g?kBY@U=g?kBY@U=g?kBY@U=g?mBX@R=h?RCT@n<m?RCU@k<k?VCY@e<g?[CW@g<i?YCS@k<m?VCo_Om<Q`0SCo_Om<R`0RCn_On<R`0SCm_Om<T`0RCl_On<V`0QCi_Oo<Y`0oBg_OQ=Y`0oBg_OQ=X`0=O0O100O1O100O10000000000000000000000O100000O100000000000000000000000000O1000000000000000000000000O100000000000O100000000000O100000000O1000000O1000000O1000000O1000I6K600000O10O1000O1000FPBd@P>\\?RBb@m=_?UB_@k=a?WB]@i=c?YB[@g=e?910000kA[@o=k?O2O000O101O000O101OJ6K410000000001O0000000000001ON2O0O2O11O2N1VBW@[=j?aBY@_=i?]BZ@b=g?ZB]@e=o?01O:FN2N2N2N2M31Oe0[O1O1N2O001O1O1O0000O100O1O1002N2N2N1ON2O1N21N2O2N1O00O1O100O1O100O1O100O1KWCR_Oj<n`041O001O001N2O001O001O00IXCW_Og<i`0ZCU_Og<k`0[CS_Oe<m`0\\CR_Od<n`0700000000001O1O1O1N10EWC`_Oh<``0\\C]_Oc<c`0aCZ_O^<f`0fCW_OY<i`0?00O100000000000000ZOjBb@V=]?lBb@T=\\?nBd@R=\\?nBd@R=\\?oBc@R=\\?nBd@R=[?oBe@Q=[?PCd@Q=[?oBe@Q=[?oBe@R=Z?nBf@R=Z?nBf@R=Z?nBe@T=Z?lBf@T=Z?lBf@U=Y?kBg@U=Y?lBf@T=Z?lBf@U=Y?kBg@U=Y?kBg@U=Y?kBg@V=X?jBh@V=X?jBh@W=W?iB\\@L5[=_?iB\\@M4Z=`?iB\\@M4[=_?hB]@M3\\=`?gB]@M2^=`?eB^@M1_=a?dB^@M0`=b?cB^@MOb=b?bB]@M0b=c?aB]@h=b?XB^@h=b?XB^@h=b?XB^@i=a?WB_@i=`?XB`@h=`?XB`@h=`?XB`@i=_?WBa@i=_?WBa@i=_?WBa@i=_?WBa@i=_?WBa@j=^?VBb@j=^?<000001O000000001O000000001O000000001O0000000O101O0000000@ZAfAg>W>[AiAe>V>]AiAc>V>^AjAb>T>`AlA`>S>bAlA_>R>bAnA^>P>dAPB\\>o=fAPBZ>o=gAQBY>n=iAiA_O4i>Q>iAkA^O4i>Q>iAjA_O5h>Q>jAiA_O5g>R>jAiA_O5g>R>nAnAS>Q>mAoAS>Q>mAoAS>Q>mAoAS>P>nAPBR>P>nAPBS>o=mAQBS>o=mAQBS>o=mAQBS>o=mAQBS>o=mAPBU>Q>iAoAW>R>iAmAW>U>gAkAY>W>eAiA[>X>dAhA\\>Y>cAgA]>Z>bAfA^>Z>bAfA^>Z>bAfA]>[>bAfA^>[>aAeA_>[>`AfA`>Z>`AfA`>[>^AfAb>Z>^AfAb>Z>]AgAc>Y>]AgAc>Z>[AgAe>Y>ZAhAf>W>[AiAe>W>ZAjAf>V>ZAjAf>V>aAcA_>\\>bAdA^>\\>bAdA^>\\>bAdA^>[>cAeA]>[>dAdA\\>\\>dAdA\\>\\>dAdA\\>[>eAeA[>[>eAdA\\>Z>fAfAZ>Y>gAgAY>W>iAiAW>U>kAkAT>U>mAkAS>S>oAmAQ>R>PBnAP>R>QBmAo=S>QBmAo=S>QBmAo=S>QBmAo=S>QBmAo=T>PBlAP>T>PBlAP>T>PBlAP>T>PBlAP>T>PBlAP>T>PBlAP>T>n01O0000000000001O00000O1000001O0000000000001O0000000000001OO10000O100O10000O0101O001O1O1O001OO1O2N1O1N2O1O1O23L4L3M0010O01O001O0010PN`@^E`?Y:e@lCKl1_?W:g@lCKm1^?W:g@lCKn1]?V:h@lCKn1]?V:i@kCKo1\\?T:j@mCJo1\\?T:n@lDX4",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    }
+  ],
+  "class_name": "red_water",
+  "class_name_cn": "红水",
+  "class_prob": 0.9563
+}

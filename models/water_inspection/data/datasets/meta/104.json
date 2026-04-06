@@ -1,0 +1,18 @@
+{
+  "image": "104.jpg",
+  "active_class": "green_water",
+  "classes": [
+    {
+      "class": "green_water",
+      "class_zh": "绿水/藻类",
+      "area_ratio": 0.22423719618055554,
+      "bbox": [
+        27,
+        538,
+        889,
+        850
+      ],
+      "mask_file": "104__green_water.png"
+    }
+  ]
+}

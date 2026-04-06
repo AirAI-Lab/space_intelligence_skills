@@ -1,0 +1,30 @@
+{
+  "image": "84.png",
+  "active_class": "black_water",
+  "classes": [
+    {
+      "class": "black_water",
+      "class_zh": "黑水",
+      "area_ratio": 0.04713411508394207,
+      "bbox": [
+        348,
+        82,
+        533,
+        573
+      ],
+      "mask_file": "84__black_water.png"
+    },
+    {
+      "class": "normal_water",
+      "class_zh": "正常水质",
+      "area_ratio": 0.08943194925028836,
+      "bbox": [
+        128,
+        24,
+        440,
+        575
+      ],
+      "mask_file": "84__normal_water.png"
+    }
+  ]
+}

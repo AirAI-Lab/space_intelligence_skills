@@ -1,0 +1,30 @@
+{
+  "image": "108.jpg",
+  "active_class": "normal_water",
+  "classes": [
+    {
+      "class": "red_water",
+      "class_zh": "红水",
+      "area_ratio": 0.37597005208333334,
+      "bbox": [
+        11,
+        300,
+        947,
+        902
+      ],
+      "mask_file": "108__red_water.png"
+    },
+    {
+      "class": "normal_water",
+      "class_zh": "正常水质",
+      "area_ratio": 0.03952365451388889,
+      "bbox": [
+        243,
+        236,
+        950,
+        336
+      ],
+      "mask_file": "108__normal_water.png"
+    }
+  ]
+}

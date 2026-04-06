@@ -1,0 +1,81 @@
+# YOLO 数据配置文件 - 水利巡检系统
+# Water Inspection Dataset Configuration
+
+# 数据集路径
+path: ./data/processed
+
+# 训练/验证/测试集路径
+train: images/train
+val: images/val
+test: images/test
+
+# 类别数量
+nc: 18
+
+# 类别名称
+names:
+  # B类： 人员行为 (0-3)
+  0: person              # 普通人员
+  1: fishing_person      # 钓鱼人员
+  2: swimming_person     # 游泳人员
+  3: playing_person      # 嬉水人员
+  
+  # C类: 基础设施 (4-8)
+  4: water_gauge          # 水位尺
+  5: outlet_pipe          # 排污口管道
+  6: outlet_active        # 排污口-正在排污
+  7: pipe_damaged         # 管道破损
+  8: dam_seepage          # 坝体渗水
+  
+  # D类: 目标监测 (9-10)
+  9: boat                 # 船舶
+  10: floating_debris     # 漂浮垃圾
+  
+  # 辅助类别 (11-12)
+  11: water_surface       # 水面区域
+  12: warning_line        # 警戒线
+  
+  # 水质异常 (13-16) - 用于开放词汇模型
+  13: black_water         # 黑水/油污
+  14: red_water           # 红水
+  15: green_water         # 绿水/富营养化
+  16: milky_water         # 乳白色水
+  
+  # 其他 (17)
+  17: water_level_mark    # 水位尺刻度
+
+# 类别分组（用于多任务学习）
+task_groups:
+  person_behavior: [0, 1, 2, 3]
+  facilities: [4, 5, 6, 7, 8]
+  targets: [9, 10]
+  auxiliary: [11, 12]
+  water_quality: [13, 14, 15, 16]
+  ocr: [17]
+
+# 类别权重（处理类别不平衡）
+class_weights:
+  0: 1.0    # person - 样本多
+  1: 2.0    # fishing_person
+  2: 2.0    # swimming_person
+  3: 2.0    # playing_person
+  4: 1.5    # water_gauge
+  5: 1.5    # outlet_pipe
+  6: 3.0    # outlet_active - 稀有
+  7: 5.0    # pipe_damaged - 非常稀有
+  8: 5.0    # dam_seepage - 非常稀有
+  9: 1.0    # boat
+  10: 2.0   # floating_debris
+  11: 0.5   # water_surface - 背景类
+  12: 0.5   # warning_line - 背景类
+  13: 3.0   # black_water
+  14: 5.0   # red_water - 非常稀有
+  15: 3.0   # green_water
+  16: 3.0   # milky_water
+  17: 2.0   # water_level_mark
+
+# 检测难度标签（用于困难样本挖掘）
+difficulty:
+  easy: [0, 4, 9, 11]           # 容易检测
+  medium: [1, 2, 3, 5, 10, 12]  # 中等难度
+  hard: [6, 7, 8, 13, 14, 15, 16, 17]  # 困难类别

@@ -1,0 +1,30 @@
+{
+  "image": "41.jpg",
+  "active_class": "normal_water",
+  "classes": [
+    {
+      "class": "dam_seepage",
+      "class_zh": "坝体渗水",
+      "area_ratio": 0.037880897521972656,
+      "bbox": [
+        559,
+        269,
+        702,
+        845
+      ],
+      "mask_file": "41__dam_seepage.png"
+    },
+    {
+      "class": "normal_water",
+      "class_zh": "正常水质",
+      "area_ratio": 0.22536659240722656,
+      "bbox": [
+        4,
+        320,
+        752,
+        961
+      ],
+      "mask_file": "41__normal_water.png"
+    }
+  ]
+}

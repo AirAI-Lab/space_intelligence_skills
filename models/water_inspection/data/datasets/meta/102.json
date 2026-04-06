@@ -1,0 +1,18 @@
+{
+  "image": "102.jpg",
+  "active_class": "red_water",
+  "classes": [
+    {
+      "class": "red_water",
+      "class_zh": "红水",
+      "area_ratio": 0.280888671875,
+      "bbox": [
+        0,
+        389,
+        952,
+        928
+      ],
+      "mask_file": "102__red_water.png"
+    }
+  ]
+}

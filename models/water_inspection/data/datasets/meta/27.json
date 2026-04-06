@@ -1,0 +1,18 @@
+{
+  "image": "27.jpeg",
+  "active_class": "turbid_water",
+  "classes": [
+    {
+      "class": "turbid_water",
+      "class_zh": "浑浊水",
+      "area_ratio": 0.7538660265203475,
+      "bbox": [
+        4,
+        5,
+        1070,
+        763
+      ],
+      "mask_file": "27__turbid_water.png"
+    }
+  ]
+}

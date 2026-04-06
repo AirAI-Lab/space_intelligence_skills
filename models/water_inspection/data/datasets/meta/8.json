@@ -1,0 +1,18 @@
+{
+  "image": "8.jpeg",
+  "active_class": "black_water",
+  "classes": [
+    {
+      "class": "black_water",
+      "class_zh": "黑水",
+      "area_ratio": 0.5284225804359107,
+      "bbox": [
+        0,
+        476,
+        1921,
+        1274
+      ],
+      "mask_file": "8__black_water.png"
+    }
+  ]
+}

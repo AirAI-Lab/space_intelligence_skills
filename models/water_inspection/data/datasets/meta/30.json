@@ -1,0 +1,18 @@
+{
+  "image": "30.jpeg",
+  "active_class": "dam_seepage",
+  "classes": [
+    {
+      "class": "dam_seepage",
+      "class_zh": "坝体渗水",
+      "area_ratio": 0.20364330501618122,
+      "bbox": [
+        85,
+        363,
+        467,
+        776
+      ],
+      "mask_file": "30__dam_seepage.png"
+    }
+  ]
+}

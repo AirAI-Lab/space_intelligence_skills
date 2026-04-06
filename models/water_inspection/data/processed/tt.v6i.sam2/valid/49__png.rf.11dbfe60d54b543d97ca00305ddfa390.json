@@ -1,0 +1,37 @@
+{
+  "image": {
+    "image_id": 32,
+    "license": 1,
+    "file_name": "49__png.rf.11dbfe60d54b543d97ca00305ddfa390.jpg",
+    "height": 960,
+    "width": 960,
+    "date_captured": "2026-04-02T01:26:30+00:00",
+    "extra": {
+      "name": "49_.png"
+    }
+  },
+  "annotations": [
+    {
+      "id": 80,
+      "bbox": [
+        162,
+        0,
+        498.21428599999996,
+        960
+      ],
+      "area": 478285.71455999993,
+      "segmentation": {
+        "counts": "Pog4en]>[4UfbAk4UKk4UKk4UKk4UKk\\i8",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "brown_water",
+      "class_name_cn": "褐色水"
+    }
+  ],
+  "class_name": "brown_water",
+  "class_name_cn": "褐色水",
+  "class_prob": 0.6356
+}

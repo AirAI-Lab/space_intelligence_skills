@@ -1,0 +1,227 @@
+{
+  "image": {
+    "image_id": 35,
+    "license": 1,
+    "file_name": "536__png.rf.8f237fea35459cf3eebf9a4b05c6aa3c.jpg",
+    "height": 960,
+    "width": 960,
+    "date_captured": "2026-04-02T01:26:30+00:00",
+    "extra": {
+      "name": "536_.png"
+    }
+  },
+  "annotations": [
+    {
+      "id": 62,
+      "bbox": [
+        0,
+        0,
+        802.5,
+        731.25
+      ],
+      "area": 586828.125,
+      "segmentation": {
+        "counts": "5P7of0Q7oH100000001O000000001O0000001O001O1O001O1O001O001O1O001O1O001O001O1O001O1O001O001O1O0000000000001O000000000000001O00000000O100O100O1O100O100O100O100O100O100O100O1O100O100O100O1000000001O0000000000001O0000000000001O0000000000001O0000000000001O00000000O1000000O1000000O1000000O2O000O10000001O001O001O001O001O001O001O001O00001O001O001O001O001O001O001O001O1O001O1O1O1O001O1O1O001O1O1O1O001O1O1O1O001O00001O00001O00001O00001O00001O00001O00001O00001O00001O00001O000000000000O1O1O1N2O1O1N2O100000000000000000000001O001O001O001O001O1O001O001O001O001O0000000000000000000000000000O1O1O1O1O2O0000000001O00000000001O000000001O000000001O000000001OO1O1O1O1O1O1N2O1O1M3L4M3M3M3N2N2O1N2O1N2O1N2O1N2O1N2O1N2O1N2N2O1N2O1N2O1N2O10000001O0000000000001O0000000000001OO100O100O100O100O1001O1O2N1O1O2N1O0000000000O1000O1000O100000000O100000000O100000000001O001O1O001O001O1O001O001O1O0_BSBo:n=fD]BY;c=_DeBa;[=^DgBa;Y=^DhBb;X=]DjBb;V=]DkBc;V=[DlBd;T=[DnBd;R=ZDPCf;P=YDRCf;n<YDSCg;m<XDTCh;m<VDTCj;l<UDUCk;k<TDVCl;k<RDVCn;m<mCUCS<n<iCSCW<P=eCQC[<R=aCoB_<T=]CmBc<V=YCkBg<X=UCiBk<Z=PChBP=[=lBfBT=S?000000000000O100000001O2N1O2N2N2N1O2N2N1O2N2N1O2N2N2N1O2N2N1O2N001O00001O001O00001O00001O001O00001O00002N3M3M3M3MeJnDTDFZ2Y;S9cE]DYOa2Q;P9jE[DZOe2i:n8RFXDYOk2b:l8YFTDZOn2\\:m8hGSGW8l8kGTGT8k8nGTGR8l8oGTGP8l8QHSGo7l8SHTGl7l8UHTGj7l8WHSGi7l8YHTGf7l8[HTGd7l8]HSGb7m8`HSG_7m8bHRG^7m8dHTGZ7l8gHTGX7l8hHUGW7j8kHVGT7j8lHXGR7h8oHXGP7g8QIZGn6f8SIZGl6f8UI[Gi6d8XI]Gg6c8ZI]Ge6c8[I^Gd6a8^I`G`6`8`IaG_6_8bIaG]6^8eIbGZ6^8fIdGX6\\8iIdGV6[8kIfGT6Z8mIfGR6Z8nIhGP6W8RJiGm5W8TJiGk5W8UJjGj5U8XJlGf5T8ZJmGe5S8\\JmGc5S8]JnGb5S8_JlG`5T8aJmG]5S8dJmG[5S8fJ\\Hj4d7WKlHX4U7hKkHW4U7kKjHT4V7mKjHR4V7oKjHP4W7PLhHP4X7QLhHn3X7SLhHl3X7VLgHZLVK`6S<WMgHTLZKe6P<WMfHnK`Kj6j;YMfHhKeKn6e;[MfHbKiKS7a;\\MfH\\KnKW7];\\McIc2]6]McIc2]6]McIc2\\6^McIc2]6]McIc2\\6^McIc2\\6]MdId2\\6[MeIe2Z6[MfIf2Y6ZMhIf2X6YMhIh2W6XMjIh2U6XMkIi2U6VMlIj2S6UMnIl2Q6UMoIk2Q6UMnIk2R6VMnIj2Q6WMnIj2R6VMnIj2Q6WMnIj2R6VMnIj2R6WMlIj2U6UMkIk2U6VMiIk2X6UMgIk2Y6VMeIk2[6UMeIk2\\6UMbIl2^6UM`Il2a6TM^Il2b6TM]Im2d6SM[Im2e6TMXIn2h6SMUIo2l6PMSIQ3m6nLRIT3o6kLoHW3Q7iLnHX3R7hLlHZ3T7fLlHZ3T7fLlHZ3T7fLlHZ3T7fLlHZ3T7fLlHZ3T7fLlHZ3T7fLlHZ3T7fLlHZ3T7fLlHZ3T7fLkH[3U7eLjH\\3V7cLjH^3V7bLiH_3V7bLiH_3V7bLiH_3V7bLiH_3U7cLjH^3U7cLjH^3U7cLjH^3T7dLkH]3T7dLkH]3T7dLkH]3S7eLlH\\3S7eLlH\\3S7eLlH\\3R7fLlH\\3S7dLlH^3S7cLkH_3S7cLkH_3T7bLjH`3U7aLhHb3W7_LTHV4k7kKTHV4l7jKSHW4l7kKRHV4m7lKPHV4o7lKoGU4P8lKoGU4Q8lKSF_J9f9c9mKnEPK0T9Q:nKiE`KHc8^:oKdEQL_OP8m:QL^EZ6b:gIXE^6g:dITE`6k:bIoDc6P;W6O1O100O1O1O1N2L4K5K5L4K5L4K5K5L4K5L4K500O100O100O1_JV[Ol1jd0oMb[Oi1_d0SNh[Oj1Yd0QNl[Om1Vd0nMo[OQ2Qd0jMU\\OT2mc0gMX\\OX2ic0cM]\\OZ2ec0aM`\\O^2ac0iLX]OV3ib0gLZ]OX3gb0fL[]OY3fb0eL\\]OZ3eb0cL^]O\\3cb0bL_]O]3bb0aL^]O`3cb0^L]]Oc3db0\\L[]Oe3fb0ZLZ]Of3gb0YLR\\OUO_Oc4`d0WLo[OZO^O`4dd0ULl[O_O^O\\4gd0QLl[OHYOX4nd0jKk[O1ROX4Ve0aKi[O;mNU4_e0YKe[Of0gNS4_g0oK\\XOT4cg0oKYXOR4hg0R100010O00010O00L4K6J5K5K6J5K6J5K6J6J5N3O1O001O00100O001O1O0010O10000O10000O100O1bLWZOeNie0Z1[ZOcNee0\\1_ZO`Nbe0^1bZO`N^e0_1fZO^N[e0`1iZO\\NYe0a1kZO\\NVe0c1nZOaL\\Oa0he0l2P[OnKOP1Se0o2^\\OkLdc0S3c\\OfL`c0W3f\\OcL\\c0[3j\\O_LXc0_3n\\O[LUc0c3k3H:G8G:G8G7I3N1N2O2M2M3L5L3L4O2N1O1O2N1O2N2N3M2N2N3K4J7J5J6KlRc4",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 63,
+      "bbox": [
+        249,
+        705,
+        86.25,
+        82.5
+      ],
+      "area": 7115.625,
+      "segmentation": {
+        "counts": "]R[75jm04L4L3M4L4L3M1N2O2N1O10001O0000001O0000001O00001O1O1O1O20O001O010OkSOiNak0W1YTOPOek0Q1VTOUOik0k0QTO[Onk0[12O0O2O1N1O2O0O2O1N101N1O0O10001O00001O0000001O0000001O0000001O0000001O1O2N2N2M3N2N2N2N2N2N2N2G9EXXXb0",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 64,
+      "bbox": [
+        574,
+        813,
+        69.375,
+        50
+      ],
+      "area": 3468.75,
+      "segmentation": {
+        "counts": "Tnj`01om02N2N1O2N1O2N2M2O000000000O1N2N2N2O1N2O100O1O100O100O1O101N2O2M2N2O2M2O1N3M2OO10000000000000000O10000O1O101N2N2N2N3N1N2N2N2N2O2M2N2N2N2OR\\X9",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 65,
+      "bbox": [
+        819,
+        793,
+        140.625,
+        166.25
+      ],
+      "area": 23378.90625,
+      "segmentation": {
+        "counts": "\\dPh01mm0;F8H3L3O1O2N1O1O2N1O1O2[SOROTl0o0eSOXOZl0Y1N1O1O2N1O1O2N1O1O2N1O1O2O4L6J5J6K5K5K6J3L00000000001O01O00000000000000000000000000001O01O000000000000000000000001O00N2O1N2O2N1N2O1N2O1N2O1O1N2O1N2O001N2O1N2O1O1N2O1N2O1N2O1O1N2O1N200O100O100O10O0100O100O100O100O1O10000000000000000000000000O1000000000a2_MfTO",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 66,
+      "bbox": [
+        630,
+        473,
+        41.25,
+        25
+      ],
+      "area": 1031.25,
+      "segmentation": {
+        "counts": "ZS_b02mm02N3M2M3N2N1N101O1O1O10000000000O10000000000O10000000000O01000000000O10N2O1N2N3MX_^8",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 67,
+      "bbox": [
+        709,
+        463,
+        76.875,
+        37.5
+      ],
+      "area": 2882.8125,
+      "segmentation": {
+        "counts": "XUid03mm04K5K2O0O100O1O010O100O1O100O100O1O010O1O010O100O00100O010O1O10O0100O01000O10O1000O0100000O0100001N2O001O001O1O001O02O3L1O00000O10000O4M6J1N2O1O1N2O1O1IPeR5",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 68,
+      "bbox": [
+        696,
+        520,
+        78.75,
+        87.5
+      ],
+      "area": 6890.625,
+      "segmentation": {
+        "counts": "oP]d0<dm0<C4L3N2M3N2M2N3N2M3L4M3L3M4M3L4M3L2O1N3N101O00010O00001O0010O0001O000010O010O00100O100N101O1O0000O1000O100000O1000000001O2N2M3N1O2N2N2N2N2M3L4M4K5L3L5Ka0@Qj]5",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 69,
+      "bbox": [
+        735,
+        308,
+        142.5,
+        156.25
+      ],
+      "area": 22265.625,
+      "segmentation": {
+        "counts": "V\\ae0;cm04M2N3M3M3M2N1O1O0O2O0010O10O10O0100O2O1N101O1O10O1000O10O10O10N2O1O001O1O1N101O1O001O1N3N1O2N2N101N101O1N01O010O010O10O010O0100N101O001O0WTO]OUj0d0_UOH`j09TUO4ij0MmTO>Rk0CbTOj0\\k0n0O2N1O2M2O2N2N101O00O2O0O1O100O1OYUO[MUj0c2gUObMYj0^2cUOgM\\j0X2aUOlM_j0S2^UOQNbj0g21N1O1O00001O00000010O000001N010O010O1O010O10O010O01O100O3N1N2O2M2N2N3L3N2M4M2M3N3L3N2M[1fN5J6Kf\\]2",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 70,
+      "bbox": [
+        818,
+        193,
+        24.375,
+        26.25
+      ],
+      "area": 639.84375,
+      "segmentation": {
+        "counts": "[Rog04im05L3L4M4N1O1O2O0O000001O00100O1O1M3M3M3N3L3M3Nc]^3",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 71,
+      "bbox": [
+        823,
+        0,
+        61.875,
+        86.25
+      ],
+      "area": 5336.71875,
+      "segmentation": {
+        "counts": "jbSh01nm02N3M3M3M3M=D`0_O4L3M2L4A`0N00000000000000000000001O1O1O2N1O1O2N1O1O1O00001O0002N2kMoTOW1mk0O2O1N101O0O2O1N1N3N1O2M3N1O2M2O2N2M2O5K<CXXV2",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    },
+    {
+      "id": 72,
+      "bbox": [
+        883,
+        225,
+        22.5,
+        38.75
+      ],
+      "area": 871.875,
+      "segmentation": {
+        "counts": "[Qli02jm05K5M4N100O7I8H1O100O001O11N7I7G5K3M2N3M2NZZc1",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "red_water",
+      "class_name_cn": "红水"
+    }
+  ],
+  "class_name": "red_water",
+  "class_name_cn": "红水",
+  "class_prob": 0.5524
+}

@@ -1,0 +1,37 @@
+{
+  "image": {
+    "image_id": 130,
+    "license": 1,
+    "file_name": "algae_00262_jpg.rf.c2f03a4fb98f27db790ca9b4078f27d2.jpg",
+    "height": 960,
+    "width": 960,
+    "date_captured": "2026-04-02T01:26:30+00:00",
+    "extra": {
+      "name": "algae_00262.jpg"
+    }
+  },
+  "annotations": [
+    {
+      "id": 267,
+      "bbox": [
+        356,
+        204,
+        211.16078399999998,
+        285.255162
+      ],
+      "area": 60234.703647967,
+      "segmentation": {
+        "counts": "YP^:3lm06K6I6J6K6I6J7J5J6J7J5J6J7J5J7J5J6J7J5J7I6K5J7I4M0O2N101N101N2N101N1O2O0O2N101N1O2O0O2O1N1O2O0O2N101N1O2O0O2N101N2O0O2N101N1O2O0O2N101N1O2O1N101N1O2O0O2N101N1O2O0O2N101N2O0O2N101N1O2O0OVLSYOd0kf0]OVYOb0jf0^OVYOc0if0]OXYOb0if0^OVYOc0if0]OXYOc0gf0]OYYOc0gf0]OZYOc0ff0\\O[YOc0ef0]O[YOd0df0\\O]YOc0cf0]O]YOd0cf0[O^YOd0bf0\\O_YOd0`f0]O_YOc0af0]O`YOc0`f0\\O`YOd0`f0\\OaYOd0^f0\\ObYOe0^f0ZOcYOe0]f0[OdYOe0[f0[OeYOe0[f0[OfYOe0Zf0ZOfYOf0Zf0[OfYOe0Yf0[OgYOe0Yf0[OhYOe0Xf0ZOiYOe0Wf0[OiYOf0Vf0ZOkYOe0Uf0[OkYOf0Uf0YOlYOg0Sf0YOmYOg0Sf0YOnYOg0Qf0ZOoYOe0Rf0ZOnYOg0Qf0YOPZOf0Pf0ZOPZOg0Pf0XOQZOg0oe0YORZOg0me0YOSZOg0me0YOTZOg0le0XOTZOh0le0XOUZOh0je0YOUZOg0ke0YOVZOg0je0XOWZOh0he0XOXZOh0he0XOYZOh0fe0XOZZOh0ge0WOZZOi0ee0WO[ZOi0ee0WO\\ZOi0ce0WO^ZOh0ce0XO\\ZOi0ce0WO^ZOh0be0XO^ZOi0be0VO_ZOi0ae0WO_ZOj0`e0VOaZOj0^e0VOcZOi0^e0VObZOk0]e0UOdZOj0\\e0WOcZOj0\\e0VOeZOi0\\e0VOdZOk0[e0UOfZOj0Ze0VOgZOj0Xe0VOhZOj0Ye0UOhZOk0We0UOiZOk0We0UOjZOk0Ue0UOlZOk0Te0UOkZOk0Ue0UOlZOk0Se0UOmZOk0Te0TOmZOl0Re0TOnZOl0Re0TOoZOl0Pe0TOQ[Ok0Pe0TOP[Om0od0SOR[Ol0nd0TOR[Om0md0TOS[Ok0nd0TOR[Om0md0SOT[Ol0ld0TOU[Ol0jd0TOV[Om0kd0QOV[On0md0oNS[OR1od0kNR[OT1Qe0iNoZOX1Se0eNnZOZ1Ve0cNjZO]1Xe0`NhZO`1[e0]NfZOc1\\e0ZNdZOf1_e0WNbZOi1`e0TN`ZOl1ce0QN^ZOo1de0nM]ZOR2ee0kM[ZOU2he0hM[ZOV2ge0hMR[O^1Re0^Ng[Oj0[d0SO^\\O4ec0IT]O_Onb0>]5M3M3M3M3M3N2M4L3M3MRT`;",
+        "size": [
+          960,
+          960
+        ]
+      },
+      "class_name": "green_water",
+      "class_name_cn": "绿水/藻类"
+    }
+  ],
+  "class_name": "green_water",
+  "class_name_cn": "绿水/藻类",
+  "class_prob": 0.0009
+}

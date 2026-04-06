@@ -1,0 +1,18 @@
+{
+  "image": "85.jpeg",
+  "active_class": "normal_water",
+  "classes": [
+    {
+      "class": "normal_water",
+      "class_zh": "正常水质",
+      "area_ratio": 0.3725070323488045,
+      "bbox": [
+        5,
+        459,
+        1415,
+        790
+      ],
+      "mask_file": "85__normal_water.png"
+    }
+  ]
+}

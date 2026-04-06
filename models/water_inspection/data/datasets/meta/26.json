@@ -1,0 +1,30 @@
+{
+  "image": "26.jpg",
+  "active_class": "red_water",
+  "classes": [
+    {
+      "class": "red_water",
+      "class_zh": "红水",
+      "area_ratio": 0.28931315104166666,
+      "bbox": [
+        0,
+        291,
+        954,
+        577
+      ],
+      "mask_file": "26__red_water.png"
+    },
+    {
+      "class": "milky_foam_water",
+      "class_zh": "乳白水/泡沫",
+      "area_ratio": 0.21535373263888888,
+      "bbox": [
+        1,
+        609,
+        955,
+        896
+      ],
+      "mask_file": "26__milky_foam_water.png"
+    }
+  ]
+}

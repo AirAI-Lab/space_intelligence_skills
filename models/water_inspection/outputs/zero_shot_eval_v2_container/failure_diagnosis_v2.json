@@ -1,0 +1,356 @@
+{
+  "normal_water": [
+    {
+      "image": "69.jpeg",
+      "gt_class": "normal_water",
+      "pred_class": "milky_foam_water",
+      "pred_score": 0.8151078224182129,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "069_69_gt-normal_water_pred-milky_foam_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "3.jpeg",
+      "gt_class": "normal_water",
+      "pred_class": "black_water",
+      "pred_score": 0.7977153658866882,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "003_3_gt-normal_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "87.png",
+      "gt_class": "normal_water",
+      "pred_class": "milky_foam_water",
+      "pred_score": 0.7960659861564636,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "087_87_gt-normal_water_pred-milky_foam_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "98.png",
+      "gt_class": "normal_water",
+      "pred_class": "black_water",
+      "pred_score": 0.7924128770828247,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "098_98_gt-normal_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "11.jpeg",
+      "gt_class": "normal_water",
+      "pred_class": "black_water",
+      "pred_score": 0.7870904207229614,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "011_11_gt-normal_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    }
+  ],
+  "turbid_water": [
+    {
+      "image": "6.jpeg",
+      "gt_class": "turbid_water",
+      "pred_class": "black_water",
+      "pred_score": 0.8476523160934448,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "006_6_gt-turbid_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "22.jpeg",
+      "gt_class": "turbid_water",
+      "pred_class": "black_water",
+      "pred_score": 0.785142719745636,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "022_22_gt-turbid_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "36.jpg",
+      "gt_class": "turbid_water",
+      "pred_class": "milky_foam_water",
+      "pred_score": 0.7816473841667175,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "036_36_gt-turbid_water_pred-milky_foam_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "5.jpeg",
+      "gt_class": "turbid_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "005_5_gt-turbid_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "12.jpg",
+      "gt_class": "turbid_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "012_12_gt-turbid_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    }
+  ],
+  "green_water": [
+    {
+      "image": "105.jpg",
+      "gt_class": "green_water",
+      "pred_class": "red_water",
+      "pred_score": 0.8499786853790283,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "105_105_gt-green_water_pred-red_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "19.jpeg",
+      "gt_class": "green_water",
+      "pred_class": "turbid_water",
+      "pred_score": 0.7068287134170532,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "019_19_gt-green_water_pred-turbid_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "55.jpg",
+      "gt_class": "green_water",
+      "pred_class": "turbid_water",
+      "pred_score": 0.6872939467430115,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "055_55_gt-green_water_pred-turbid_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "7.jpeg",
+      "gt_class": "green_water",
+      "pred_class": "turbid_water",
+      "pred_score": 0.6796547770500183,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "007_7_gt-green_water_pred-turbid_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "82.jpg",
+      "gt_class": "green_water",
+      "pred_class": "dam_seepage",
+      "pred_score": 0.6742739081382751,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "082_82_gt-green_water_pred-dam_seepage.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    }
+  ],
+  "black_water": [
+    {
+      "image": "15.png",
+      "gt_class": "black_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "015_15_gt-black_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "38.jpeg",
+      "gt_class": "black_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "038_38_gt-black_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "44.png",
+      "gt_class": "black_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "044_44_gt-black_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "84.png",
+      "gt_class": "black_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "084_84_gt-black_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "90.jpeg",
+      "gt_class": "black_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "090_90_gt-black_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    }
+  ],
+  "milky_foam_water": [
+    {
+      "image": "60.jpeg",
+      "gt_class": "milky_foam_water",
+      "pred_class": "black_water",
+      "pred_score": 0.8652986288070679,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "060_60_gt-milky_foam_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "34.jpeg",
+      "gt_class": "milky_foam_water",
+      "pred_class": "black_water",
+      "pred_score": 0.8520163893699646,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "034_34_gt-milky_foam_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "57.jpg",
+      "gt_class": "milky_foam_water",
+      "pred_class": "black_water",
+      "pred_score": 0.8487296104431152,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "057_57_gt-milky_foam_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "16.jpeg",
+      "gt_class": "milky_foam_water",
+      "pred_class": "black_water",
+      "pred_score": 0.7903774380683899,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "016_16_gt-milky_foam_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "70.jpeg",
+      "gt_class": "milky_foam_water",
+      "pred_class": "red_water",
+      "pred_score": 0.7369356751441956,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "070_70_gt-milky_foam_water_pred-red_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    }
+  ],
+  "dam_seepage": [
+    {
+      "image": "30.jpeg",
+      "gt_class": "dam_seepage",
+      "pred_class": "black_water",
+      "pred_score": 0.7740219831466675,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "030_30_gt-dam_seepage_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "23.jpeg",
+      "gt_class": "dam_seepage",
+      "pred_class": "green_water",
+      "pred_score": 0.6584859490394592,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "023_23_gt-dam_seepage_pred-green_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "21.jpeg",
+      "gt_class": "dam_seepage",
+      "pred_class": "milky_foam_water",
+      "pred_score": 0.8954606652259827,
+      "iou": 0.001307583190027499,
+      "is_correct": false,
+      "visualization": "021_21_gt-dam_seepage_pred-milky_foam_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    },
+    {
+      "image": "47.jpeg",
+      "gt_class": "dam_seepage",
+      "pred_class": "black_water",
+      "pred_score": 0.7644091844558716,
+      "iou": 0.018219450037311857,
+      "is_correct": false,
+      "visualization": "047_47_gt-dam_seepage_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    }
+  ],
+  "red_water": [
+    {
+      "image": "26.jpg",
+      "gt_class": "red_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "026_26_gt-red_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "61.jpg",
+      "gt_class": "red_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "061_61_gt-red_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "63.jpg",
+      "gt_class": "red_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "063_63_gt-red_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "109.jpg",
+      "gt_class": "red_water",
+      "pred_class": "normal_water",
+      "pred_score": 0.0,
+      "iou": 0.0,
+      "is_correct": false,
+      "visualization": "109_109_gt-red_water_pred-normal_water.jpg",
+      "reason": "文本对齐偏弱（分类分数低）"
+    },
+    {
+      "image": "62.jpg",
+      "gt_class": "red_water",
+      "pred_class": "black_water",
+      "pred_score": 0.7292120456695557,
+      "iou": 9.244159587378641e-05,
+      "is_correct": false,
+      "visualization": "062_62_gt-red_water_pred-black_water.jpg",
+      "reason": "类别混淆（提示词可分性不足）"
+    }
+  ]
+}

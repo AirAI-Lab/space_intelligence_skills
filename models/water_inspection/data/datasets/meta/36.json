@@ -1,0 +1,30 @@
+{
+  "image": "36.jpg",
+  "active_class": "turbid_water",
+  "classes": [
+    {
+      "class": "turbid_water",
+      "class_zh": "浑浊水",
+      "area_ratio": 0.08999824523925781,
+      "bbox": [
+        296,
+        719,
+        1011,
+        965
+      ],
+      "mask_file": "36__turbid_water.png"
+    },
+    {
+      "class": "dam_seepage",
+      "class_zh": "坝体渗水",
+      "area_ratio": 0.17667198181152344,
+      "bbox": [
+        286,
+        129,
+        674,
+        868
+      ],
+      "mask_file": "36__dam_seepage.png"
+    }
+  ]
+}
