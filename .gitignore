@@ -58,6 +58,7 @@ models/NVlabs_RADIO/
 models/siglip2-giant-opt-patch16-384/
 models/RADSeg/
 models/RadSeg/
+models/pretrained_models/
 !models/water_inspection/
 !models/open_vocab/
 !models/classifier/
