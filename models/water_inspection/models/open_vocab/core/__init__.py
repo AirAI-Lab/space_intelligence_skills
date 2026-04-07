@@ -14,12 +14,18 @@
 """
 
 from .backbone import RadioBackbone
-from .segmentor import WaterQualitySegmentor, SegmentResult
 from .classifier import SigLIP2Classifier, ColorValidator
+
+# 从 radseg_segmentor 导入主分割器
+from ..radseg_segmentor import RADSegWaterSegmentor, SegmentResult
+
+# 兼容别名
+WaterQualitySegmentor = RADSegWaterSegmentor
 
 __all__ = [
     "RadioBackbone",
     "WaterQualitySegmentor",
+    "RADSegWaterSegmentor",
     "SegmentResult",
     "SigLIP2Classifier",
     "ColorValidator",

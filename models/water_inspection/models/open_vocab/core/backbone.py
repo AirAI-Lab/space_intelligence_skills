@@ -63,7 +63,16 @@ class RadioBackbone(nn.Module):
 
     直接调用官方 RADIO 代码加载模型，不做自定义实现。
     所有上层应用（水利巡检、缺陷检测等）统一使用此封装层。
+
+    支持的 Adaptors:
+      - siglip2-g: 文本-图像对齐 (SigLIP2 Giant)
+      - dino_v3_7b: DINOv3视觉特征 (7B参数)
+      - sam3: SAM3分割
     """
+
+    # 可用的 adaptor 列表
+    AVAILABLE_ADAPTORS = ["siglip2-g", "dino_v3_7b", "sam3"]
+    DEFAULT_ADAPTORS = ["siglip2-g", "dino_v3_7b", "sam3"]  # 默认加载所有
 
     def __init__(
         self,
@@ -80,13 +89,14 @@ class RadioBackbone(nn.Module):
             radio_code_dir: NVlabs/RADIO 代码目录 (含 hubconf.py)
             siglip2_dir: SigLIP2 模型目录 (HuggingFace 格式)
             version: 模型版本 (当 checkpoint_path 存在时忽略)
-            adaptor_names: 适配器列表，默认 ['siglip2-g']
+            adaptor_names: 适配器列表，默认 ['siglip2-g', 'dino_v3_7b', 'sam3']
+                           可选: ['siglip2-g'], ['siglip2-g', 'dino_v3_7b'], 或全部
             device: 推理设备
         """
         super().__init__()
         self.device = device
         self.version = version
-        self.adaptor_names = adaptor_names or ["siglip2-g"]
+        self.adaptor_names = adaptor_names or self.DEFAULT_ADAPTORS
 
         # 解析路径
         self.checkpoint_path = Path(

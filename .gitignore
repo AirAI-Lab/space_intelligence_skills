@@ -47,7 +47,20 @@ vendor/
 
 # Data (only root level)
 /data/
-models/
+
+# Models (exclude large model files but keep code)
+models/*.pth
+models/*.pt
+models/*.bin
+models/*.onnx
+models/C-RADIOv4-H/
+models/NVlabs_RADIO/
+models/siglip2-giant-opt-patch16-384/
+models/RADSeg/
+models/RadSeg/
+!models/water_inspection/
+!models/open_vocab/
+!models/classifier/
 runs/
 *.ckpt
 *.pth
@@ -62,5 +75,9 @@ runs/
 tmp/
 temp/
 *.tmp
+
+# Outputs (generated results, visualizations)
+outputs/
+!outputs/.gitkeep
 
 deployment/openclaw/nul

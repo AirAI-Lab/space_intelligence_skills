@@ -4,13 +4,13 @@
 轻量化分类检测头训练脚本
 
 策略:
-1. 使用RADIO提取图像特征 (固定backbone)
-2. 训练轻量级分类头 (MLP/SVM)
+1. 使用全图颜色特征 (67维)
+2. 训练轻量级分类头 (SVM)
 3. 类别均衡采样
 4. 交叉验证
 
 作者: 空中智能体团队
-日期: 2026-04-06
+日期: 2026-04-07
 """
 
 import sys
@@ -31,8 +31,6 @@ import pickle
 
 sys.path.insert(0, '/app/water_inspection')
 
-from models.open_vocab.core.segmentor import WaterQualitySegmentor
-
 # 7类定义
 CLASS_NAMES = [
     "black_water", "turbid_water", "red_water",
@@ -50,14 +48,14 @@ CLASS_COLORS_BGR = {
 }
 
 
-def extract_features(image_path, segmentor):
+def extract_features(image_path):
     """
-    提取图像特征
-    
+    提取图像特征 (67维)
+
     特征:
-    1. RADIO patch features (降维)
-    2. 颜色统计 (BGR/HSV 均值和标准差)
-    3. 颜色直方图
+    1. BGR/HSV 颜色统计 (12维)
+    2. 颜色直方图 (48维)
+    3. 与标准色的距离 (7维)
     """
     image = cv2.imread(str(image_path))
     if image is None:
@@ -182,7 +180,7 @@ def main():
         if (i + 1) % 20 == 0:
             print(f"  [{i+1}/{len(balanced_samples)}]")
         
-        features = extract_features(sample['image_path'], None)
+        features = extract_features(sample['image_path'])
         if features is not None:
             X.append(features)
             y.append(sample['class_idx'])
@@ -214,7 +212,7 @@ def main():
     
     # 6. 训练多个分类器
     classifiers = {
-        'SVM (RBF)': SVC(kernel='rbf', C=10, gamma='scale', random_state=42),
+        'SVM (RBF)': SVC(kernel='rbf', C=10, gamma='scale', probability=True, random_state=42),
         'Random Forest': RandomForestClassifier(n_estimators=100, max_depth=10, random_state=42),
         'MLP': MLPClassifier(hidden_layer_sizes=(128, 64), max_iter=500, random_state=42),
     }

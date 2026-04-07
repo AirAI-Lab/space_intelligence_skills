@@ -1,116 +1,191 @@
+# ==============================================================================
+# 水利巡检系统配置文件 v3.4
+# ==============================================================================
+#
+# 整合 C-RADIOv4 + YOLO 云边协同方案
+# - 边端: YOLOv8-Pose 目标检测 (11 类, 30 FPS)
+# - 云端: C-RADIOv4-H + SigLIP2-g 语义分割 (8 类, 5-10 FPS)
+# - v8 流水线: 智能坝体渗水检测 (dam > water 约束)
+#
+# 作者: 空中智能体团队
+# 更新日期: 2026-04-07
+# ==============================================================================
+
+system:
+  name: water_inspection
+  version: '3.4'
+  device: cuda
+  description: 云边协同水利巡检系统
+
+# ==============================================================================
+# 云端配置 - C-RADIOv4 语义分割
+# ==============================================================================
 cloud:
   radio:
+    # 模型配置
+    model:
+      version: c-radio_v4-h
+      path: ${RADIO_CHECKPOINT:/app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar}
+      radio_code_dir: ${RADIO_CODE:/app/models/NVlabs_RADIO}
+      siglip2_dir: ${SIGLIP2_DIR:/app/models/siglip2-giant-opt-patch16-384}
+      adaptor_names:
+        - siglip2-g
+        - dino_v3_7b
+      device: cuda
+      use_scra: true
+      use_dino: true
+      use_sam: false
+      temperature: 50.0
+
+    # v8 流水线配置 (智能坝体渗水检测)
+    v8_pipeline:
+      # Stage 1: 分割阈值
+      segmentation_threshold: 0.4  # 水体/坝体分割阈值
+
+      # Stage 2: 坝体渗水约束
+      seepage:
+        min_overlap: 0.005          # 渗水区域最小占图像比例 (0.5%)
+        max_ratio: 0.3              # 渗水面积不能超过坝体面积的30%
+        require_dam_gt_water: true  # 核心约束: 坝体面积 > 水体面积
+
+      # 多标签分类
+      multi_label:
+        enabled: true
+        threshold: 0.3              # 概率阈值, 超过则触发多标签检测
+
+      # 分类器路径
+      classifier:
+        path: models/classifier/lightweight_classifier.pkl
+        scaler_path: models/classifier/scaler.pkl
+        feature_dim: 67
+
+    # 分割类别定义
     classes:
-      background:
-        is_background: true
-        prompts:
-        - concrete embankment and buildings on river bank
-        - trees and green vegetation along river shore
-        - sky and clouds above river scene
-        zh: 背景
       black_water:
-        use_color_check: true
-        min_prob: 0.30
-        prompts:
-        - clear transparent river water with balanced RGB channels
-        - clean unpolluted water body showing natural blue gray tone
-        - crystal clear water surface without visible color tint
-        - healthy water with balanced RGB where no single channel dominates
-        min_prob: 0.25
-        prompts:
-        - dark blackish gray water with all RGB channels below 130
-        - opaque polluted water with RGB range less than 25
-        - dark contaminated water appearing uniformly black gray
-        - black sewage water with low brightness around 122
-        use_color_check: true
         zh: 黑水
+        color_hint: [95, 90, 85]
+        use_color_check: true
+        prompts:
+          - dark blackish gray water with all RGB channels below 130
+          - opaque polluted water with RGB range less than 25
+          - dark contaminated water appearing uniformly black gray
+          - black sewage water with low brightness around 122
+        alert:
+          enabled: true
+          level: warning
+          description: 发现黑水，可能存在严重污染
+
       turbid_water:
-        color_hint:
-        - 115
-        - 135
-        - 142
-        min_prob: 0.22
-        prompts:
-        - yellowish brown muddy water with R channel around 142
-        - tea colored turbid water with R channel higher than G
-        - ochre yellow water from soil runoff with warm tone
-        - coffee brown murky water with earth color tint
-        use_color_check: true
         zh: 浑浊水
+        color_hint: [135, 119, 142]
+        use_color_check: true
+        prompts:
+          - yellowish brown muddy water with R channel around 142
+          - tea colored turbid water with R channel higher than G
+          - ochre yellow water from soil runoff with warm tone
+          - coffee brown murky water with earth color tint
+        alert:
+          enabled: true
+          level: info
+          description: 发现浑浊水，可能存在泥沙悬浮
+
       red_water:
-        color_hint:
-        - 120
-        - 132
-        - 172
-        min_prob: 0.25
-        prompts:
-        - bright vivid red rust colored water with R channel above 170
-        - reddish pink contaminated water with R much higher than G and B
-        - crimson scarlet tinted sewage with saturated red color
-        - rusty red water with R channel clearly dominant not brown
-        use_color_check: true
         zh: 红水
+        color_hint: [80, 100, 140]
+        use_color_check: true
+        prompts:
+          - bright vivid red rust colored water with R channel above 170
+          - reddish pink contaminated water with R much higher than G and B
+          - crimson scarlet tinted sewage with saturated red color
+          - rusty red water with R channel clearly dominant
+        alert:
+          enabled: true
+          level: warning
+          description: 发现红水，可能存在铁锈污染
+
       green_water:
-        color_hint:
-        - 94
-        - 136
-        - 122
-        min_prob: 0.20
-        prompts:
-        - thick bright green algae bloom with G channel around 136
-        - dark green eutrophic water where G channel exceeds B by more than 30
-        - green algae scum layer with visible green tint on water
-        - emerald green turbid water with G channel clearly above R and B
-        use_color_check: true
         zh: 绿水/藻类
+        color_hint: [130, 117, 156]
+        use_color_check: true
+        prompts:
+          - thick bright green algae bloom with G channel around 136
+          - dark green eutrophic water where G channel exceeds B by more than 30
+          - green algae scum layer with visible green tint on water
+          - emerald green turbid water with G channel clearly above R and B
+        alert:
+          enabled: true
+          level: info
+          description: 发现绿水/藻类，可能存在富营养化
+
       milky_foam_water:
-        color_hint:
-        - 145
-        - 147
-        - 146
-        min_prob: 0.18
-        prompts:
-        - milky white gray turbid water with brightness above 145
-        - thick white foam bubbles clustered on water surface
-        - cloudy opaque water body with RGB channels all high around 146
-        - dense frothy white patches with low saturation high brightness
+        zh: 乳白水/泡沫
+        color_hint: [180, 195, 190]
         use_color_check: true
-        zh: 乳白水
+        prompts:
+          - milky white gray turbid water with brightness above 145
+          - thick white foam bubbles clustered on water surface
+          - cloudy opaque water body with RGB channels all high around 146
+          - dense frothy white patches with low saturation high brightness
+        alert:
+          enabled: true
+          level: info
+          description: 发现乳白水/泡沫，可能存在污染物排放
+
       dam_seepage:
-        color_hint:
-        - 137
-        - 140
-        - 143
-        min_prob: 0.25
-        min_water_overlap: 0.05
-        prompts:
-        # 强调材质和结构特征 (不仅仅是水)
-        - dark wet water seepage stain on gray concrete dam or wall surface
-        - fresh water leakage mark on concrete structure with visible wet patch
-        - damp dark patch on cement dam wall indicating active seepage through crack
-        - water stain spreading from crack or joint in concrete embankment
-        - moisture streak running down vertical concrete surface of dam
-        - wet discolored area on stone or concrete channel wall near water
-        # 强调位置特征 (在结构上，不在水中)
-        - seepage on man-made concrete structure above water level
-        - water infiltration visible on dam face or channel wall
-        use_color_check: true
         zh: 坝体渗水
-      normal_water:
-        color_hint:
-        - 136
-        - 139
-        - 127
-        is_background: true
-        min_prob: 0.30
-        prompts:
-        - clear transparent river water with balanced RGB channels
-        - clean unpolluted water body showing natural blue gray tone
-        - crystal clear water surface without visible color tint
-        - healthy water with balanced RGB where no single channel dominates
+        color_hint: [130, 140, 135]
         use_color_check: true
-        zh: 正常水质
+        # v8 坝体渗水检测逻辑:
+        # 1. 检测 water 和 dam_concrete 的交集
+        # 2. 约束: 坝体面积 > 水体面积 (排除河道旁混凝土护栏)
+        # 3. 约束: 渗水面积占图像 >= min_overlap
+        # 4. 约束: 渗水面积占坝体面积 <= max_ratio
+        dam_concrete_prompts:
+          - concrete dam structure
+          - concrete embankment wall
+          - dam surface from aerial view
+          - concrete structure near water
+          - dam wall concrete surface
+          - concrete water control structure
+        water_prompts:
+          - water surface in natural river
+          - water body in lake or reservoir
+          - flowing water in channel
+          - standing water
+          - green algae water surface
+          - turbid murky water
+          - aerial view of water body
+        alert:
+          enabled: true
+          level: critical
+          description: 发现坝体渗水，请立即检查
+
+      normal_water:
+        zh: 正常水
+        color_hint: [118, 107, 124]
+        is_background: true
+        prompts:
+          - clear transparent river water with balanced RGB channels
+          - clean unpolluted water body showing natural blue gray tone
+          - crystal clear water surface without visible color tint
+          - healthy water with balanced RGB where no single channel dominates
+        alert:
+          enabled: false
+
+      background:
+        zh: 背景
+        is_background: true
+        prompts:
+          - vegetation and trees
+          - sky and clouds
+          - buildings and houses
+          - grass and soil
+
+    # 推理参数 (旧版兼容)
     inference:
+      threshold: 0.25
+      input_size: 896
+      min_area: 0.003
       class_thresholds:
         black_water: 0.25
         turbid_water: 0.10
@@ -118,100 +193,198 @@ cloud:
         green_water: 0.10
         milky_foam_water: 0.40
         dam_seepage: 0.15
-      cluster:
-        min_centroid_y: 0.15
-        min_prob: 0.3
-        min_water_overlap: 0.5
-        vs_background_margin: 0.02
-        vs_normal_margin: 0.05
       color:
         enable_per_class: true
         fusion_alpha: 0.20
         max_dist: 100
-        strict_prob: 0.65
-      image_gate: 0.08
-      input_size: 896
-      min_area: 0.003
-      patch:
-        min_overlap_threshold: 0.5
-        num_patches: 64
-        overlap_weight: 1.5
-        patch_selection_strategy: top_k
-        top_k_patches: 10
-      postprocess:
-        erode_kernel: 2
-        max_components: 3
-        min_component_pixels: 50
-        open_kernel: 2
-      prompt:
-        negative_weight: 0.35
-        temperature: 6.0
-      threshold: 0.25
-      water:
-        erode_kernel: 7
-        min_ratio: 0.05
-    model:
-      adaptor_names:
-      - siglip2-g
-      device: cuda
-      path: checkpoints/model.safetensors
-      prefer_online: true
-      version: c-radio_v4-h
-data:
-  radio:
-    masks: data/prompts/masks/
-    samples: data/prompts/water_quality/
+
+    # SAM 边界精细化配置 (可选)
+    sam_refinement:
+      # 是否启用 SAM 精细化
+      enabled: false
+
+      # 精细化模式:
+      #   - "morphological": 形态学精细化 (默认, 无需额外依赖)
+      #   - "radio_sam3": 使用 C-RADIOv4 内置 SAM3 特征 (推荐)
+      #   - "segment_anything": 使用 segment_anything 库 (需要下载 SAM checkpoint)
+      mode: "morphological"
+
+      # SAM checkpoint 路径 (仅 segment_anything 模式需要)
+      # 下载: wget https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth
+      checkpoint_path: ""
+
+      # 精细化参数
+      coarse_thresh: 0.1        # 粗分割阈值
+      minimal_area: 225         # 最小区域面积 (像素)
+      sam_iou_thresh: 0.9       # SAM 预测 IOU 阈值
+      sam_mask_coeff: 0.005     # SAM mask 系数
+
+# ==============================================================================
+# 边端配置 - YOLOv8 目标检测
+# ==============================================================================
+edge:
   yolo:
-    labels: data/processed/labels
-    test: data/processed/images/test
-    train: data/processed/images/train
-    val: data/processed/images/val
+    model:
+      type: yolov8x-pose
+      weights: ${YOLO_WEIGHTS:checkpoints/yolov8_water.onnx}
+      input_size: 640
+
+    inference:
+      conf_threshold: 0.25
+      iou_threshold: 0.45
+      max_detections: 300
+      device: cuda
+
+    # YOLO 检测类别
+    classes:
+      0:
+        name: person
+        zh: 人员
+        weight: 1.0
+        alert:
+          enabled: false
+      1:
+        name: fishing_person
+        zh: 钓鱼
+        weight: 2.0
+        alert:
+          enabled: true
+          level: info
+          description: 发现钓鱼人员
+      2:
+        name: swimming_person
+        zh: 游泳
+        weight: 2.0
+        alert:
+          enabled: true
+          level: warning
+          description: 发现游泳人员，存在安全风险
+      3:
+        name: playing_person
+        zh: 嬉水
+        weight: 2.5
+        alert:
+          enabled: true
+          level: warning
+          description: 发现嬉水人员，存在安全风险
+      4:
+        name: intruding_person
+        zh: 闯入
+        weight: 2.5
+        alert:
+          enabled: true
+          level: critical
+          description: 发现闯入人员
+      5:
+        name: water_gauge
+        zh: 水位尺
+        weight: 1.5
+        alert:
+          enabled: false
+      6:
+        name: outlet_pipe
+        zh: 排污口
+        weight: 1.5
+        alert:
+          enabled: false
+      7:
+        name: outlet_active
+        zh: 排污中
+        weight: 3.0
+        alert:
+          enabled: true
+          level: warning
+          description: 发现排污口正在排污
+      8:
+        name: pipe_damaged
+        zh: 管道破损
+        weight: 5.0
+        alert:
+          enabled: true
+          level: critical
+          description: 发现管道破损
+      9:
+        name: boat
+        zh: 船舶
+        weight: 1.0
+        alert:
+          enabled: false
+      10:
+        name: floating_debris
+        zh: 漂浮物
+        weight: 2.0
+        alert:
+          enabled: true
+          level: info
+          description: 发现水面漂浮物
+
+# ==============================================================================
+# 部署配置
+# ==============================================================================
 deployment:
-  alerts:
-    enabled: true
-    facility:
-    - outlet_active
-    - pipe_damaged
-    - dam_seepage
-    min_area: 0.01
-    person_behavior:
-    - fishing_person
-    - swimming_person
-    - playing_person
-    - intruding_person
-    water_quality:
-    - black_water
-    - turbid_water
-    - red_water
-    - green_water
-    - milky_foam_water
-    - dam_seepage
   cloud:
     enabled: true
     fps_target: 10
     model: c-radio_v4-h
     upload_interval: 30
+
   edge:
+    enabled: true
     device: jetson
     fps_target: 30
     model: yolo
     precision: fp16
+
+  alerts:
+    enabled: true
+    # 告警抑制时间 (秒)
+    suppression_interval: 300
+    # 告警级别
+    levels:
+      - info
+      - warning
+      - critical
+
+# ==============================================================================
+# 数据路径配置
+# ==============================================================================
+data:
+  dataset:
+    images: data/datasets/images
+    masks: data/datasets/masks
+    meta: data/datasets/meta
+
+  classifier:
+    model: models/classifier/lightweight_classifier.pkl
+    scaler: models/classifier/scaler.pkl
+
+# ==============================================================================
+# 输出配置
+# ==============================================================================
 output:
   output_dir: outputs/
   save_alerts: true
   save_detections: true
   save_masks: true
   visualization:
+    enabled: true
     draw_bbox: true
     draw_label: true
     draw_mask: true
-    enabled: true
-system:
-  device: cuda
-  name: water_inspection
-  version: '3.3'
+    font_size: 20
+
+# ==============================================================================
+# 训练配置 (YOLO)
+# ==============================================================================
 training:
   yolo:
+    epochs: 300
+    batch: 12
+    lr0: 0.001
+    lrf: 0.01
+    optimizer: AdamW
+    patience: 50
+    warmup_epochs: 5
     augment:
       degrees: 10
       fliplr: 0.5
@@ -222,65 +395,3 @@ training:
       mosaic: 1.0
       scale: 0.5
       translate: 0.1
-    batch: 12
-    epochs: 300
-    lr0: 0.001
-    lrf: 0.01
-    optimizer: AdamW
-    patience: 50
-    warmup_epochs: 5
-yolo:
-  classes:
-    0:
-      name: person
-      weight: 1.0
-      zh: 人员
-    1:
-      name: fishing_person
-      weight: 2.0
-      zh: 钓鱼
-    2:
-      name: swimming_person
-      weight: 2.0
-      zh: 游泳
-    3:
-      name: playing_person
-      weight: 2.5
-      zh: 嬉水
-    4:
-      name: intruding_person
-      weight: 2.5
-      zh: 闯入
-    5:
-      name: water_gauge
-      weight: 1.5
-      zh: 水位尺
-    6:
-      name: outlet_pipe
-      weight: 1.5
-      zh: 排污口
-    7:
-      name: outlet_active
-      weight: 3.0
-      zh: 排污中
-    8:
-      name: pipe_damaged
-      weight: 5.0
-      zh: 管道破损
-    9:
-      name: boat
-      weight: 1.0
-      zh: 船舶
-    10:
-      name: floating_debris
-      weight: 2.0
-      zh: 漂浮物
-  inference:
-    conf_threshold: 0.25
-    device: cuda
-    iou_threshold: 0.45
-    max_detections: 300
-  model:
-    input_size: 640
-    type: yolov8x-pose
-    weights: checkpoints/yolov8_water.onnx
