@@ -1,0 +1,183 @@
+# 园区监测系统 - 统一配置文件
+
+# ============================================
+# 1. 系统配置
+# ============================================
+system:
+  name: "park_monitoring"
+  version: "1.0"
+  device: "cuda"
+
+# ============================================
+# 2. 模型配置
+# ============================================
+
+# 2.1 YOLOv8-Pose 检测器（12类，边缘部署）
+yolo:
+  model:
+    type: "yolov8x-pose"
+    weights: "checkpoints/park_monitoring.onnx"
+    input_size: 640
+  
+  inference:
+    conf_threshold: 0.25
+    iou_threshold: 0.45
+    max_detections: 300
+    device: "cuda"
+  
+  # 12个检测类别
+  classes:
+    # 周界安全（4类）
+    0: {name: "intruding_person", zh: "非法闯入", priority: "P0"}
+    1: {name: "climbing_wall", zh: "翻越围墙", priority: "P0"}
+    2: {name: "smashing_window", zh: "破窗盗窃", priority: "P0"}
+    3: {name: "prying_door", zh: "撬门盗窃", priority: "P0"}
+    
+    # 人员行为（5类）
+    4: {name: "person_fall", zh: "人员摔倒", priority: "P0"}
+    5: {name: "fighting", zh: "打架斗殴", priority: "P0"}
+    6: {name: "smoking", zh: "违规吸烟", priority: "P1"}
+    7: {name: "abnormal_loitering", zh: "异常徘徊", priority: "P1"}
+    8: {name: "running", zh: "快速奔跑", priority: "P2"}
+    
+    # 车辆管理（3类）
+    9: {name: "illegal_parking", zh: "违停车辆", priority: "P1"}
+    10: {name: "vehicle_intrusion", zh: "车辆闯入", priority: "P0"}
+    11: {name: "vehicle_counting", zh: "车辆计数", priority: "P2"}
+
+# 2.2 YOLOv8-Obb 停车位检测（1类）
+yolo_obb:
+  model:
+    type: "yolov8x-obb"
+    weights: "checkpoints/parking_spots.onnx"
+    input_size: 640
+  
+  inference:
+    conf_threshold: 0.5
+    iou_threshold: 0.5
+  
+  # 停车位类别
+  classes:
+    0: {name: "parking_spot", zh: "停车位"}
+
+# ============================================
+# 3. 报警配置
+# ============================================
+alerts:
+  # 严重报警（立即处理）
+  critical:
+    classes: [0, 1, 2, 3, 4, 5, 10]
+    actions:
+      - "sound_light"      # 现场声光报警
+      - "app_push"         # APP推送
+      - "sms"              # 短信
+      - "security"         # 保安通知
+  
+  # 警告报警（尽快处理）
+  warning:
+    classes: [6, 7, 9]
+    actions:
+      - "app_push"
+      - "security"
+  
+  # 信息通知（知晓即可）
+  info:
+    classes: [8, 11]
+    actions:
+      - "app_push"
+  
+  # 报警抑制
+  suppress:
+    same_target_minutes: 5      # 同一目标5分钟内不重复
+    same_area_minutes: 10       # 同一区域10分钟聚合
+    night_hours: [23, 6]        # 夜间降低频率
+
+# ============================================
+# 4. 停车位管理配置
+# ============================================
+parking:
+  # 停车位占用判断
+  occupancy:
+    iou_threshold: 0.5          # 车辆与停车位重叠率阈值
+    min_confidence: 0.6         # 最小置信度
+  
+  # 停车位分组
+  zones:
+    zone_a:
+      spot_ids: [1, 2, 3, 4, 5]
+      name: "A区"
+    zone_b:
+      spot_ids: [6, 7, 8, 9, 10]
+      name: "B区"
+
+# ============================================
+# 5. 训练配置
+# ============================================
+training:
+  yolo:
+    epochs: 200
+    batch: 12
+    optimizer: "AdamW"
+    lr0: 0.001
+    lrf: 0.01
+    warmup_epochs: 5
+    patience: 50
+    
+    augment:
+      hsv_h: 0.015
+      hsv_s: 0.7
+      hsv_v: 0.4
+      degrees: 10
+      translate: 0.1
+      scale: 0.5
+      fliplr: 0.5
+      mosaic: 1.0
+      mixup: 0.1
+  
+  yolo_obb:
+    epochs: 100
+    batch: 16
+    lr0: 0.001
+
+# ============================================
+# 6. 数据配置
+# ============================================
+data:
+  yolo:
+    train: "data/processed/images/train"
+    val: "data/processed/images/val"
+    test: "data/processed/images/test"
+    labels: "data/processed/labels"
+  
+  yolo_obb:
+    train: "data/processed/images_obb/train"
+    val: "data/processed/images_obb/val"
+    labels: "data/processed/labels_obb"
+
+# ============================================
+# 7. 部署配置
+# ============================================
+deployment:
+  edge:
+    device: "jetson"
+    models: ["yolo", "yolo_obb"]
+    fps_target: 55
+    precision: "fp16"
+  
+  cloud:
+    enabled: false              # 园区监测无需云端
+    storage: true               # 仅存储
+
+# ============================================
+# 8. 输出配置
+# ============================================
+output:
+  save_detections: true
+  save_alerts: true
+  output_dir: "outputs/"
+  
+  visualization:
+    enabled: true
+    draw_bbox: true
+    draw_obb: true
+    draw_label: true

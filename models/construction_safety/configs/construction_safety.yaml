@@ -1,0 +1,228 @@
+# 施工安全监测系统 - 统一配置文件
+
+# ============================================
+# 1. 系统配置
+# ============================================
+system:
+  name: "construction_safety"
+  version: "1.0"
+  device: "cuda"
+
+# ============================================
+# 2. 模型配置
+# ============================================
+
+# 2.1 YOLOv8-Pose 检测器（15类，边缘部署）
+yolo:
+  model:
+    type: "yolov8x-pose"
+    weights: "checkpoints/construction_safety.onnx"
+    input_size: 640
+  
+  inference:
+    conf_threshold: 0.25
+    iou_threshold: 0.45
+    max_detections: 300
+    device: "cuda"
+  
+  # 15个检测类别
+  classes:
+    # 安全装备检测（4类）
+    0: {name: "person_with_helmet", zh: "正确佩戴安全帽", priority: "P0"}
+    1: {name: "person_no_helmet", zh: "未佩戴安全帽", priority: "P0"}
+    2: {name: "person_with_vest", zh: "正确穿戴反光衣", priority: "P1"}
+    3: {name: "person_no_vest", zh: "未穿戴反光衣", priority: "P1"}
+    
+    # 危险区域管控（3类）
+    4: {name: "person_in_danger_zone", zh: "人员进入危险区", priority: "P0"}
+    5: {name: "unauthorized_access", zh: "非授权人员", priority: "P1"}
+    6: {name: "cross_safety_line", zh: "跨越警戒线", priority: "P0"}
+    
+    # 危险行为识别（5类）
+    7: {name: "climbing_ladder", zh: "违规攀爬", priority: "P0"}
+    8: {name: "fall_detection", zh: "人员坠落", priority: "P0"}
+    9: {name: "smoking_fire", zh: "违规用火", priority: "P0"}
+    10: {name: "not_watching_machine", zh: "脱岗作业", priority: "P1"}
+    11: {name: "unsafe_distance", zh: "不安全距离", priority: "P0"}
+    
+    # 机械与设备（3类）
+    12: {name: "crane_operation", zh: "塔吊作业", priority: "P2"}
+    13: {name: "excavator_operation", zh: "挖掘机作业", priority: "P2"}
+    14: {name: "truck_operation", zh: "运输车作业", priority: "P2"}
+
+# ============================================
+# 3. 报警配置
+# ============================================
+alerts:
+  # 紧急报警（立即处理）
+  critical:
+    classes: [4, 8]              # danger_zone, fall
+    actions:
+      - "sound_light"            # 现场声光报警
+      - "app_push"               # APP推送
+      - "sms"                    # 短信
+      - "safety_officer"         # 安全员
+      - "project_manager"        # 项目经理
+      - "emergency_call"         # 紧急呼叫（120/119）
+  
+  # 严重报警（尽快处理）
+  serious:
+    classes: [1, 6, 7, 9, 11]    # no_helmet, cross_line, climbing, fire, unsafe_distance
+    actions:
+      - "voice_alert"            # 现场语音
+      - "app_push"
+      - "safety_officer"
+  
+  # 警告报警（记录处理）
+  warning:
+    classes: [3, 5, 10]          # no_vest, unauthorized, not_watching
+    actions:
+      - "app_push"
+      - "safety_officer"
+  
+  # 信息通知（知晓即可）
+  info:
+    classes: [12, 13, 14]        # 机械作业（不报警，仅记录）
+    actions: []
+  
+  # 报警抑制
+  suppress:
+    same_target_minutes: 3       # 同一目标3分钟内不重复
+    same_area_minutes: 5         # 同一区域5分钟聚合
+
+# ============================================
+# 4. 危险区域配置
+# ============================================
+danger_zones:
+  # 静态危险区域（预设）
+  static:
+    zone_1:
+      type: "polygon"
+      points: [[100, 200], [300, 200], [300, 400], [100, 400]]
+      name: "高压电区域"
+      level: "critical"
+    
+    zone_2:
+      type: "polygon"
+      points: [[500, 100], [700, 100], [700, 300], [500, 300]]
+      name: "深基坑"
+      level: "critical"
+  
+  # 动态危险区域（联动机械）
+  dynamic:
+    enabled: true
+    # 塔吊作业范围
+    crane:
+      radius: 10                 # 半径10米
+      class_id: 12               # 联动塔吊检测
+      level: "serious"
+    
+    # 挖掘机作业范围
+    excavator:
+      radius: 5                  # 半径5米
+      class_id: 13               # 联动挖掘机检测
+      level: "serious"
+
+# ============================================
+# 5. 安全装备规则
+# ============================================
+safety_equipment:
+  # 施工区域要求
+  construction_area:
+    helmet: true                 # 必须戴安全帽
+    vest: true                   # 必须穿反光衣
+    
+  # 安全区域（不要求）
+  safe_areas:
+    - rest_area                  # 休息区
+    - office_area                # 办公区
+    - canteen                    # 食堂
+
+# ============================================
+# 6. 训练配置
+# ============================================
+training:
+  yolo:
+    epochs: 200
+    batch: 12
+    optimizer: "AdamW"
+    lr0: 0.001
+    lrf: 0.01
+    warmup_epochs: 5
+    patience: 50
+    
+    augment:
+      hsv_h: 0.015
+      hsv_s: 0.7
+      hsv_v: 0.4
+      degrees: 10
+      translate: 0.1
+      scale: 0.5
+      fliplr: 0.5
+      mosaic: 1.0
+      mixup: 0.1
+
+# ============================================
+# 7. 数据配置
+# ============================================
+data:
+  yolo:
+    train: "data/processed/images/train"
+    val: "data/processed/images/val"
+    test: "data/processed/images/test"
+    labels: "data/processed/labels"
+
+# ============================================
+# 8. 部署配置
+# ============================================
+deployment:
+  edge:
+    device: "jetson"
+    model: "yolo"
+    fps_target: 30
+    precision: "fp16"
+  
+  cloud:
+    enabled: false               # 施工安全无需云端
+    storage: true                # 仅存储
+
+# ============================================
+# 9. 输出配置
+# ============================================
+output:
+  save_detections: true
+  save_alerts: true
+  output_dir: "outputs/"
+  
+  # 合规统计
+  compliance:
+    enabled: true
+    metrics:
+      - "helmet_rate"            # 安全帽佩戴率
+      - "vest_rate"              # 反光衣穿戴率
+      - "alert_count"            # 报警次数
+  
+  visualization:
+    enabled: true
+    draw_bbox: true
+    draw_danger_zone: true       # 绘制危险区域
+    draw_label: true
+
+# ============================================
+# 10. 特殊功能
+# ============================================
+features:
+  # 人员计数
+  people_counting:
+    enabled: true
+    interval: 60                 # 每60秒统计一次
+  
+  # 车辆计数
+  vehicle_counting:
+    enabled: true
+  
+  # 合规报表
+  compliance_report:
+    enabled: true
+    daily: true                  # 日报表
+    weekly: true                 # 周报表
