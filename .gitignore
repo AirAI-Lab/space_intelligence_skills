@@ -62,11 +62,34 @@ models/pretrained_models/
 !models/water_inspection/
 !models/open_vocab/
 !models/classifier/
+
+# Water inspection data & outputs (large files)
+models/water_inspection/data/datasets/
+models/water_inspection/data/processed/
+models/water_inspection/data/raw/
+models/water_inspection/data/few_shot/
+models/water_inspection/outputs/
+
 runs/
 *.ckpt
 *.pth
 *.pt
 *.engine
+
+# Large data files
+*.jpg
+*.jpeg
+*.png
+*.bmp
+*.tif
+*.tiff
+*.mp4
+*.avi
+*.mov
+*.mkv
+# Exceptions: keep small essential images
+!models/water_inspection/README.md
+!models/water_inspection/docs/**/*.md
 
 # Database
 *.db
