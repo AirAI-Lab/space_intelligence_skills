@@ -76,20 +76,18 @@ runs/
 *.pt
 *.engine
 
-# Large data files
-*.jpg
-*.jpeg
-*.png
-*.bmp
-*.tif
-*.tiff
+# Large data files (images, video)
+models/water_inspection/data/**/*.jpg
+models/water_inspection/data/**/*.jpeg
+models/water_inspection/data/**/*.png
+models/water_inspection/outputs/**/*.jpg
+models/water_inspection/outputs/**/*.png
+training/**/*.jpg
+training/**/*.png
 *.mp4
 *.avi
 *.mov
 *.mkv
-# Exceptions: keep small essential images
-!models/water_inspection/README.md
-!models/water_inspection/docs/**/*.md
 
 # Database
 *.db
@@ -105,3 +103,6 @@ outputs/
 !outputs/.gitkeep
 
 deployment/openclaw/nul
+
+# Writing framework (local only)
+writing/
