@@ -183,8 +183,109 @@ deployment:
     precision: "fp16"
   
   cloud:
-    enabled: false               # 施工安全无需云端
-    storage: true                # 仅存储
+    enabled: true                # 启用云端 RADIO 零样本检测
+    storage: true
+    radio:
+      model:
+        version: c-radio_v4-h
+        path: ${RADIO_CHECKPOINT:/app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar}
+        radio_code_dir: ${RADIO_CODE:/app/models/NVlabs_RADIO}
+        siglip2_dir: ${SIGLIP2_DIR:/app/models/siglip2-giant-opt-patch16-384}
+        adaptor_names:
+          - siglip2-g
+        device: cuda
+        use_scra: true
+        temperature: 50.0
+      inference:
+        input_size: 896
+        threshold: 0.25
+        min_area: 0.003
+        cluster:
+          min_prob: 0.3
+        patch:
+          num_patches: 64
+          overlap_weight: 1.5
+          patch_selection_strategy: top_k
+          top_k_patches: 10
+
+      # ============================================================
+      # 施工场景 RADIO 零样本检测类别 (5类)
+      # ============================================================
+      classes:
+        # --- 背景 ---
+        background:
+          is_background: true
+          zh: 背景
+          prompts:
+            - normal construction site with workers and equipment
+            - clean organized construction area with proper covering
+
+        # --- 裸土未覆盖 ---
+        bare_soil_uncovered:
+          zh: 裸土未覆盖
+          min_prob: 0.25
+          use_color_check: true
+          color_hint: [120, 100, 80]       # 黄褐色泥土
+          prompts:
+            # 正面: 裸露的黄土/泥土，无覆盖 — 强调干燥泥土纹理
+            - large area of exposed bare dry yellow brown soil without any covering
+            - uncovered earth dirt ground with visible rough soil texture no green net
+            - bare dry earth surface with granular dirt texture on construction site
+            - exposed dry compacted soil area showing raw ground without protective mesh
+          prompts_negative:
+            - soil covered with green dust control net or tarpaulin
+            - paved road or concrete surface
+            - grass covered ground with vegetation
+            - water surface with reflection or puddle
+            - wet muddy ground with standing water or waterlogged area
+
+        # --- 扬尘 ---
+        dust_pollution:
+          zh: 扬尘污染
+          min_prob: 0.20
+          prompts:
+            # 强调空气中悬浮的尘雾 — 而非地面
+            - visible dust cloud or haze rising from construction ground into the air
+            - airborne gray white dust particles forming fog over construction area
+            - thick dust pollution haze obscuring visibility at construction site
+            - brown gray dust smog blown from earth moving work area into the sky
+          prompts_negative:
+            - clear clean air at well managed construction site
+            - water sprinkled wet ground without dust
+            - fog or natural mist not from construction
+            - bare dry soil without any airborne dust
+
+        # --- 坑内积水 ---
+        pit_water_accumulation:
+          zh: 坑内积水
+          min_prob: 0.20
+          use_color_check: true
+          color_hint: [110, 120, 115]       # 灰绿色浑浊积水
+          prompts:
+            # v2: 强调水面反射/镜面/湿润光泽 — 区别于干燥裸土
+            - standing water with glossy reflective surface in foundation pit or excavation
+            - puddle or pool of water with mirror reflection collected at bottom of trench
+            - wet waterlogged area with visible water surface sheen below ground level
+            - murky water filling excavated pit with smooth reflective water surface
+          prompts_negative:
+            - dry foundation pit without any water
+            - dry bare soil or dirt ground without water reflection
+            - water body in natural river channel
+            - swimming pool or decorative fountain
+
+        # --- 基坑边材料堆放 ---
+        material_near_pit:
+          zh: 基坑边材料堆放
+          min_prob: 0.25
+          prompts:
+            - construction materials stacked piled near edge of foundation pit or excavation
+            - steel bars bricks or bags of cement placed dangerously close to pit boundary
+            - building supplies loosely stacked beside deep excavation edge
+            - loose construction material storage near open trench or pit without safety barrier
+          prompts_negative:
+            - organized material storage in designated area far from pit
+            - construction materials properly stored inside warehouse
+            - empty clean area around foundation pit
 
 # ============================================
 # 9. 输出配置

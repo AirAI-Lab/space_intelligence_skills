@@ -165,8 +165,86 @@ deployment:
     precision: "fp16"
   
   cloud:
-    enabled: false              # 园区监测无需云端
-    storage: true               # 仅存储
+    enabled: true               # 启用云端 RADIO 零样本检测
+    storage: true
+    radio:
+      model:
+        version: c-radio_v4-h
+        path: ${RADIO_CHECKPOINT:/app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar}
+        radio_code_dir: ${RADIO_CODE:/app/models/NVlabs_RADIO}
+        siglip2_dir: ${SIGLIP2_DIR:/app/models/siglip2-giant-opt-patch16-384}
+        adaptor_names:
+          - siglip2-g
+        device: cuda
+        use_scra: true
+        temperature: 50.0
+      inference:
+        input_size: 896
+        threshold: 0.25
+        min_area: 0.003
+        cluster:
+          min_prob: 0.3
+        patch:
+          num_patches: 64
+          overlap_weight: 1.5
+          patch_selection_strategy: top_k
+          top_k_patches: 10
+
+      # ============================================================
+      # 园区场景 RADIO 零样本检测类别 (3类)
+      # ============================================================
+      classes:
+        # --- 背景 ---
+        background:
+          is_background: true
+          zh: 背景
+          prompts:
+            - normal park or industrial estate scene with clear pathways
+            - organized parking area with vehicles in designated spots
+
+        # --- 消防通道堵塞 ---
+        fire_lane_blocked:
+          zh: 消防通道堵塞
+          min_prob: 0.25
+          prompts:
+            # 核心组合: 消防标识/黄色网格线 + 车辆/障碍物
+            - vehicle car or obstacle blocking fire lane marked with yellow grid lines
+            - fire engine access road occupied by parked car or stacked goods
+            - no parking zone with yellow crosshatch marking blocked by vehicle
+            - emergency vehicle lane obstructed by illegally parked automobile
+          prompts_negative:
+            - clear empty fire lane with visible yellow grid markings
+            - fire engine access road free of any obstruction
+            - vehicle properly parked in designated parking spot not fire lane
+
+        # --- 翻越栏杆/围墙 ---
+        fence_climbing:
+          zh: 翻越栏杆围墙
+          min_prob: 0.25
+          prompts:
+            # 核心组合: 栏杆/围墙/围栏 + 人在其上
+            - person climbing over metal fence or railing barrier
+            - someone scaling wall or climbing chain link fence to cross boundary
+            - human figure on top of perimeter wall or handrail in climbing posture
+            - person straddling fence or hanging over boundary railing
+          prompts_negative:
+            - person walking normally on sidewalk beside fence
+            - person standing on ground near wall not climbing
+            - empty fence or wall without anyone on it
+
+        # --- 安全出口堵塞 ---
+        exit_blocked:
+          zh: 安全出口堵塞
+          min_prob: 0.25
+          prompts:
+            - boxes debris or objects blocking emergency exit door pathway
+            - emergency escape route obstructed by piled goods or materials
+            - fire exit sign above door with pathway blocked by obstacles
+            - safety evacuation exit door partially or fully blocked by items
+          prompts_negative:
+            - clear unobstructed emergency exit with visible green sign
+            - open pathway leading to fire exit door
+            - well maintained evacuation route without any blocking
 
 # ============================================
 # 8. 输出配置

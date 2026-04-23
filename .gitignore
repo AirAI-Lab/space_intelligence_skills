@@ -70,6 +70,16 @@ models/water_inspection/data/raw/
 models/water_inspection/data/few_shot/
 models/water_inspection/outputs/
 
+# Construction safety & park monitoring outputs
+models/construction_safety/outputs/
+models/park_monitoring/outputs/
+
+# All model data directories (images, labels)
+models/construction_safety/data/**/images/
+models/construction_safety/data/**/labels/
+models/park_monitoring/data/**/images/
+models/park_monitoring/data/**/labels/
+
 runs/
 *.ckpt
 *.pth
