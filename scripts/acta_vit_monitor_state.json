@@ -1,8 +1,0 @@
-{
-  "last_check": "2026-03-28 22:02:37",
-  "best_iou": 0.8459,
-  "best_f1": 0.9165,
-  "last_epoch": 159,
-  "best_epoch": 103,
-  "notifications_sent": []
-}
