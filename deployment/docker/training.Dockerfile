@@ -27,7 +27,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y \
     python3.10 \
     python3-pip \
-    python3-venv \
     git \
     wget \
     curl \
@@ -43,12 +42,8 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y tzdata \
     && rm -rf /var/lib/apt/lists/*
 
-# 创建虚拟环境
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-
 # 升级 pip
-RUN pip install --upgrade pip setuptools wheel
+RUN python3 -m pip install --upgrade pip setuptools wheel
 
 # 阶段2: Python 依赖
 FROM base AS dependencies
@@ -59,10 +54,8 @@ RUN mkdir -p /tmp/pip_cache
 # 复制本地缓存（如果存在）- 复制整个目录，可以为空
 COPY pip_cache /tmp/pip_cache
 
-# 安装 PyTorch 2.10 with CUDA 12.8 支持 RTX 50 系列 (sm_120)
-# 版本对应关系: torch 2.10.0 + torchvision 0.25.0 + torchaudio 2.10.0
-# 注意: cu128 版本的 PyTorch 可以在 CUDA 12.x 运行时上运行（向后兼容）
-RUN pip install torch==2.10.0+cu128 torchvision==0.25.0+cu128 torchaudio==2.10.0+cu128 \
+# 安装 PyTorch with CUDA 12.8
+RUN pip install torch torchvision torchaudio \
     --index-url https://download.pytorch.org/whl/cu128 \
     --find-links /tmp/pip_cache \
     --retries 10 \
@@ -98,4 +91,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:5002/health || exit 1
 
 # 设置默认命令
-CMD ["python", "app.py"]
+CMD ["python3", "app.py"]

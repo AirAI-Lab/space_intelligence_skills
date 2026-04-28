@@ -679,3 +679,94 @@ export const deploymentApi = {
   clearCompleted: () =>
     request.delete('/deployments/clear')
 }
+
+// ==================== 推理结果 API ====================
+export const inferenceResultApi = {
+  /**
+   * 分页查询推理结果
+   */
+  getList: (params: {
+    page?: number
+    page_size?: number
+    device_id?: string
+    source?: string
+    alert_level?: string
+    start_time?: string
+    end_time?: string
+  }) => request.get('/inference/results', { params }),
+
+  /**
+   * 获取推理结果详情
+   */
+  getDetail: (id: number) =>
+    request.get(`/inference/results/${id}`),
+
+  /**
+   * 查询告警列表
+   */
+  getAlerts: (params: {
+    page?: number
+    page_size?: number
+    levels?: string[]
+  }) => request.get('/inference/alerts', { params }),
+
+  /**
+   * 推理统计（最近24小时）
+   */
+  getStats: () =>
+    request.get('/inference/stats'),
+
+  /**
+   * 推理趋势（按小时聚合）
+   */
+  getTrend: () =>
+    request.get('/inference/trend'),
+
+  /**
+   * 导出推理结果
+   */
+  exportResults: (params: {
+    device_id?: string
+    source?: string
+    alert_level?: string
+    start_time?: string
+    end_time?: string
+    format?: string
+  }) => request.get('/inference/export', { params, responseType: 'blob' }),
+
+  /**
+   * 清空所有推理结果
+   */
+  clearAll: () =>
+    request.delete('/inference/results'),
+}
+
+// ==================== Webhook 管理 API ====================
+export const webhookApi = {
+  getList: () =>
+    request.get('/webhooks'),
+
+  create: (data: any) =>
+    request.post('/webhooks', data),
+
+  update: (id: number, data: any) =>
+    request.put(`/webhooks/${id}`, data),
+
+  delete: (id: number) =>
+    request.delete(`/webhooks/${id}`)
+}
+
+// ==================== 告警规则管理 API ====================
+export const alertRuleApi = {
+  getList: () =>
+    request.get('/alert-rules'),
+
+  create: (data: any) =>
+    request.post('/alert-rules', data),
+
+  update: (id: number, data: any) =>
+    request.put(`/alert-rules/${id}`, data),
+
+  delete: (id: number) =>
+    request.delete(`/alert-rules/${id}`)
+}

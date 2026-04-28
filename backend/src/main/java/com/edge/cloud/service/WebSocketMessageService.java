@@ -138,6 +138,22 @@ public class WebSocketMessageService {
 
     // ==================== 模型相关消息 ====================
 
+    // ==================== 推理结果相关消息 ====================
+
+    /**
+     * 发送推理结果到设备专属topic
+     */
+    public void sendInferenceResult(String deviceId, Object result) {
+        broadcast("/topic/inference/" + deviceId + "/results", result);
+    }
+
+    /**
+     * 发送告警到全局告警topic
+     */
+    public void sendInferenceAlert(Object alert) {
+        broadcast("/topic/inference/alerts", alert);
+    }
+
     /**
      * 发送模型转换进度
      *

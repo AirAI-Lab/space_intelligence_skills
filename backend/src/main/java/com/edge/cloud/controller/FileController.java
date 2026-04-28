@@ -73,9 +73,18 @@ public class FileController {
         }
     }
 
-    @Operation(summary = "下载文件（本地存储路径）")
+    @Operation(summary = "下载文件")
     @GetMapping("/download")
-    public ResponseEntity<Resource> downloadFile(@RequestParam("path") String path) {
+    public ResponseEntity<Resource> downloadFile(
+            @RequestParam(value = "path", required = false) String path,
+            @RequestParam(value = "key", required = false) String key) {
+        // S3 key 优先
+        if (key != null && !key.isEmpty()) {
+            return downloadS3File(key);
+        }
+        if (path == null || path.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
         try {
             Path filePath = Path.of(path);
             if (!Files.exists(filePath)) {
@@ -90,8 +99,7 @@ public class FileController {
 
             return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + filePath.getFileName().toString() + "\"")
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filePath.getFileName().toString() + "\"")
                     .body(resource);
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
@@ -105,12 +113,17 @@ public class FileController {
             InputStream inputStream = storageService.getFile(key);
             Resource resource = new InputStreamResource(inputStream);
 
-            String fileName = key.substring(key.lastIndexOf("/") + 1);
+            String fileName = key.contains("/") ? key.substring(key.lastIndexOf("/") + 1) : key;
+            MediaType contentType = MediaType.APPLICATION_OCTET_STREAM;
+            if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+                contentType = MediaType.IMAGE_JPEG;
+            } else if (fileName.endsWith(".png")) {
+                contentType = MediaType.IMAGE_PNG;
+            }
 
             return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + fileName + "\"")
+                    .contentType(contentType)
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + fileName + "\"")
                     .body(resource);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();

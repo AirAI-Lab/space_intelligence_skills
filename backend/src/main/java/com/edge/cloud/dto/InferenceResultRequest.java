@@ -65,6 +65,12 @@ public class InferenceResultRequest {
     private LocalDateTime timestamp;
 
     /**
+     * 图片 Base64（可选）
+     */
+    @JsonProperty("image_base64")
+    private String imageBase64;
+
+    /**
      * 检测结果
      */
     @Data
@@ -90,5 +96,11 @@ public class InferenceResultRequest {
          * 边界框 [x, y, width, height]
          */
         private List<Integer> bbox;
+
+        /**
+         * 是否为告警目标（由边缘侧插件链决定）
+         */
+        @JsonProperty("is_alert")
+        private Boolean isAlert;
     }
 }

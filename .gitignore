@@ -116,3 +116,27 @@ deployment/openclaw/nul
 
 # Writing framework (local only)
 writing/
+
+# Claude Code local config
+.claude/
+.openclaw/
+
+# Claude memory
+memory/
+
+# Training cache & local copies
+training/pip_cache/
+training/cloud/
+
+# Model data directories (large files)
+models/ahair_det/
+models/construction_safety/data/
+models/construction_safety/models/train_helmet/
+models/park_monitoring/data/
+
+# Training local config
+training/construction_safety.yaml
+
+# Docs drafts (local only)
+docs/articles/
+docs/multi_agent_system_proposal.md

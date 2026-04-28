@@ -2,7 +2,7 @@
   <div class="home">
     <el-row :gutter="20">
       <!-- 统计卡片 -->
-      <el-col :span="6" v-for="stat in statistics" :key="stat.key">
+      <el-col :span="4" v-for="stat in statistics" :key="stat.key" style="margin-bottom:8px">
         <el-card class="stat-card">
           <div class="stat-content">
             <div class="stat-icon" :style="{ backgroundColor: stat.color }">
@@ -56,6 +56,46 @@
     </el-row>
 
     <el-row :gutter="20" style="margin-top: 20px;">
+      <!-- 推理趋势 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <span>推理趋势（24小时）</span>
+          </template>
+          <div ref="inferenceTrendChart" style="height: 300px;"></div>
+        </el-card>
+      </el-col>
+
+      <!-- 最近告警 -->
+      <el-col :span="12">
+        <el-card>
+          <template #header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span>最近告警</span>
+              <el-button size="small" text @click="router.push('/alerts')">查看全部</el-button>
+            </div>
+          </template>
+          <el-table :data="recentAlerts" style="width: 100%" max-height="300">
+            <el-table-column prop="time" label="时间" width="160">
+              <template #default="{ row }">
+                {{ row.time?.replace('T', ' ').substring(0, 19) || '-' }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="alert_level" label="级别" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.alert_level === 'critical' ? 'danger' : row.alert_level === 'warning' ? 'warning' : 'info'" size="small" effect="dark">
+                  {{ { critical: '严重', warning: '警告', info: '信息' }[row.alert_level as string] || row.alert_level }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="device_id" label="设备" width="130" />
+            <el-table-column prop="alert_message" label="告警信息" />
+          </el-table>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <el-row :gutter="20" style="margin-top: 20px;">
       <!-- 在线设备列表 -->
       <el-col :span="24">
         <el-card>
@@ -99,8 +139,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import * as echarts from 'echarts'
-import { Monitor, DataLine, Box, FolderOpened } from '@element-plus/icons-vue'
-import { deviceApi, dataApi, modelApi, trainingApi } from '@/api'
+import { Monitor, DataLine, Box, FolderOpened, Bell } from '@element-plus/icons-vue'
+import { deviceApi, dataApi, modelApi, trainingApi, inferenceResultApi } from '@/api'
 
 const router = useRouter()
 
@@ -137,6 +177,14 @@ const statistics = ref([
     icon: DataLine,
     color: '#fdf6ec',
     iconColor: '#e6a23c'
+  },
+  {
+    key: 'alerts',
+    label: '今日告警',
+    value: 0,
+    icon: Bell,
+    color: '#fef0f0',
+    iconColor: '#f56c6c'
   }
 ])
 
@@ -147,6 +195,10 @@ const onlineDevices = ref<any[]>([])
 const recentTrainings = ref<any[]>([])
 
 const deviceStatusChart = ref<HTMLElement>()
+const inferenceTrendChart = ref<HTMLElement>()
+const recentAlerts = ref<any[]>([])
+
+// 设备状态统计
 
 // 设备状态统计
 const deviceStatusStats = ref({
@@ -172,6 +224,22 @@ const loadStatistics = async () => {
     statistics.value[1].value = datasetsRes.data.total || 0
     statistics.value[2].value = modelsRes.data.total || 0
     statistics.value[3].value = trainingsRes.data.total || 0
+
+    // 加载告警统计
+    try {
+      const inferStatsRes = await inferenceResultApi.getStats() as any
+      statistics.value[4].value = inferStatsRes.data?.totalAlerts || 0
+    } catch {
+      statistics.value[4].value = 0
+    }
+
+    // 加载最近告警
+    try {
+      const alertsRes = await inferenceResultApi.getAlerts({ page: 1, page_size: 10 }) as any
+      recentAlerts.value = alertsRes.data?.items || []
+    } catch {
+      recentAlerts.value = []
+    }
 
     // 更新训练任务列表
     recentTrainings.value = (trainingsRes.data.items || []).map((item: any) => ({
@@ -248,6 +316,7 @@ const initChart = () => {
   if (!deviceStatusChart.value) return
 
   const chart = echarts.init(deviceStatusChart.value)
+
   const option = {
     tooltip: {
       trigger: 'item'
@@ -298,6 +367,36 @@ const initChart = () => {
   })
 }
 
+// 初始化推理趋势图
+const initInferenceTrendChart = async () => {
+  if (!inferenceTrendChart.value) return
+
+  const chart = echarts.init(inferenceTrendChart.value)
+  try {
+    const res = await inferenceResultApi.getTrend() as any
+    const hourly = res.data?.hourly || []
+    const hours = hourly.map((d: any) => d.hour?.slice(-5) || '')
+    const counts = hourly.map((d: any) => d.count || 0)
+    const alertCounts = hourly.map((d: any) => d.alertCount || 0)
+    chart.setOption({
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['推理总数', '告警数'] },
+      grid: { left: 40, right: 20, top: 40, bottom: 30 },
+      xAxis: { type: 'category', data: hours },
+      yAxis: { type: 'value' },
+      series: [
+        { name: '推理总数', type: 'line', smooth: true, data: counts, itemStyle: { color: '#409eff' } },
+        { name: '告警数', type: 'bar', data: alertCounts, itemStyle: { color: '#e6a23c' } }
+      ]
+    })
+  } catch {
+    chart.setOption({
+      title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#909399', fontSize: 14 } }
+    })
+  }
+  window.addEventListener('resize', () => chart.resize())
+}
+
 // 刷新所有数据
 const refreshData = async () => {
   await loadStatistics()
@@ -306,6 +405,7 @@ const refreshData = async () => {
   if (deviceStatusChart.value) {
     initChart()
   }
+  initInferenceTrendChart()
 }
 
 onMounted(() => {

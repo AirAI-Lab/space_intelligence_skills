@@ -269,6 +269,85 @@ CREATE TRIGGER update_device_upgrade_status_updated_at BEFORE UPDATE ON device_u
 -- ON CONFLICT (device_id) DO NOTHING;
 
 -- ============================================
+-- 9. 推理结果时序表 (inference_results) - TimescaleDB
+-- 存储边缘端 YOLO 检测和云端 C-RADIOv4 分割结果
+-- ============================================
+CREATE TABLE IF NOT EXISTS inference_results (
+    id BIGSERIAL,
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    device_id VARCHAR(50) NOT NULL,
+    source VARCHAR(20) NOT NULL,           -- 'edge' | 'cloud'
+    model_name VARCHAR(200),
+    task_type VARCHAR(50),                 -- 'detect' | 'segment' | 'classify'
+    frame_id BIGINT,
+    image_url VARCHAR(500),
+    result_json JSONB,                     -- 完整检测结果或分割结果
+    alert_level VARCHAR(20),              -- NULL | 'info' | 'warning' | 'critical'
+    alert_message TEXT,
+    inference_time_ms FLOAT,
+    detection_count INT DEFAULT 0,
+    summary_text VARCHAR(500),
+    PRIMARY KEY (time, id)
+);
+
+SELECT create_hypertable('inference_results', 'time', if_not_exists => TRUE);
+
+CREATE INDEX idx_ir_device_time ON inference_results(device_id, time DESC);
+CREATE INDEX idx_ir_alert_time ON inference_results(alert_level, time DESC) WHERE alert_level IS NOT NULL;
+CREATE INDEX idx_ir_source ON inference_results(source);
+CREATE INDEX idx_ir_result_json ON inference_results USING gin(result_json);
+
+-- ============================================
+-- 10. Webhook 配置表 (webhook_configs)
+-- ============================================
+CREATE TABLE IF NOT EXISTS webhook_configs (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    secret VARCHAR(200),
+    events VARCHAR(500),
+    headers TEXT,
+    enabled BOOLEAN DEFAULT true,
+    last_trigger_time TIMESTAMP,
+    trigger_count INT DEFAULT 0,
+    last_error VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_webhook_configs_enabled ON webhook_configs(enabled);
+
+-- ============================================
+-- 11. 告警规则表 (alert_rules)
+-- ============================================
+CREATE TABLE IF NOT EXISTS alert_rules (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(200) NOT NULL,
+    device_id VARCHAR(50),
+    model_name VARCHAR(200),
+    source VARCHAR(20),
+    class_name VARCHAR(100),
+    condition_type VARCHAR(50) NOT NULL,
+    threshold_value FLOAT,
+    alert_level VARCHAR(20) NOT NULL,
+    alert_message VARCHAR(500),
+    trigger_cloud_infer BOOLEAN DEFAULT false,
+    enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_alert_rules_enabled ON alert_rules(enabled);
+CREATE INDEX idx_alert_rules_device ON alert_rules(device_id) WHERE device_id IS NOT NULL;
+CREATE INDEX idx_alert_rules_class ON alert_rules(class_name) WHERE class_name IS NOT NULL;
+
+CREATE TRIGGER update_webhook_configs_updated_at BEFORE UPDATE ON webhook_configs
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_alert_rules_updated_at BEFORE UPDATE ON alert_rules
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
 -- 完成
 -- ============================================
 -- 数据库初始化完成！

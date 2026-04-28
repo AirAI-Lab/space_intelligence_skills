@@ -55,6 +55,26 @@ const routes = [
     path: '/deployment',
     name: 'Deployment',
     component: () => import('../views/deployment/DeploymentRecord.vue')
+  },
+  {
+    path: '/inference',
+    name: 'InferenceResult',
+    component: () => import('../views/inference/InferenceResultList.vue')
+  },
+  {
+    path: '/alerts',
+    name: 'AlertCenter',
+    component: () => import('../views/inference/AlertCenter.vue')
+  },
+  {
+    path: '/webhooks',
+    name: 'WebhookManage',
+    component: () => import('../views/inference/WebhookManage.vue')
+  },
+  {
+    path: '/alert-rules',
+    name: 'AlertRuleManage',
+    component: () => import('../views/inference/AlertRuleManage.vue')
   }
 ]
 

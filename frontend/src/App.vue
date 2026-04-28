@@ -6,6 +6,7 @@
         <div class="logo">
           <h2>edge_infer_cloud</h2>
         </div>
+        <el-scrollbar style="height: calc(100vh - 60px)">
         <el-menu
           :default-active="activeMenu"
           router
@@ -41,7 +42,24 @@
             <el-icon><Document /></el-icon>
             <span>部署记录</span>
           </el-menu-item>
+          <el-menu-item index="/inference">
+            <el-icon><DataAnalysis /></el-icon>
+            <span>推理结果</span>
+          </el-menu-item>
+          <el-menu-item index="/alerts">
+            <el-icon><Warning /></el-icon>
+            <span>告警中心</span>
+          </el-menu-item>
+          <el-menu-item index="/alert-rules">
+            <el-icon><SetUp /></el-icon>
+            <span>告警规则</span>
+          </el-menu-item>
+          <el-menu-item index="/webhooks">
+            <el-icon><Link /></el-icon>
+            <span>Webhook</span>
+          </el-menu-item>
         </el-menu>
+        </el-scrollbar>
       </el-aside>
 
       <!-- 主内容区 -->
@@ -90,7 +108,11 @@ import {
   Download,
   Bell,
   User,
-  Document
+  Document,
+  DataAnalysis,
+  Warning,
+  SetUp,
+  Link
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
@@ -107,7 +129,11 @@ const pageTitle = computed(() => {
     '/training': '训练管理',
     '/model': '模型管理',
     '/ota': 'OTA升级',
-    '/deployment': '部署记录'
+    '/deployment': '部署记录',
+    '/inference': '推理结果',
+    '/alerts': '告警中心',
+    '/alert-rules': '告警规则',
+    '/webhooks': 'Webhook管理'
   }
   return titles[route.path] || 'edge_infer_cloud'
 })

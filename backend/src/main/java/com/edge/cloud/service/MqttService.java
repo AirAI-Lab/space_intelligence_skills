@@ -9,8 +9,10 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
@@ -30,6 +32,10 @@ public class MqttService {
 
     private final OtaService otaService;
 
+    @Autowired
+    @Lazy
+    private InferenceResultService inferenceResultService;
+
     @Value("${mqtt.broker-url:${spring.mqtt.broker-url:tcp://localhost:1883}}")
     private String brokerUrl;
 
@@ -43,7 +49,8 @@ public class MqttService {
     private String password;
 
     private MqttClient mqttClient;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
 
     @PostConstruct
     public void init() {
@@ -89,6 +96,11 @@ public class MqttService {
             // 订阅设备状态反馈主题
             subscribeToDeviceStatusTopics();
 
+            // 订阅边缘推理结果主题
+            String inferenceTopic = "device/+/inference/results";
+            mqttClient.subscribe(inferenceTopic, 1);
+            log.info("订阅边缘推理结果主题成功: {}", inferenceTopic);
+
         } catch (MqttException e) {
             log.error("MQTT 客户端连接失败", e);
         }
@@ -127,17 +139,24 @@ public class MqttService {
     private void handleDeviceMessage(String topic, MqttMessage message) {
         try {
             String payload = new String(message.getPayload());
-            log.info("收到设备消息: topic={}, payload={}", topic, payload);
+            log.debug("收到设备消息: topic={}, payload长度={}", topic, payload.length());
 
-            // 解析主题: device/{device_id}/ota/status
+            // 解析主题: device/{device_id}/...
             String[] topicParts = topic.split("/");
-            if (topicParts.length >= 4) {
-                String deviceId = topicParts[1];
-                String messageType = topicParts[3];  // status
+            if (topicParts.length < 3) return;
 
-                if ("status".equals(messageType)) {
-                    handleDeviceStatusMessage(deviceId, payload);
-                }
+            String deviceId = topicParts[1];
+
+            // device/{device_id}/ota/status
+            if (topicParts.length >= 4 && "ota".equals(topicParts[2]) && "status".equals(topicParts[3])) {
+                handleDeviceStatusMessage(deviceId, payload);
+                return;
+            }
+
+            // device/{device_id}/inference/results
+            if (topicParts.length >= 4 && "inference".equals(topicParts[2]) && "results".equals(topicParts[3])) {
+                handleInferenceResult(deviceId, payload);
+                return;
             }
 
         } catch (Exception e) {
@@ -203,6 +222,25 @@ public class MqttService {
 
         } catch (Exception e) {
             log.error("处理设备状态消息失败: deviceId={}, payload={}", deviceId, payload, e);
+        }
+    }
+
+    /**
+     * 处理边缘推理结果 MQTT 消息 (device/{device_id}/inference/results)
+     */
+    private void handleInferenceResult(String deviceId, String payload) {
+        try {
+            com.edge.cloud.dto.InferenceResultRequest request =
+                    objectMapper.readValue(payload, com.edge.cloud.dto.InferenceResultRequest.class);
+            // 确保 device_id 一致
+            if (request.getDeviceId() == null || request.getDeviceId().isEmpty()) {
+                request.setDeviceId(deviceId);
+            }
+            inferenceResultService.saveEdgeResult(request);
+            log.debug("MQTT边缘推理结果已存储: device={}, detections={}",
+                    deviceId, request.getDetections() != null ? request.getDetections().size() : 0);
+        } catch (Exception e) {
+            log.error("处理MQTT边缘推理结果失败: device={}, payload长度={}", deviceId, payload.length(), e);
         }
     }
 
@@ -281,6 +319,21 @@ public class MqttService {
     }
 
     /**
+     * 触发云端推理：通知边缘设备发送当前帧到云端进行 C-RADIOv4 分割
+     */
+    public void triggerCloudInference(String deviceId) {
+        String topic = "device/" + deviceId + "/cloud/frame";
+
+        Map<String, Object> message = Map.of(
+                "action", "cloud_infer",
+                "timestamp", System.currentTimeMillis()
+        );
+
+        publish(topic, message);
+        log.info("云端推理触发命令已发送: deviceId={}", deviceId);
+    }
+
+    /**
      * 广播消息到所有设备
      */
     public void broadcast(String topicSuffix, Map<String, Object> message) {
@@ -356,6 +409,10 @@ public class MqttService {
             log.info("MQTT 重连成功");
 
             subscribeToDeviceStatusTopics();
+
+            String inferenceTopic = "device/+/inference/results";
+            mqttClient.subscribe(inferenceTopic, 1);
+            log.info("重连后重新订阅边缘推理结果主题: {}", inferenceTopic);
         } catch (MqttException e) {
             log.error("MQTT 重连失败", e);
         }

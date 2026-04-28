@@ -127,6 +127,16 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
+    public String uploadBytes(byte[] data, String category, String contentType) throws Exception {
+        String fileName = UUID.randomUUID().toString() + ".jpg";
+        Path targetPath = Paths.get(storagePath, category, fileName);
+        Files.createDirectories(targetPath.getParent());
+        Files.write(targetPath, data);
+        log.info("字节数据上传成功: path={}, size={}", targetPath, data.length);
+        return targetPath.toString();
+    }
+
+    @Override
     public String getStorageType() {
         return "local";
     }

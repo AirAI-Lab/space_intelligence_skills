@@ -83,4 +83,9 @@ public class StorageServiceFacade implements StorageService {
     public String getStorageType() {
         return activeStorageService.getStorageType();
     }
+
+    @Override
+    public String uploadBytes(byte[] data, String category, String contentType) throws Exception {
+        return activeStorageService.uploadBytes(data, category, contentType);
+    }
 }

@@ -24,6 +24,7 @@ public class DeviceCommunicationService {
 
     private final DeviceRepository deviceRepository;
     private final OtaService otaService;
+    private final InferenceResultService inferenceResultService;
 
     // 待下发给设备的命令缓存 (deviceId -> List<Command>)
     private final Map<String, Queue<PendingCommand>> pendingCommands = new ConcurrentHashMap<>();
@@ -132,14 +133,15 @@ public class DeviceCommunicationService {
      * 处理推理结果上报
      */
     public Map<String, Object> processInferenceResult(InferenceResultRequest request) {
-        // 存储推理结果到数据库（可选）
-        // 或者发送到WebSocket供前端实时显示
-
-        log.debug("推理结果已记录: deviceId={}, modelId={}, fps={}, detections={}",
-                request.getDeviceId(),
-                request.getModelId(),
-                request.getInferenceTimeMs() > 0 ? 1000.0 / request.getInferenceTimeMs() : 0,
-                request.getDetections().size());
+        try {
+            inferenceResultService.saveEdgeResult(request);
+            log.debug("推理结果已持久化: deviceId={}, modelId={}, detections={}",
+                    request.getDeviceId(),
+                    request.getModelId(),
+                    request.getDetections().size());
+        } catch (Exception e) {
+            log.error("推理结果持久化失败: deviceId={}", request.getDeviceId(), e);
+        }
 
         return Map.of(
                 "status", "SUCCESS",

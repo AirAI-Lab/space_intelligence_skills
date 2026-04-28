@@ -255,6 +255,21 @@ public class S3StorageService implements StorageService {
     }
 
     @Override
+    public String uploadBytes(byte[] data, String category, String contentType) throws Exception {
+        String fileName = UUID.randomUUID().toString() + ".jpg";
+        String key = category + "/" + fileName;
+        PutObjectRequest putRequest = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(key)
+                .contentType(contentType)
+                .contentLength((long) data.length)
+                .build();
+        s3Client.putObject(putRequest, RequestBody.fromBytes(data));
+        log.info("字节数据上传成功: key={}, size={}", key, data.length);
+        return key;
+    }
+
+    @Override
     public String getStorageType() {
         return "s3";
     }

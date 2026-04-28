@@ -20,6 +20,15 @@ public interface StorageService {
     String uploadFile(MultipartFile file, String category) throws Exception;
 
     /**
+     * 上传字节数据
+     * @param data 文件数据
+     * @param category 分类
+     * @param contentType MIME类型
+     * @return 文件标识符
+     */
+    String uploadBytes(byte[] data, String category, String contentType) throws Exception;
+
+    /**
      * 批量上传文件
      */
     List<String> uploadFiles(MultipartFile[] files, String category) throws Exception;
