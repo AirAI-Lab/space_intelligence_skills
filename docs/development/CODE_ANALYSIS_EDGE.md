@@ -5,7 +5,7 @@
 - **分析范围**: `D:\github\edge_infer`
 - **分析日期**: 2026-03-06
 - **框架版本**: 1.0.0
-- **分析对象**: 边缘推理框架核心代码及RCMT模型训练代码
+- **分析对象**: 边缘推理框架核心代码（edge_infer 仓库）
 
 ---
 
@@ -77,7 +77,8 @@ bool Stop();                           // 停止读取线程
 - 支持多种输入源：RTSP、RTMP、本地视频文件、USB摄像头
 - 使用独立线程读取帧，避免阻塞主处理循环
 - 双缓冲机制：读取线程和主线程通过互斥锁同步
-- 可选FFmpeg解码器优化
+- FFmpeg 直接输出 BGR24 格式（`-pix_fmt bgr24`），跳过 `cv::cvtColor` 转换
+- 读取线程使用 `std::move(frame)` 传递帧，避免每帧 ~2-3ms 的 `clone()` 拷贝
 
 **配置示例**:
 ```json
@@ -98,30 +99,44 @@ bool Init(const void* config);              // 初始化推理引擎
 bool Infer(const cv::Mat& frame, int frame_idx,
            std::vector<Detection>& detections); // 执行推理
 bool ReloadEngine(const std::string& new_engine_path); // 热更新模型
+void SetCudaPreprocess(bool enable);         // 启用/禁用 CUDA 预处理
 ```
 
 **实现特点**:
 - 支持多模型并行推理（每个插件一个推理实例）
-- 预处理：Letterbox缩放 + BGR→RGB + 归一化
+- **双路径预处理**：CUDA GPU 预处理（默认）+ CPU 回退
+- CUDA 预处理：融合 kernel 完成 BGR→RGB + 双线性 resize + letterbox + normalize + NCHW，直接写入 TRT 设备缓冲区
+- CUDA stream 共享：预处理和 TRT 推理使用同一 CUDA stream，省去中间同步开销
+- Per-class cache-friendly 检测解析：按类别顺序扫描输出，避免跨步内存访问
+- 预分配输出缓冲区（`pre_hostOutput_`/`pre_best_scores_`/`pre_best_classes_`），避免每帧堆分配
 - 后处理：置信度过滤 + 坐标反映射
 - 模型热更新支持（OTA场景）
+- 自动检测 engine 实际输入 shape，与配置尺寸不一致时自动校正
 
 **数据流程**:
 ```
 输入帧 (BGR, 任意尺寸)
   ↓
-Letterbox缩放 → RGB转换 → 归一化 [0,1]
+[CUDA路径] GPU 融合预处理 (BGR→RGB + resize + letterbox + normalize + NCHW)
+  或
+[CPU路径] Letterbox缩放 → RGB转换 → 归一化 → NCHW通道重排
   ↓
-NCHW通道重排
+TensorRT 推理 (enqueueV3, 共享 CUDA stream)
   ↓
-TensorRT推理
-  ↓
-输出解析 (N个检测框 × (4+类别数))
+Per-class 顺序扫描 → 每个anchor的最佳类别和分数
   ↓
 坐标反映射 + 置信度过滤
   ↓
 Detection向量
 ```
+
+**性能数据** (Jetson Orin Nano, 640×640 输入):
+| 阶段 | CUDA路径 | CPU路径 |
+|------|----------|---------|
+| 预处理 | ~2ms | ~15-20ms |
+| TRT推理 | ~20-25ms | ~20-25ms |
+| 检测解析 | <0.3ms | ~5-8ms |
+| **单帧总耗时** | **~25-32ms** | **~45-55ms** |
 
 **热更新机制**:
 ```cpp
@@ -130,7 +145,13 @@ bool ReloadEngine(const std::string& new_engine_path) {
     auto new_engine = std::make_unique<TrtInferEngine>(input_w_, input_h_, log_level_);
     new_engine->loadEngineFromFile(new_engine_path);
 
-    // 2. 原子替换指针
+    // 2. 自动校正输入尺寸
+    int new_w, new_h; size_t new_elems;
+    if (new_engine->getEngineInputShape(new_w, new_h, new_elems) && new_w > 0) {
+        input_w_ = new_w; input_h_ = new_h;
+    }
+
+    // 3. 原子替换指针
     std::swap(trt_engine_, new_engine);
 
     return true;
@@ -203,10 +224,25 @@ Framework (主框架)
 **数据流**:
 ```
 视频源 → DataInputModule → ModelInferModule → ResultProcessModule
-  → ResultOutputModule → RTMP推流/本地保存
+  → 异步OutputTask入队 → 后台输出线程消费
+       ↓                      ├→ ResultOutputModule → RTMP推流/本地保存
+   推理线程继续下一帧          ├→ ReportInferenceResult → MQTT/HTTP上报
+                               └→ cloud_forward → 原始帧转发云端
                 ↓
             插件链处理
 ```
+
+**异步输出管道**:
+
+推理主循环将 OutputTask（含 `frame.clone()` + detections/alerts 独立副本）入队后立即返回，后台输出线程负责所有 I/O 密集操作（推流、上报、云端转发）。推理与 I/O 流水线并行，帧吞吐量从 ~6fps 提升到 ~20+fps。
+
+| 控制项 | 配置项 | 说明 |
+|--------|--------|------|
+| 推流(RTMP) | `output_url` | 有值=开启，空=不推流 |
+| 保存(录像+截图) | `output_save_enabled` | 默认 true，false 时跳过所有磁盘 I/O |
+| 推理上报 | `enable_cloud_sync` | MQTT/HTTP 推理结果上报 + 告警数据上传 |
+| CUDA预处理 | `use_cuda_preprocess` | 默认 true，false 时回退 CPU 预处理 |
+| 异步输出 | `async_output` | 默认 true，启用后台输出线程 |
 
 ---
 
@@ -536,319 +572,9 @@ target_link_libraries(your_plugin PRIVATE
 
 ---
 
-## 5. models/rcmt/ - RCMT模型结构
+## 5. 模块间依赖关系
 
-### 5.1 模块概述
-
-`models/rcmt/` 包含基于**变化检测（Change Detection）** 的 RCMT 模型训练代码。
-
-### 5.2 RCMT模型架构
-
-RCMT（Remote sensing Change detection with Multi-scale Temporal）是一种用于遥感图像变化检测的深度学习模型。
-
-#### 5.2.1 模型组成
-
-```
-RCMT
-├── Encoder (编码器)
-│   ├── Backbone: ResNet/Swin Transformer
-│   ├── Multi-scale Feature Extraction
-│   └── Temporal Fusion Module
-├── Decoder (解码器)
-│   ├── Feature Fusion (T1 + T2)
-│   ├── Up-sampling Layers
-│   └── Skip Connections
-└── Head
-    └── Change Probability Map
-```
-
-#### 5.2.2 核心模块
-
-**1. 双时相输入处理**:
-```python
-# 输入: T1图像, T2图像 (C, H, W)
-# 输出: 变化掩码 (H, W)
-
-def forward(self, t1_img, t2_img):
-    # 提取T1特征
-    feat_t1 = self.encoder(t1_img)
-
-    # 提取T2特征
-    feat_t2 = self.encoder(t2_img)
-
-    # 时序融合
-    feat_diff = feat_t2 - feat_t1
-    feat_fused = self.temporal_fusion(feat_t1, feat_t2, feat_diff)
-
-    # 解码
-    change_map = self.decoder(feat_fused)
-
-    return change_map
-```
-
-**2. 时序融合模块**:
-```python
-class TemporalFusion(nn.Module):
-    def forward(self, feat_t1, feat_t2, feat_diff):
-        # 特征差分
-        diff = torch.abs(feat_t1 - feat_t2)
-
-        # 拼接特征
-        concat = torch.cat([feat_t1, feat_t2, diff], dim=1)
-
-        # 卷积融合
-        fused = self.conv(concat)
-
-        return fused
-```
-
-### 5.3 训练脚本
-
-#### 5.3.1 训练文件列表
-
-| 文件名 | 功能 | 状态 |
-|--------|------|------|
-| `train_rcmt_v4_optimized.py` | 优化版训练脚本（修复版） | ✅ 推荐 |
-| `mci_v2_infer_main.py` | MCI推理脚本 | 🔄 可用 |
-| `experiment_framework.py` | 实验框架 | 📊 辅助 |
-
-#### 5.3.2 训练配置
-
-**数据集**:
-- LEVIR-CD (256×256)
-- DSIFN-CD
-- WHU-CD
-
-**损失函数**:
-- BCEWithLogitsLoss（主损失）
-- Dice Loss（辅助）
-
-**优化器**:
-- AdamW (lr=5e-5, weight_decay=1e-4)
-
-**学习率调度**:
-- OneCycleLR (max_lr=5e-5, pct_start=0.1)
-
-**数据增强**:
-- RandomFlip (H/V)
-- RandomRotate (±15°)
-- MixUp (alpha=0.4, prob=0.5)
-
-### 5.4 性能指标
-
-| 数据集 | mIoU | F1 | 训练时间 |
-|--------|------|-----|---------|
-| LEVIR-CD | 80-82% | 0.88-0.90 | 1-2天 |
-| DSIFN-CD | 78-80% | 0.86-0.88 | 2-3天 |
-| WHU-CD | 82-84% | 0.90-0.92 | 2-3天 |
-
-### 5.5 推理脚本
-
-`infer_rcmt.py` - 模型推理脚本
-
-```python
-def infer(model, t1_img, t2_img):
-    model.eval()
-    with torch.no_grad():
-        change_map = model(t1_img, t2_img)
-        mask = (change_map > 0.5).float()
-    return mask
-```
-
----
-
-## 6. rcmt_v3/ - 当前训练代码结构
-
-### 6.1 模块概述
-
-`rcmt_v3/` 是 RCMT 模型的第三版训练框架，采用轻量化设计，包含多种优化策略。
-
-### 6.2 架构设计
-
-#### 6.2.1 双架构
-
-**1. RCMT-V3-Hybrid（轻量化）**
-
-- **参数量**: 11.8M
-- **Backbone**: ResNet-like CNN
-- **Decoder**: Transformer Decoder
-- **Fusion**: 简单差分时序融合
-- **优势**: 训练快（4小时）、显存低（2.7GB）、适合边缘部署
-- **性能**: F1=0.9016, IoU=0.8208
-
-**2. RCMT-V3-Swin-Temporal（高精度）**
-
-- **参数量**: 65.8M
-- **Backbone**: Swin Transformer
-- **Fusion**: 双向时序注意力
-- **优势**: 更强特征提取、专门时序建模
-- **预期性能**: F1>0.92, IoU>0.85
-
-#### 6.2.2 文件结构
-
-```
-rcmt_v3/
-├── train_rcmt_v3_hybrid.py          # v3-hybrid训练脚本
-├── train_rcmt_v3_optimized.py       # v3-optimized训练脚本 ✅
-├── train_rcmt_v3_swin_temporal.py   # v3-swin-temporal训练脚本 🚀
-│
-├── models/
-│   ├── model.py                     # 主模型
-│   ├── encoder.py                   # 编码器
-│   ├── decoder.py                   # 解码器
-│   └── transformer.py               # Transformer模块
-│
-├── datasets/
-│   └── dataset.py                   # 数据集加载
-│
-├── losses/
-│   └── focal_dice.py                # 损失函数
-│
-├── utils/
-│   ├── metrics.py                   # 评估指标
-│   └── augmentation.py              # 数据增强
-│
-├── logs_optimized/                  # v3-optimized日志
-├── checkpoints_optimized/           # v3-optimized checkpoints
-├── logs_swin_final/                 # v3-swin日志
-└── checkpoints_swin_final/          # v3-swin checkpoints
-```
-
-### 6.3 核心创新点
-
-#### 6.3.1 系统性优化策略
-
-**1. 损失函数简化**:
-```python
-# v3-hybrid（失败）
-FocalDiceLoss + DeepSupervisionLoss  # Loss: 1.461
-
-# v3-optimized（成功）
-BCEWithLogitsLoss()  # Loss: 0.212
-
-贡献: +1.0% F1
-```
-
-**2. 学习率调度优化**:
-```python
-OneCycleLR(max_lr=0.0001, pct_start=0.1)
-贡献: +0.3% F1
-```
-
-**3. 数据增强：MixUp**:
-```python
-MixUp(alpha=0.4, prob=0.5)
-效果: Recall +9.2%
-贡献: +0.2% F1
-```
-
-**4. 正则化组合**:
-```python
-GradientClipping(max_norm=1.0) + DropPath(0.1)
-贡献: +0.02% F1
-```
-
-**总提升**: +1.52% F1
-
-#### 6.3.2 模型代码结构
-
-**主模型（model.py）**:
-```python
-class RCMTV3(nn.Module):
-    def __init__(self, backbone='resnet', num_classes=1):
-        super().__init__()
-        self.encoder = Encoder(backbone)
-        self.decoder = Decoder()
-        self.head = nn.Conv2d(decoder_channels, num_classes, 1)
-
-    def forward(self, t1_img, t2_img):
-        feat_t1 = self.encoder(t1_img)
-        feat_t2 = self.encoder(t2_img)
-
-        # 时序融合
-        diff = torch.abs(feat_t1 - feat_t2)
-        fused = torch.cat([feat_t1, feat_t2, diff], dim=1)
-
-        # 解码
-        output = self.decoder(fused)
-        return self.head(output)
-```
-
-**编码器（encoder.py）**:
-```python
-class Encoder(nn.Module):
-    def __init__(self, backbone='resnet'):
-        super().__init__()
-        if backbone == 'resnet':
-            self.backbone = ResNetEncoder()
-        elif backbone == 'swin':
-            self.backbone = SwinEncoder()
-
-    def forward(self, x):
-        return self.backbone(x)
-```
-
-**解码器（decoder.py）**:
-```python
-class Decoder(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.up1 = UpBlock(512, 256)
-        self.up2 = UpBlock(256, 128)
-        self.up3 = UpBlock(128, 64)
-        self.up4 = UpBlock(64, 32)
-
-    def forward(self, x):
-        x = self.up1(x)
-        x = self.up2(x)
-        x = self.up3(x)
-        x = self.up4(x)
-        return x
-```
-
-### 6.4 训练流程
-
-```bash
-# 从零开始训练v3-optimized
-python train_rcmt_v3_optimized.py \
-    --data-root /path/to/LEVIR-CD256 \
-    --batch-size 16 \
-    --epochs 200 \
-    --loss-type bce \
-    --scheduler onecycle \
-    --mixup-prob 0.5
-
-# 续训
-python train_rcmt_v3_optimized.py \
-    --resume checkpoints_optimized/checkpoint_epoch_100.pth \
-    --epochs 200
-
-# 训练v3-swin-temporal（高精度版）
-python train_rcmt_v3_swin_temporal.py \
-    --data-root /path/to/LEVIR-CD256 \
-    --batch-size 1 \
-    --accumulation-steps 16 \
-    --epochs 300 \
-    --use-temporal-fusion \
-    --use-checkpoint
-```
-
-### 6.5 性能对比
-
-| 方法 | F1 | IoU | Precision | Recall | 参数量 | 状态 |
-|------|-----|-----|-----------|--------|--------|------|
-| BIT | 0.890 | 0.802 | - | - | - | 参考 |
-| ChangeFormer | 0.903 | 0.822 | - | - | - | 参考 |
-| TinyCD | 0.895 | 0.810 | - | - | - | 参考 |
-| **rcmt_v3-hybrid** | 0.8864 | 0.7960 | - | - | 11.8M | 完成 |
-| **rcmt_v3-optimized** | **0.9016** ✅ | **0.8208** | **0.9137** | **0.8897** | **11.8M** | **完成** ✅ |
-| **rcmt_v3-swin-temporal** | **0.92+** 🎯 | **0.85+** | TBD | TBD | **65.8M** | **训练中** 🚀 |
-
----
-
-## 7. 模块间依赖关系
-
-### 7.1 整体依赖图
+### 5.1 整体依赖图
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -879,7 +605,7 @@ python train_rcmt_v3_swin_temporal.py \
 └───────────────┘     └───────────────┘     └──────────────────┘
 ```
 
-### 7.2 数据流详解
+### 5.2 数据流详解
 
 **1. 视频输入流**:
 ```
@@ -931,7 +657,7 @@ ResultOutputModule::Output()
   └─→ 告警图保存
 ```
 
-### 7.3 配置依赖
+### 5.3 配置依赖
 
 ```
 config/
@@ -945,9 +671,9 @@ config/
 
 ---
 
-## 8. 发现的问题与改进建议
+## 6. 发现的问题与改进建议
 
-### 8.1 架构层面
+### 6.1 架构层面
 
 #### 问题1: 插件类型过于简单
 
@@ -1048,7 +774,7 @@ protected:
 };
 ```
 
-### 8.2 代码质量
+### 6.2 代码质量
 
 #### 问题1: 缺少异常处理
 
@@ -1135,7 +861,7 @@ bool DataInputModule::InitFrameInput() {
 }
 ```
 
-### 8.3 性能优化
+### 6.3 性能优化
 
 #### 问题1: 推理后处理效率低
 
@@ -1203,7 +929,7 @@ bool ModelInferModule::Infer(...) {
 }
 ```
 
-### 8.4 可维护性
+### 6.4 可维护性
 
 #### 问题1: 配置文件分散
 
@@ -1293,7 +1019,7 @@ class ModelInferModule {
 };
 ```
 
-### 8.5 安全性
+### 6.5 安全性
 
 #### 问题1: 缺少输入验证
 
@@ -1354,7 +1080,9 @@ public:
 };
 ```
 
-### 8.6 RCMT模型特定问题
+### 6.6 RCMT模型特定问题（已弃用）
+
+> RCMT 模型已不在当前架构中使用。云端推理已切换至 C-RADIOv4 零样本分割。本节保留仅作历史参考。
 
 #### 问题1: 训练脚本版本混乱
 
@@ -1442,9 +1170,9 @@ if epoch % 5 == 0:
 
 ---
 
-## 9. 总结
+## 7. 总结
 
-### 9.1 优势
+### 7.1 优势
 
 1. **插件化架构**: 灵活的插件系统，易于扩展
 2. **多模型支持**: 支持多个模型并行推理
@@ -1453,7 +1181,7 @@ if epoch % 5 == 0:
 5. **高性能**: TensorRT加速推理
 6. **训练框架完善**: RCMT v3提供轻量化和高精度双架构
 
-### 9.2 不足
+### 7.2 不足
 
 1. **缺少单元测试**: 无测试覆盖
 2. **异常处理不完善**: 存在崩溃风险
@@ -1463,7 +1191,7 @@ if epoch % 5 == 0:
 6. **资源限制不足**: 未限制内存/显存使用
 7. **模型版本混乱**: RCMT训练脚本重复
 
-### 9.3 优先级建议
+### 7.3 优先级建议
 
 **高优先级**:
 1. 添加异常处理和错误恢复机制
@@ -1483,7 +1211,7 @@ if epoch % 5 == 0:
 
 ---
 
-## 10. 附录
+## 8. 附录
 
 ### 10.1 关键文件索引
 

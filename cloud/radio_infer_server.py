@@ -277,6 +277,9 @@ class RadioInferServer:
         annotated = image.copy()
         h, w = annotated.shape[:2]
 
+        # 根据图片尺寸自适应字体大小
+        font_size = max(24, min(w, h) // 25)
+
         for i, (name, seg) in enumerate(results.items()):
             if not hasattr(seg, 'mask') or seg.mask is None:
                 continue
@@ -292,15 +295,19 @@ class RadioInferServer:
                     label = f"{seg.class_name_cn or name} {seg.area_ratio:.1%}"
 
                     # PIL 渲染中文文字
-                    font = self._get_font(20)
+                    font = self._get_font(font_size)
                     pil_img = Image.fromarray(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB))
                     draw = ImageDraw.Draw(pil_img)
                     bbox = draw.textbbox((0, 0), label, font=font)
                     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-                    tx, ty = cx - tw // 2, cy - th // 2
 
-                    # 背景矩形
-                    draw.rectangle([tx - 4, ty - 4, tx + tw + 4, ty + th + 4],
+                    # 边界约束：确保标签不超出图片范围
+                    pad = 10
+                    tx = max(pad, min(w - tw - pad, cx - tw // 2))
+                    ty = max(pad, min(h - th - pad, cy - th // 2))
+
+                    # 背景矩形（加大 padding）
+                    draw.rectangle([tx - pad, ty - pad, tx + tw + pad, ty + th + pad],
                                    fill=(color[2], color[1], color[0]))
                     draw.text((tx, ty), label, fill=(255, 255, 255), font=font)
                     annotated = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)

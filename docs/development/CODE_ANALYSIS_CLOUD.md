@@ -1175,9 +1175,80 @@ mlflow.end_run()
 
 ---
 
-## 五、算法模型目录
+## 五、云端推理服务 (C-RADIOv4)
 
-### 5.1 模型目录结构
+### 5.1 概述
+
+`cloud/radio_infer_server.py` 是基于 C-RADIOv4 的云端统一推理服务，接收边缘设备转发的原始帧，执行零样本语义分割（如裸土检测、扬尘检测、积水检测等），并将结果上报后端。
+
+### 5.2 架构
+
+```
+边缘设备 → MQTT(device/+/cloud/frame) → radio_infer_server.py
+                                              ↓
+                                         C-RADIOv4-H 零样本分割
+                                         (SigLIP2-g 特征提取器)
+                                              ↓
+                                         类别匹配 + 告警生成
+                                              ↓
+                                    HTTP POST → backend:8080 推理结果上报
+                                              ↓
+                                    MQTT(device/{id}/inference/result) 可视化结果
+```
+
+### 5.3 推理流程
+
+1. **帧接收**：通过 MQTT 订阅 `device/+/cloud/frame` 接收边缘设备转发的 JPEG 原始帧（Base64 编码）
+2. **预处理**：解码 JPEG → resize 到 378×378 → 归一化
+3. **C-RADIOv4 推理**：通过 SigLIP2-g 特征提取器生成图像特征，与预定义的类别文本提示进行相似度匹配
+4. **类别匹配**：支持多种语义分割类别（如 `bare_soil_uncovered`、`dust_pollution` 等），通过配置文件定义
+5. **告警生成**：分割面积超过阈值时生成告警
+6. **结果上报**：通过 HTTP POST 将推理结果和可视化图像上传到后端
+
+### 5.4 配置
+
+通过 YAML 配置文件（如 `models/construction_safety/configs/construction_safety.yaml`）定义分割类别和告警规则：
+
+```yaml
+segmentation_classes:
+  - bare_soil_uncovered
+  - dust_pollution
+  - pit_water_accumulation
+  - material_near_pit
+
+alert_threshold: 0.05  # 分割面积占比阈值
+```
+
+### 5.5 可视化
+
+推理结果可视化包含：
+- 分割区域彩色叠加
+- 自适应字体大小的标签（`max(24, min(w,h)//25)`）
+- 边界检查确保标签不超出图像范围
+- 标签背景 padding 增大（10px），防止文字截断
+
+### 5.6 性能
+
+| 指标 | 值 |
+|------|-----|
+| 首帧推理 | ~1900ms（模型预热） |
+| 稳态推理 | ~900-960ms |
+| 模型参数量 | 1412.4M (C-RADIOv4-H + SigLIP2-g) |
+| 设备 | CUDA GPU |
+
+### 5.7 部署
+
+```bash
+# 在 Docker 容器中启动
+docker exec -d edge_cloud_training bash -c \
+  "cd /app && python3 radio_infer_server.py >> /app/data/radio_infer.log 2>&1"
+```
+
+---
+
+## 七、算法模型目录
+
+### 7.1 模型目录结构
 
 ```
 models/
@@ -1203,7 +1274,7 @@ models/
     └── README.md     # 使用文档
 ```
 
-### 5.2 RCMT (Recurrent Cross-Memory Transformer) V2.0
+### 7.2 RCMT (Recurrent Cross-Memory Transformer) V2.0
 
 **用途**: 卫星图像变化检测
 
@@ -1253,7 +1324,7 @@ models/
 }
 ```
 
-### 5.3 RCMT V3.0
+### 7.3 RCMT V3.0
 
 **用途**: 高性能变化检测
 
@@ -1329,9 +1400,9 @@ inference:
 
 ---
 
-## 六、总结
+## 八、总结
 
-### 6.1 架构特点
+### 8.1 架构特点
 
 1. **微服务架构**:
    - 后端Spring Boot + 训练服务Flask 独立部署
@@ -1349,7 +1420,7 @@ inference:
    - 云端: 训练、模型管理、任务调度
    - 边缘: 推理、状态上报、OTA接收
 
-### 6.2 技术亮点
+### 8.2 技术亮点
 
 1. **智能训练优化**:
    - 续训支持
@@ -1370,7 +1441,7 @@ inference:
    - 支持FP16/INT8量化
    - 提升推理性能
 
-### 6.3 扩展性
+### 8.3 扩展性
 
 1. **水平扩展**:
    - 训练服务可多实例部署

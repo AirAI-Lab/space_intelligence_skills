@@ -206,6 +206,43 @@ export default defineConfig({
 })
 ```
 
+## 边缘端 MQTT 问题
+
+### 1. mosquitto_loop_start 与 mosquitto_loop 冲突导致 segfault
+**症状**：
+```
+SIGSEGV (segmentation fault) in mosquitto internal thread
+MQTT 客户端断线后无法自动重连
+```
+
+**根因**：`mosquitto_loop_start()` 创建后台线程运行事件循环，同时在主循环中调用 `mosquitto_loop(0)` 导致两个线程同时操作 `mosq_` 句柄。
+
+**解决方案**：移除 RunOnce() 中的 `mqtt_client_->Loop(0)` 调用，仅使用 `mosquitto_loop_start` + `mosquitto_reconnect_delay_set` 处理自动重连。
+```cpp
+// OnDisconnectCallback 中不要手动调用 mosquitto_reconnect
+// mosquitto_loop_start 已创建后台线程并配合 reconnect_delay_set 自动重连
+void MqttClient::OnDisconnectCallback(...) {
+    client->connected_ = false;
+    LOG_WARN("MQTT disconnected, loop_start will auto-reconnect");
+    // 不要: mosquitto_reconnect(mosq);  // 会导致 segfault
+}
+```
+
+### 2. 云端转发发送了已标注帧
+**症状**：云端收到的帧带有检测框标注，而非原始帧。
+
+**根因**：OutputLoop 中先调用 `Output()` 画框标注，再转发帧到云端。`Output()` 通过 `const_cast` 就地修改了帧数据。
+
+**解决方案**：重排 OutputLoop 顺序，先转发原始帧再调用 `Output()` 画框。
+```cpp
+void Framework::OutputLoop() {
+    // 1. 先转发原始帧到云端
+    if (cloud_forward_enabled) { ... publish raw frame ... }
+    // 2. 再画框标注 + 推流
+    result_output_.Output(task.frame, ...);
+}
+```
+
 ## 性能优化建议
 
 ### 1. 数据库查询优化

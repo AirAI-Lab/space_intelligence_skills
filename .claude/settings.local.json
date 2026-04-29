@@ -27,11 +27,13 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(taskkill:*)",
-      "Bash(netstat -ano)"
+      "Bash(netstat -ano)",
+      "Read(//e/深职大/专利软著/文奴/bit_change/patent_farm/**)"
     ],
     "additionalDirectories": [
       "D:\\github\\edge_infer\\src\\mqtt",
-      "D:\\github"
+      "D:\\github",
+      "d:\\d\\github\\edge_infer\\src\\plugins\\anomaly_detection"
     ]
   }
 }

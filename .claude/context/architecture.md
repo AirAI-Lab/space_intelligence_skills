@@ -40,6 +40,11 @@
 │  ├─ trainer.py (YOLOv8 训练)           │           │               │
 │  ├─ converter.py (模型转换)            │           │               │
 │  └─ MLflow (实验跟踪)                  │           │               │
+│                                         │           │               │
+│  云端推理服务 (C-RADIOv4)               │           │               │
+│  ├─ radio_infer_server.py              │           │               │
+│  ├─ SigLIP2-g 特征提取器              │           │               │
+│  └─ 零样本语义分割 (裸土/扬尘等)       │           │               │
 └─────────────────────────────────────────┼───────────┴───────────────┘
                                            │
                             ┌──────────────▼────────────────┐
@@ -52,7 +57,10 @@
 │  C++ 推理引擎                                                       │
 │  ├─ MQTT Client (订阅 OTA 更新)                                 │
 │  ├─ Model Manager (热更新 .engine 文件)                          │
-│  └─ Plugin Engine (TensorRT 推理)                                │
+│  ├─ Plugin Engine (TensorRT 推理)                                │
+│  ├─ CUDA Preprocessor (GPU 融合预处理)                          │
+│  ├─ Async Output Thread (异步推流/上报/转发)                    │
+│  └─ Cloud Forward (原始帧转发云端推理)                           │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,6 +91,14 @@
 | `converter.py` | 模型格式转换 |
 | `config.py` | 配置和 S3 客户端 |
 
+### 云端推理服务 (radio_infer_server.py)
+| 文件 | 职责 |
+|------|------|
+| `cloud/radio_infer_server.py` | C-RADIOv4 零样本语义分割推理 |
+| 模型 | C-RADIOv4-H (1412.4M 参数) + SigLIP2-g 特征提取器 |
+| 输入 | MQTT 订阅边缘设备转发的原始帧 |
+| 输出 | 分割结果 + 告警 → HTTP POST 后端 |
+
 ## 核心数据流
 
 ### 1. 模型训练和部署流程
@@ -110,6 +126,21 @@ MQTT 推送 → EMQX:1883
 热更新 → edge_infer 重载插件
         ↓
 状态上报 → MQTT 上报进度
+```
+
+### 2. 云端推理流程
+```
+边缘设备采集帧 → CUDA 预处理 → TensorRT 推理
+        ↓
+异步输出管道: 推流 + MQTT 上报 + 原始帧转发
+        ↓
+MQTT publish → device/{id}/cloud/frame (JPEG Base64)
+        ↓
+radio_infer_server.py 订阅 → C-RADIOv4 零样本分割
+        ↓
+分割结果 + 可视化图像 → HTTP POST backend:8080
+        ↓
+后端存储 → 前端展示
 ```
 
 ### 2. API 调用关系
