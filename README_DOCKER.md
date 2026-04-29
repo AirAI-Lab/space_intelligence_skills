@@ -926,35 +926,31 @@ CREATE TABLE IF NOT EXISTS webhook_configs (
 
 **边缘负责实时检测，云端负责非实时零样本分割，两者是并列业务。**
 
-云端统一推理脚本 `cloud/radio_infer_server.py` 支持自动模式检测 + MQTT 故障自动降级：
+云端推理脚本 `radio_infer_server.py` 支持 4 种运行模式：
 
-| 模式 | 帧来源 | 适用场景 | 启动方式 |
-|------|--------|---------|---------|
-| **MQTT** (推荐) | 边缘设备转发 JPEG 帧 | 生产环境，边缘已部署 | `--mode mqtt` 或自动检测 |
-| **RTMP 直连** | 云端直接拉 RTMP 流 | 开发演示，无边缘设备 | `--mode stream --stream rtmp://...` |
-| **双通道** | MQTT 为主 + RTMP 补充 | 过渡期，双重保障 | `--mode dual --stream rtmp://...` |
-| **自动** | 检测 MQTT/RTMP 可达性 | 默认模式，零配置 | `--mode auto`（默认） |
+| 模式 | 帧来源 | 说明 |
+|------|--------|------|
+| **自动**（默认） | 检测 MQTT/RTMP 可达性自动选择 | 零配置，推荐 |
+| **MQTT** | 边缘设备转发 JPEG 帧 | 生产环境 |
+| **RTMP 直连** | 云端直接拉 RTMP 原始流 | 开发演示，无边缘设备 |
+| **双通道** | MQTT 为主 + RTMP 补充 | 过渡期双重保障 |
 
-**自动降级机制**：MQTT 模式运行中，如果连续 30 秒未收到边缘转发的帧，自动从配置文件的 `fallback_stream` 拉取原始视频流继续推理；MQTT 恢复后自动切回。无需人工干预。
+**自动降级**：MQTT 模式运行中连续 30 秒无帧 → 自动从 YAML 配置的 `fallback_stream` 拉原始视频流 → MQTT 恢复后自动切回。更换场地只需修改 YAML，无需改命令行。
 
-> 降级流地址在场景配置文件的 `deployment.cloud.fallback_stream` 字段配置，更换场地只需修改 YAML。
+**数据流通道**：
 
-**数据流详细说明**：
-
-| 步骤 | 通道 | 说明 |
+| 通道 | 协议 | 说明 |
 |------|------|------|
-| 边缘 → 后端 | MQTT `device/{id}/inference/results` | 推理结果自动上报（主通道） |
-| 边缘 → 后端 | REST `POST /api/v1/edge/inference/result` | MQTT 失败时的降级备用通道 |
-| 边缘 → 云端 | MQTT `device/{id}/cloud/frame` | JPEG 帧转发（每 3 秒，~100KB/帧） |
-| 云端 → 后端 | REST `POST /api/v1/cloud/inference/result` | 分割结果上报（含标注图片） |
-| 后端 → 前端 | WebSocket `/topic/inference/{id}/results` | 实时推送 |
+| 边缘 → 后端 | MQTT + REST | 推理结果上报（双通道冗余） |
+| 边缘 → 云端 | MQTT | JPEG 帧转发（每 3 秒，~100KB/帧） |
+| 云端 → 后端 | REST | 分割结果上报（含标注图片） |
+| 后端 → 前端 | WebSocket | 实时推送 |
 
 ### 19.3 Step 1：启动云端基础服务
 
 在云端服务器 (103) 上执行：
 
 ```powershell
-# Windows PowerShell
 cd D:\github\edge_infer_cloud\deployment\docker
 
 # 启动基础设施 (数据库 + 缓存 + MQTT + 存储)
@@ -964,15 +960,6 @@ docker compose up -d postgres redis emqx mlflow seaweedfs portal
 Start-Sleep -Seconds 20
 
 # 启动后端和前端
-docker compose up -d backend frontend
-```
-
-```bash
-# Linux/macOS
-cd /path/to/edge_infer_cloud/deployment/docker
-
-docker compose up -d postgres redis emqx mlflow seaweedfs portal
-sleep 20
 docker compose up -d backend frontend
 ```
 
@@ -1124,17 +1111,10 @@ ffprobe rtmp://192.168.0.103:1935/stream/safety_cam
 
 ### 19.6 Step 4：启动云端推理
 
-云端统一推理脚本 `radio_infer_server.py` 支持 4 种模式，**默认自动检测**。脚本内置防重复启动机制，多次执行会自动终止旧实例。
-
-#### 方式 A：在 Training 容器中运行（推荐 — 无需额外构建）
-
-`edge_cloud_training` 容器已有 PyTorch + CUDA + 模型权重等全部依赖。脚本和配置通过 Docker 卷挂载，无需 `docker cp`。
-
-**一条命令启动（自动模式）**：
-
-> 前提：边缘设备 (107) 已启动 `edge_framework`，且 `cloud_config.json` 中 `cloud_forward.enabled=true`。无边缘设备时自动降级到配置文件中的 `fallback_stream` 拉流。
+云端推理脚本内置防重复启动（自动终止旧实例），支持自动降级。
 
 ```powershell
+# PowerShell（推荐）
 docker exec edge_cloud_training python3 /app/radio_infer_server.py `
   --config /app/models/construction_safety/configs/construction_safety.yaml `
   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
@@ -1142,11 +1122,8 @@ docker exec edge_cloud_training python3 /app/radio_infer_server.py `
   --siglip2 /app/models/siglip2-giant-opt-patch16-384
 ```
 
-> **说明**：不传 `--stream` 时，降级流地址从 YAML 配置文件的 `deployment.cloud.fallback_stream` 字段读取。更换场地只需改 YAML，无需改命令行。传 `--stream` 可覆盖配置文件。
-
-**Git Bash 启动**（需加路径保护前缀）：
-
 ```bash
+# Git Bash（需加路径保护前缀）
 MSYS_NO_PATHCONV=1 docker exec edge_cloud_training python3 /app/radio_infer_server.py \
   --config /app/models/construction_safety/configs/construction_safety.yaml \
   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
@@ -1154,68 +1131,20 @@ MSYS_NO_PATHCONV=1 docker exec edge_cloud_training python3 /app/radio_infer_serv
   --siglip2 /app/models/siglip2-giant-opt-patch16-384
 ```
 
-**指定模式启动**：
+> **无需 `--stream`**：降级流地址从 YAML 配置文件的 `deployment.cloud.fallback_stream` 自动读取。更换场地只需改 YAML。传 `--stream` 可覆盖。
 
-```powershell
-# 演示模式 — 无边缘设备，直接拉原始视频流推理
-docker exec edge_cloud_training python3 /app/radio_infer_server.py `
-  --mode stream `
-  --config /app/models/construction_safety/configs/construction_safety.yaml `
-  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
-  --radio-code /app/models/NVlabs_RADIO `
-  --siglip2 /app/models/siglip2-giant-opt-patch16-384
-
-# 双通道模式 — MQTT 为主 + RTMP 补充采样
-docker exec edge_cloud_training python3 /app/radio_infer_server.py `
-  --mode dual `
-  --config /app/models/construction_safety/configs/construction_safety.yaml `
-  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
-  --radio-code /app/models/NVlabs_RADIO `
-  --siglip2 /app/models/siglip2-giant-opt-patch16-384
-```
-
-**运行时自动降级**：
+**预期日志**：
 
 ```
-MQTT 正常接收帧 ←───────────→ MQTT 连续 30s 无帧
-     ↓                                ↓
-  正常 MQTT 推理              自动降级 RTMP 拉原始流
-     ↑                                ↓
-  MQTT 恢复帧 ←────────── 自动切回 MQTT
+自动检测: MQTT ✓ → MQTT 模式                              ← 有边缘设备在线
+RTMP 降级: 30s 无帧时自动切换到 rtmp://192.168.0.103/...   ← 自动降级已就绪
+[1] jetson_orin_001 frame=1 (mqtt): ['bare_soil_uncovered'], 1 alerts, 120ms
 ```
-
-> 降级流地址来自场景配置文件的 `deployment.cloud.fallback_stream`，也可通过 `--stream` 参数覆盖。
 
 **停止推理**：
 
 ```powershell
 docker exec edge_cloud_training bash -c "pkill -f radio_infer_server"
-```
-
-#### 方式 B：本机 Python 直接运行
-
-如果本机已有 GPU + Python + PyTorch 环境：
-
-```bash
-# 自动模式
-python cloud/radio_infer_server.py --config models/construction_safety/configs/construction_safety.yaml
-
-# RTMP 直连（指定流地址覆盖配置文件）
-python cloud/radio_infer_server.py --mode stream --stream rtmp://192.168.0.103:1935/stream/safety_cam
-```
-
-> **前提**：本机需安装 PyTorch (CUDA)、OpenCV、paho-mqtt、模型权重等依赖。
-
-**验证云端推理**：
-
-```bash
-# Training 容器: 查看终端输出
-# 预期看到:
-#   "自动检测: MQTT ✓ → MQTT 模式"     (有边缘设备在线时)
-#   "自动检测: RTMP ✓ → RTMP 直连模式"  (无边缘设备时)
-#   "RTMP 降级: 30s 无帧时自动切换到 rtmp://..."  (MQTT 模式有降级流时)
-#   "[1] jetson_orin_001 frame=1 (mqtt): ['bare_soil_uncovered'], 1 alerts, 120ms"
-# 上报的图片会自动绘制分割 mask 和类别标签（半透明彩色区域 + 白色文字）
 ```
 
 ### 19.7 Step 5：配置并启动边缘推理
@@ -1297,15 +1226,16 @@ Framework Start success
 
 ```
 → 菜单 "Connections"
-  应看到连接: backend, jetson_orin_001, (radio_infer_* 如果使用 MQTT 模式)
+  应看到连接: backend, jetson_orin_001, radio_infer_*
 
 → 菜单 "Subscriptions"
   应看到:
   - backend 订阅 device/+/inference/results
   - backend 订阅 device/+/ota/status
+  - radio_infer_* 订阅 device/+/cloud/frame
 ```
 
-#### 验证推理结果上报
+#### 验证推理结果
 
 ```bash
 # 查询所有推理结果
@@ -1313,26 +1243,18 @@ curl -s http://localhost:8081/api/v1/inference/results?page=1\&page_size=5 | pyt
 
 # 仅查询边缘结果
 curl -s "http://localhost:8081/api/v1/inference/results?page=1&page_size=5&source=edge" | python3 -m json.tool
-# 应返回: "source": "edge", "model_name": "helmet_detect"
 
 # 仅查询云端结果
 curl -s "http://localhost:8081/api/v1/inference/results?page=1&page_size=5&source=cloud" | python3 -m json.tool
-# 应返回: "source": "cloud", "model_name": "C-RADIOv4"
-```
 
-#### 验证告警
-
-```bash
+# 告警查询
 curl -s "http://localhost:8081/api/v1/inference/alerts?levels=critical,warning" | python3 -m json.tool
-```
 
-#### 验证统计
-
-```bash
+# 统计信息
 curl -s http://localhost:8081/api/v1/inference/stats | python3 -m json.tool
 ```
 
-#### 验证数据库入库
+#### 验证数据库
 
 ```bash
 docker exec -it edge_cloud_postgres psql -U edge_user -d edge_cloud -c \
@@ -1351,72 +1273,47 @@ docker exec -it edge_cloud_postgres psql -U edge_user -d edge_cloud -c \
  edge   |   300 |   25.3
 ```
 
-#### 验证前端实时展示
+#### 验证前端
 
-```
-浏览器打开 http://192.168.0.103:3000
+浏览器打开 `http://192.168.0.103:3000`：
 
-1. 首页 → 查看推理趋势图和最近告警
-2. 推理结果 → 应实时刷新边缘+云端的结果列表
-3. 告警中心 → 应显示告警卡片和趋势柱状图
-4. 设备管理 → 查看设备在线状态
-```
+1. **首页** → 推理趋势图和最近告警
+2. **推理结果** → 实时刷新边缘+云端结果列表
+3. **告警中心** → 告警卡片和趋势柱状图
+4. **设备管理** → 设备在线状态
 
-### 19.9 Step 7：配置告警规则（可选）
+### 19.9 配置告警规则（可选）
 
-通过前端或 API 配置告警规则：
+通过前端 `http://192.168.0.103:3000/alert-rules` 可视化配置，或通过 API：
 
 ```bash
-# 示例: 裸土未覆盖告警 (云端分割面积 > 5% 时告警)
+# 裸土未覆盖告警 (云端分割面积 > 5%)
 curl -X POST http://192.168.0.103:8081/api/v1/alert-rules \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "裸土未覆盖告警",
-    "source": "cloud",
-    "class_name": "bare_soil_uncovered",
-    "condition_type": "area_threshold",
-    "threshold_value": 0.05,
-    "alert_level": "warning"
-  }'
+  -d '{"name":"裸土未覆盖告警","source":"cloud","class_name":"bare_soil_uncovered","condition_type":"area_threshold","threshold_value":0.05,"alert_level":"warning"}'
 
-# 示例: 未戴安全帽告警 (边缘检测)
+# 未戴安全帽告警 (边缘检测)
 curl -X POST http://192.168.0.103:8081/api/v1/alert-rules \
   -H "Content-Type: application/json" \
-  -d '{
-    "name": "未戴安全帽告警",
-    "source": "edge",
-    "class_name": "head",
-    "condition_type": "confidence_threshold",
-    "threshold_value": 0.5,
-    "alert_level": "critical"
-  }'
+  -d '{"name":"未戴安全帽告警","source":"edge","class_name":"head","condition_type":"confidence_threshold","threshold_value":0.5,"alert_level":"critical"}'
 ```
 
-前端访问 `http://192.168.0.103:3000/alert-rules` 可视化配置。
-
-### 19.10 Step 8：导出推理结果（可选）
+### 19.10 导出推理结果（可选）
 
 ```bash
 # 导出 CSV (Excel 兼容)
-curl "http://192.168.0.103:8081/api/v1/inference/export?format=csv" \
-  -o inference_results.csv
+curl "http://192.168.0.103:8081/api/v1/inference/export?format=csv" -o inference_results.csv
 
 # 导出 JSON
-curl "http://192.168.0.103:8081/api/v1/inference/export?format=json" \
-  -o inference_results.json
+curl "http://192.168.0.103:8081/api/v1/inference/export?format=json" -o inference_results.json
 
 # 按条件过滤导出
-curl "http://192.168.0.103:8081/api/v1/inference/export?\
-source=cloud&\
-alert_level=critical&\
-start_time=2026-04-28T00:00:00&\
-format=csv" \
-  -o critical_cloud_alerts.csv
+curl "http://192.168.0.103:8081/api/v1/inference/export?source=cloud&alert_level=critical&format=csv" -o critical_cloud_alerts.csv
 ```
 
 ### 19.11 一键演示脚本
 
-项目提供了一键演示脚本 `scripts/demo_construction_safety.ps1`，自动完成 Step 3 ~ Step 7：
+项目提供了一键演示脚本 `scripts/demo_construction_safety.ps1`，自动完成 Step 3 ~ Step 6：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\demo_construction_safety.ps1
@@ -1448,44 +1345,26 @@ cd ~/edge_infer/build && ./edge_framework
 | 边缘连接不上 MQTT | 在 107 上: `mosquitto_pub -h 103 -t test -m hello` | 网络/防火墙问题 |
 | RTMP 推流失败 | `ffprobe rtmp://103:1935/stream/safety_cam` | RTMP 服务器未启动 |
 | 数据库表不存在 | `docker exec -it edge_cloud_postgres psql -U edge_user -d edge_cloud -c "\dt"` | 未执行 Step 2 建表 |
-| 推理结果重复 | `SELECT time, device_id, count(*) FROM inference_results GROUP BY time, device_id HAVING count(*) > 1;` | 旧双通道数据，执行 `TRUNCATE inference_results;` 清理 |
-| Git Bash 路径错误 `D:/Program Files/Git/...` | 在命令前加 `MSYS_NO_PATHCONV=1` | Git Bash 自动转换 Unix 路径导致 |
+| MQTT 反复断开 (rc=7) | `docker exec edge_cloud_training ps aux \| grep radio_infer` | 重复进程 client ID 冲突，杀掉多余进程 |
+| Git Bash 路径错误 | 命令前加 `MSYS_NO_PATHCONV=1` | Git Bash 自动转换 Unix 路径 |
 
 ### 19.13 快速启停命令汇总
 
 ```bash
 # ===== 一键启动 (云端 103) =====
 cd deployment/docker
-
-# 启动所有基础服务 + 后端 + 前端
 docker compose up -d postgres redis emqx mlflow seaweedfs portal
 sleep 20
 docker compose up -d backend frontend
 
-# 启动云端推理 — 统一脚本，自动检测模式（降级流从 YAML 配置读取）
+# 启动云端推理（自动模式，降级流从 YAML 读取）
 docker exec edge_cloud_training python3 /app/radio_infer_server.py \
   --config /app/models/construction_safety/configs/construction_safety.yaml \
   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
   --radio-code /app/models/NVlabs_RADIO \
   --siglip2 /app/models/siglip2-giant-opt-patch16-384
 
-# PowerShell 版本（用反引号换行）:
-# docker exec edge_cloud_training python3 /app/radio_infer_server.py `
-#   --config /app/models/construction_safety/configs/construction_safety.yaml `
-#   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
-#   --radio-code /app/models/NVlabs_RADIO `
-#   --siglip2 /app/models/siglip2-giant-opt-patch16-384
-
-# 仅 RTMP 演示模式（无边缘设备时）:
-# docker exec edge_cloud_training python3 /app/radio_infer_server.py \
-#   --mode stream \
-#   --config /app/models/construction_safety/configs/construction_safety.yaml \
-#   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
-#   --radio-code /app/models/NVlabs_RADIO \
-#   --siglip2 /app/models/siglip2-giant-opt-patch16-384
-
 # ===== 一键启动 (边缘 107) =====
-# 在 Jetson 上:
 cd /home/nvidia/edge_infer/build && ./edge_framework
 
 # ===== 一键演示 (本机 PowerShell) =====
@@ -1494,31 +1373,23 @@ powershell -ExecutionPolicy Bypass -File scripts\demo_construction_safety.ps1
 # ===== 重建 Training 容器（首次或 Dockerfile 更新后）=====
 docker compose --profile gpu build training
 docker compose --profile gpu up -d training
-
-# 重建后需安装额外 Python 依赖（首次或容器重建后）
 docker exec edge_cloud_training pip install timm einops transformers paho-mqtt
 
-# ===== 一键停止 =====
-# 云端
-docker compose down
-docker stop rtmp-server 2>/dev/null
+# ===== 停止 =====
+docker exec edge_cloud_training bash -c "pkill -f radio_infer_server"   # 停止推理
+docker compose down                                                      # 停止所有服务
+docker stop rtmp-server 2>/dev/null                                      # 停止 RTMP
 
-# 边缘 (Ctrl+C 停止 edge_framework)
-
-# ===== 清理旧重复数据 =====
-# 方式 1：前端界面 — 推理结果页/告警中心页点击「清空数据」按钮
-# 方式 2：命令行
+# ===== 清理数据 =====
+# 前端界面：推理结果页/告警中心页点击「清空数据」
+# 命令行：
 docker exec edge_cloud_postgres psql -U edge_user -d edge_cloud -c "TRUNCATE inference_results;"
-
-# ===== 终止容器内推理进程 =====
-docker exec edge_cloud_training bash -c "pkill -f radio_infer_server"
 ```
 
 ---
 
 ## 20. 下一步
 
-- 阅读 [快速启动指南](docs/QUICKSTART.md) 了解更多细节
 - 查看 [API 文档](http://localhost:8081/swagger-ui.html)
 - 了解边缘端部署：参考 `edge_infer` 项目的 `README_JETSON.md`
-- 阅读系列文章 `docs/articles/` 深入理解架构设计
+- 阅读投标技术优势文档：[docs/TECHNICAL_ADVANTAGES.md](docs/TECHNICAL_ADVANTAGES.md)
