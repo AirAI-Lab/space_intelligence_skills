@@ -926,7 +926,7 @@ CREATE TABLE IF NOT EXISTS webhook_configs (
 
 **边缘负责实时检测，云端负责非实时零样本分割，两者是并列业务。**
 
-云端统一推理脚本 `cloud/radio_infer_server.py` 支持自动模式检测：
+云端统一推理脚本 `cloud/radio_infer_server.py` 支持自动模式检测 + MQTT 故障自动降级：
 
 | 模式 | 帧来源 | 适用场景 | 启动方式 |
 |------|--------|---------|---------|
@@ -934,6 +934,10 @@ CREATE TABLE IF NOT EXISTS webhook_configs (
 | **RTMP 直连** | 云端直接拉 RTMP 流 | 开发演示，无边缘设备 | `--mode stream --stream rtmp://...` |
 | **双通道** | MQTT 为主 + RTMP 补充 | 过渡期，双重保障 | `--mode dual --stream rtmp://...` |
 | **自动** | 检测 MQTT/RTMP 可达性 | 默认模式，零配置 | `--mode auto`（默认） |
+
+**自动降级机制**：MQTT 模式运行中，如果连续 30 秒未收到边缘转发的帧，自动从配置文件的 `fallback_stream` 拉取原始视频流继续推理；MQTT 恢复后自动切回。无需人工干预。
+
+> 降级流地址在场景配置文件的 `deployment.cloud.fallback_stream` 字段配置，更换场地只需修改 YAML。
 
 **数据流详细说明**：
 
@@ -1120,84 +1124,75 @@ ffprobe rtmp://192.168.0.103:1935/stream/safety_cam
 
 ### 19.6 Step 4：启动云端推理
 
-云端统一推理脚本 `cloud/radio_infer_server.py` 支持 4 种模式，**默认自动检测**。
+云端统一推理脚本 `radio_infer_server.py` 支持 4 种模式，**默认自动检测**。脚本内置防重复启动机制，多次执行会自动终止旧实例。
 
 #### 方式 A：在 Training 容器中运行（推荐 — 无需额外构建）
 
-`edge_cloud_training` 容器已有 PyTorch + CUDA + 模型权重等全部依赖。
+`edge_cloud_training` 容器已有 PyTorch + CUDA + 模型权重等全部依赖。脚本和配置通过 Docker 卷挂载，无需 `docker cp`。
 
-**生产模式（MQTT，边缘转发帧）**：
+**一条命令启动（自动模式）**：
 
-> 前提：边缘设备 (107) 已启动 `edge_framework`，且 `cloud_config.json` 中 `cloud_forward.enabled=true`。无边缘设备时请用下方的演示模式。
-
-```powershell
-# 拷入统一推理脚本
-docker cp cloud/radio_infer_server.py edge_cloud_training:/app/radio_infer_server.py
-
-# 自动模式 — 检测 MQTT 可达性，进入 MQTT 订阅模式
-docker exec -it edge_cloud_training python3 /app/radio_infer_server.py `
-  --config /app/models/construction_safety/configs/construction_safety.yaml `
-  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
-  --radio-code /app/models/NVlabs_RADIO `
-  --siglip2 /app/models/siglip2-giant-opt-patch16-384 `
-  --mqtt-broker tcp://emqx:1883
-```
-
-**演示模式（RTMP 直连，无需边缘设备）**：
+> 前提：边缘设备 (107) 已启动 `edge_framework`，且 `cloud_config.json` 中 `cloud_forward.enabled=true`。无边缘设备时自动降级到配置文件中的 `fallback_stream` 拉流。
 
 ```powershell
-# 指定 --stream 进入 RTMP 直连模式
-docker exec -it edge_cloud_training python3 /app/radio_infer_server.py `
-  --mode stream `
-  --stream rtmp://192.168.0.103:1935/stream/safety_cam `
-  --interval 3 `
+docker exec edge_cloud_training python3 /app/radio_infer_server.py `
   --config /app/models/construction_safety/configs/construction_safety.yaml `
   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
   --radio-code /app/models/NVlabs_RADIO `
   --siglip2 /app/models/siglip2-giant-opt-patch16-384
 ```
 
-**双通道模式（MQTT + RTMP 并行）**：
+> **说明**：不传 `--stream` 时，降级流地址从 YAML 配置文件的 `deployment.cloud.fallback_stream` 字段读取。更换场地只需改 YAML，无需改命令行。传 `--stream` 可覆盖配置文件。
 
-```powershell
-# MQTT 接收边缘帧 + RTMP 补充采样，双重保障
-docker exec -it edge_cloud_training python3 /app/radio_infer_server.py `
-  --mode dual `
-  --stream rtmp://192.168.0.103:1935/stream/safety_cam `
-  --interval 3 `
-  --config /app/models/construction_safety/configs/construction_safety.yaml `
-  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
-  --radio-code /app/models/NVlabs_RADIO `
-  --siglip2 /app/models/siglip2-giant-opt-patch16-384 `
-  --mqtt-broker tcp://emqx:1883
-```
-
-> **Git Bash 用户注意**：Git Bash 会转换 `/app/models/...` 路径，需加 `MSYS_NO_PATHCONV=1` 前缀。PowerShell 不受影响。
-
-#### 方式 B：Docker Compose 启动 Training 容器
+**Git Bash 启动**（需加路径保护前缀）：
 
 ```bash
-cd deployment/docker
-
-# 构建并启动 Training 容器（含训练 + 云端推理）
-docker compose --profile gpu build training
-docker compose --profile gpu up -d training
-
-# 安装云端推理额外依赖
-docker exec edge_cloud_training pip install timm einops transformers paho-mqtt
-
-# 拷入统一推理脚本并运行
-docker cp cloud/radio_infer_server.py edge_cloud_training:/app/radio_infer_server.py
-docker exec -it edge_cloud_training python3 /app/radio_infer_server.py \
+MSYS_NO_PATHCONV=1 docker exec edge_cloud_training python3 /app/radio_infer_server.py \
   --config /app/models/construction_safety/configs/construction_safety.yaml \
   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
   --radio-code /app/models/NVlabs_RADIO \
   --siglip2 /app/models/siglip2-giant-opt-patch16-384
 ```
 
-> **适用场景**：独立部署推理服务，不依赖本机 Python 环境。
+**指定模式启动**：
 
-#### 方式 C：本机 Python 直接运行
+```powershell
+# 演示模式 — 无边缘设备，直接拉原始视频流推理
+docker exec edge_cloud_training python3 /app/radio_infer_server.py `
+  --mode stream `
+  --config /app/models/construction_safety/configs/construction_safety.yaml `
+  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
+  --radio-code /app/models/NVlabs_RADIO `
+  --siglip2 /app/models/siglip2-giant-opt-patch16-384
+
+# 双通道模式 — MQTT 为主 + RTMP 补充采样
+docker exec edge_cloud_training python3 /app/radio_infer_server.py `
+  --mode dual `
+  --config /app/models/construction_safety/configs/construction_safety.yaml `
+  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
+  --radio-code /app/models/NVlabs_RADIO `
+  --siglip2 /app/models/siglip2-giant-opt-patch16-384
+```
+
+**运行时自动降级**：
+
+```
+MQTT 正常接收帧 ←───────────→ MQTT 连续 30s 无帧
+     ↓                                ↓
+  正常 MQTT 推理              自动降级 RTMP 拉原始流
+     ↑                                ↓
+  MQTT 恢复帧 ←────────── 自动切回 MQTT
+```
+
+> 降级流地址来自场景配置文件的 `deployment.cloud.fallback_stream`，也可通过 `--stream` 参数覆盖。
+
+**停止推理**：
+
+```powershell
+docker exec edge_cloud_training bash -c "pkill -f radio_infer_server"
+```
+
+#### 方式 B：本机 Python 直接运行
 
 如果本机已有 GPU + Python + PyTorch 环境：
 
@@ -1205,7 +1200,7 @@ docker exec -it edge_cloud_training python3 /app/radio_infer_server.py \
 # 自动模式
 python cloud/radio_infer_server.py --config models/construction_safety/configs/construction_safety.yaml
 
-# RTMP 直连
+# RTMP 直连（指定流地址覆盖配置文件）
 python cloud/radio_infer_server.py --mode stream --stream rtmp://192.168.0.103:1935/stream/safety_cam
 ```
 
@@ -1218,11 +1213,9 @@ python cloud/radio_infer_server.py --mode stream --stream rtmp://192.168.0.103:1
 # 预期看到:
 #   "自动检测: MQTT ✓ → MQTT 模式"     (有边缘设备在线时)
 #   "自动检测: RTMP ✓ → RTMP 直连模式"  (无边缘设备时)
-#   "[1] cloud_gpu frame=1 (mqtt): ['bare_soil_uncovered'], 1 alerts, 120ms"
+#   "RTMP 降级: 30s 无帧时自动切换到 rtmp://..."  (MQTT 模式有降级流时)
+#   "[1] jetson_orin_001 frame=1 (mqtt): ['bare_soil_uncovered'], 1 alerts, 120ms"
 # 上报的图片会自动绘制分割 mask 和类别标签（半透明彩色区域 + 白色文字）
-
-# Docker Compose: 查看容器日志
-docker compose logs -f training
 ```
 
 ### 19.7 Step 5：配置并启动边缘推理
@@ -1469,17 +1462,23 @@ docker compose up -d postgres redis emqx mlflow seaweedfs portal
 sleep 20
 docker compose up -d backend frontend
 
-# 启动云端推理 — 统一脚本，自动检测模式
-docker cp cloud/radio_infer_server.py edge_cloud_training:/app/radio_infer_server.py
-docker exec -it edge_cloud_training python3 /app/radio_infer_server.py \
+# 启动云端推理 — 统一脚本，自动检测模式（降级流从 YAML 配置读取）
+docker exec edge_cloud_training python3 /app/radio_infer_server.py \
   --config /app/models/construction_safety/configs/construction_safety.yaml \
   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
   --radio-code /app/models/NVlabs_RADIO \
   --siglip2 /app/models/siglip2-giant-opt-patch16-384
 
+# PowerShell 版本（用反引号换行）:
+# docker exec edge_cloud_training python3 /app/radio_infer_server.py `
+#   --config /app/models/construction_safety/configs/construction_safety.yaml `
+#   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar `
+#   --radio-code /app/models/NVlabs_RADIO `
+#   --siglip2 /app/models/siglip2-giant-opt-patch16-384
+
 # 仅 RTMP 演示模式（无边缘设备时）:
-# docker exec -it edge_cloud_training python3 /app/radio_infer_server.py \
-#   --mode stream --stream rtmp://192.168.0.103:1935/stream/safety_cam \
+# docker exec edge_cloud_training python3 /app/radio_infer_server.py \
+#   --mode stream \
 #   --config /app/models/construction_safety/configs/construction_safety.yaml \
 #   --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
 #   --radio-code /app/models/NVlabs_RADIO \

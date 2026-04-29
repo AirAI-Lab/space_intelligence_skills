@@ -127,6 +127,8 @@ class RadioInferServer:
         self._min_area = 0.01
         self._client: Optional[object] = None
         self._mqtt_connected = False
+        self._mqtt_last_recv = 0.0       # 上次收到 MQTT 帧的时间
+        self._fallback_active = False    # RTMP 降级是否激活
         self._frame_count = 0
         self._reported = 0
         self._resolved_mode = None  # auto 解析后的实际模式
@@ -213,6 +215,13 @@ class RadioInferServer:
         if not radio_config.get("classes"):
             radio_config = config.get("deployment", {}).get("cloud", {}).get("radio", {})
         self._classes_config = radio_config.get("classes", {})
+
+        # 从 YAML 读取 RTMP 降级流地址（命令行 --stream 优先）
+        cloud_section = config.get("deployment", {}).get("cloud", {})
+        if not self.stream_url:
+            self.stream_url = cloud_section.get("fallback_stream", "")
+            if self.stream_url:
+                logger.info("降级流(配置文件): %s", self.stream_url)
 
         # 过滤掉 background 类
         self._classes_config = {
@@ -371,7 +380,7 @@ class RadioInferServer:
     def _setup_mqtt(self):
         import paho.mqtt.client as mqtt
 
-        client_id = f"radio_infer_{os.getenv('HOSTNAME', 'cloud')}"
+        client_id = f"radio_infer_{os.getenv('HOSTNAME', 'cloud')}_{os.getpid()}"
         self._client = mqtt.Client(client_id=client_id, protocol=mqtt.MQTTv311)
 
         if self.mqtt_username:
@@ -418,14 +427,62 @@ class RadioInferServer:
                 logger.warning("图像解码失败: %s", device_id)
                 return
 
+            self._mqtt_last_recv = time.time()
+            if self._fallback_active:
+                logger.info("MQTT 帧恢复，RTMP 降级停止")
+                self._fallback_active = False
             self._infer_image(image, device_id, frame_id, source="mqtt")
         except Exception as e:
             logger.error("处理 MQTT 帧失败: %s", e, exc_info=True)
 
+    FALLBACK_TIMEOUT = 30    # MQTT 连续 30 秒无帧 → 降级到 RTMP
+    FALLBACK_CHECK_INTERVAL = 5
+
     def _run_mqtt_loop(self):
-        """MQTT 订阅主循环（阻塞）"""
+        """MQTT 订阅主循环，含自动降级到 RTMP 拉流"""
+        self._mqtt_last_recv = time.time()
+        fallback_cap = None
+
         while not _shutdown:
-            time.sleep(1)
+            # 检查 MQTT 是否长时间无帧
+            mqtt_idle = time.time() - self._mqtt_last_recv
+            stream_available = bool(self.stream_url)
+
+            if mqtt_idle > self.FALLBACK_TIMEOUT and not self._fallback_active and stream_available:
+                logger.warning(
+                    "MQTT 已 %.0f 秒无帧，自动降级到 RTMP 拉流: %s",
+                    mqtt_idle, self.stream_url,
+                )
+                self._fallback_active = True
+
+            if self._fallback_active and stream_available:
+                # RTMP 降级：按间隔采样推理
+                try:
+                    if fallback_cap is None or not fallback_cap.isOpened():
+                        fallback_cap = cv2.VideoCapture(self.stream_url, cv2.CAP_FFMPEG)
+                        fallback_cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+                    if fallback_cap.isOpened():
+                        ret, frame = fallback_cap.read()
+                        if ret:
+                            self._frame_count += 1
+                            self._infer_image(
+                                frame, self.stream_device_id,
+                                self._frame_count, source="stream",
+                            )
+                        else:
+                            fallback_cap.release()
+                            fallback_cap = None
+                except Exception as e:
+                    logger.warning("RTMP 降级帧获取失败: %s", e)
+                    if fallback_cap:
+                        fallback_cap.release()
+                        fallback_cap = None
+
+            time.sleep(self.FALLBACK_CHECK_INTERVAL)
+
+        # 清理
+        if fallback_cap:
+            fallback_cap.release()
         if self._client:
             self._client.loop_stop()
             self._client.disconnect()
@@ -489,6 +546,37 @@ class RadioInferServer:
         self._run_mqtt_loop()
 
     # ══════════════════════════════════════════
+    #  防重复启动
+    # ══════════════════════════════════════════
+
+    def _kill_existing(self):
+        """杀掉同容器内已有的 radio_infer_server 进程，防止 MQTT client ID 冲突"""
+        pid = os.getpid()
+        try:
+            import subprocess
+            out = subprocess.check_output(
+                ["ps", "-eo", "pid,comm,args"], text=True, timeout=5,
+            )
+            for line in out.strip().splitlines():
+                parts = line.split(None, 2)
+                if len(parts) < 3:
+                    continue
+                p_pid, p_comm, p_args = int(parts[0]), parts[1], parts[2]
+                if "radio_infer_server" in p_args and p_pid != pid:
+                    logger.warning("发现已有推理进程 (PID %d)，正在终止...", p_pid)
+                    os.kill(p_pid, signal.SIGTERM)
+                    time.sleep(2)
+                    # 如果还没死，强杀
+                    try:
+                        os.kill(p_pid, 0)
+                        os.kill(p_pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    logger.info("已终止旧进程 (PID %d)", p_pid)
+        except Exception as e:
+            logger.debug("进程检查跳过: %s", e)
+
+    # ══════════════════════════════════════════
     #  告警 + 上报
     # ══════════════════════════════════════════
 
@@ -545,11 +633,14 @@ class RadioInferServer:
     # ══════════════════════════════════════════
 
     def run(self):
+        # 防止重复启动：杀掉已有的 radio_infer_server 进程
+        self._kill_existing()
+
         # 自动检测模式
         self._resolved_mode = self._detect_mode()
 
         mode_desc = {
-            "mqtt": "MQTT 订阅 (边缘转发帧)",
+            "mqtt": "MQTT 订阅 (边缘转发帧，含 RTMP 自动降级)",
             "stream": "RTMP 直连 (视频流采样)",
             "dual": "双通道 (MQTT 主 + RTMP 辅)",
         }
@@ -557,8 +648,10 @@ class RadioInferServer:
         logger.info("=" * 60)
         logger.info("C-RADIOv4 云端统一推理服务")
         logger.info("模式: %s", mode_desc.get(self._resolved_mode, self._resolved_mode))
-        if self._resolved_mode in ("stream", "dual"):
+        if self._resolved_mode in ("stream", "dual") or self.stream_url:
             logger.info("流地址: %s, 间隔: %ds", self.stream_url, self.stream_interval)
+        if self._resolved_mode == "mqtt" and self.stream_url:
+            logger.info("RTMP 降级: %ds 无帧时自动切换到 %s", self.FALLBACK_TIMEOUT, self.stream_url)
         logger.info("后端: %s", self.backend_url)
         logger.info("配置: %s", self.config_path)
         logger.info("=" * 60)
