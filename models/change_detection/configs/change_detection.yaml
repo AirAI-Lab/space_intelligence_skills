@@ -1,0 +1,280 @@
+# ==============================================================================
+# 变换检测配置文件 v1.2
+# ==============================================================================
+#
+# 分层检测策略:
+#   L1 场景: 快速识别场景类型 (城市/农村/水域等)
+#   L2 目标: 检测具体目标 (违建/车辆/垃圾等)
+#   L3 变化: 前后帧对比
+#
+# 类别参考:
+#   - Construction Detection 数据集 (蓝色雨棚/绿色棚屋/其他违建)
+#   - 城市治理常见场景 (违停/垃圾/占道等)
+#   - 地理环境分类 (农田/森林/水域/山地等)
+#
+# 作者: 空中智能体团队
+# 日期: 2026-04-07
+# ==============================================================================
+
+system:
+  name: change_detection
+  version: '1.2'
+  device: cuda
+  description: 云端变换检测系统 (分层检测)
+
+cloud:
+  radio:
+    model:
+      version: c-radio_v4-h
+      path: /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar
+      radio_code_dir: /app/models/NVlabs_RADIO
+      siglip2_dir: /app/models/siglip2-giant-opt-patch16-384
+      adaptor_names:
+        - siglip2-g
+        - dino_v3_7b
+      device: cuda
+      use_scra: true
+      use_dino: true
+      use_sam: false
+      temperature: 50.0
+
+    segmentation:
+      threshold: 0.35
+      input_size: 896
+
+    change_detection:
+      min_change_area: 0.003
+      min_iou_match: 0.3
+      score_threshold: 0.3
+
+    # ==================================================================
+    # L1 场景分类 (5 类, 粗粒度)
+    # ==================================================================
+    scene_classes:
+      urban:
+        zh: 城市区域
+        prompts:
+          - urban area with buildings and roads from aerial view
+          - cityscape with dense residential or commercial buildings
+          - town or village with clustered houses and streets
+
+      agricultural:
+        zh: 农业区域
+        prompts:
+          - farmland with crop fields and agricultural plots
+          - rice paddy or wheat field from aerial view
+          - greenhouse or agricultural facility area
+
+      water_body:
+        zh: 水域
+        prompts:
+          - river lake or reservoir from aerial view
+          - coastline beach or harbor area
+          - pond or water channel
+
+      mountain_forest:
+        zh: 山林区域
+        prompts:
+          - mountainous terrain with slopes and valleys
+          - dense forest area with tree canopy coverage
+          - hilly region with natural vegetation
+
+      industrial:
+        zh: 工业区域
+        prompts:
+          - industrial park with factories and warehouses
+          - construction site with machinery and scaffolding
+          - port or logistics area with containers and cranes
+
+    # ==================================================================
+    # L2 目标检测 (16 类, 细粒度)
+    # ==================================================================
+    classes:
+      # --- 违建检测 ---
+      blue_canopy:
+        zh: 蓝色雨棚
+        prompts:
+          - blue canopy or tarp covering on rooftop
+          - blue colored metal sheet shelter structure on building
+          - blue plastic or fabric awning on roof top
+        alert:
+          enabled: true
+          level: warning
+          description: 检测到蓝色雨棚，可能存在违建
+
+      green_shack:
+        zh: 绿色棚屋
+        prompts:
+          - green shack or shed structure on rooftop
+          - green colored temporary building or hut
+          - green metal sheet shelter or cabin on roof
+        alert:
+          enabled: true
+          level: warning
+          description: 检测到绿色棚屋，可能存在违建
+
+      illegal_extension:
+        zh: 违章搭建
+        prompts:
+          - unauthorized extension on building rooftop
+          - makeshift structure or temporary building addition
+          - illegally constructed room or enclosure on top of building
+          - simple shed built with metal sheets and bricks on roof
+        alert:
+          enabled: true
+          level: warning
+          description: 检测到疑似违建
+
+      # --- 交通检测 ---
+      vehicle:
+        zh: 机动车辆
+        prompts:
+          - car or sedan parked on road or ground
+          - truck or van vehicle
+          - SUV or minibus
+        alert:
+          enabled: true
+          level: info
+          description: 检测到车辆
+
+      construction_vehicle:
+        zh: 工程车辆
+        prompts:
+          - excavator or bulldozer machine on construction site
+          - crane or concrete mixer truck
+          - heavy construction equipment and machinery
+        alert:
+          enabled: true
+          level: info
+          description: 检测到工程车辆
+
+      # --- 城市治理 ---
+      debris_dump:
+        zh: 垃圾堆放
+        prompts:
+          - pile of construction waste or debris on ground
+          - scattered trash and garbage dumped illegally
+          - rubbish heap or discarded materials pile
+        alert:
+          enabled: true
+          level: warning
+          description: 检测到垃圾堆放，可能存在违规倾倒
+
+      material_stock:
+        zh: 建材堆放
+        prompts:
+          - stacked construction materials like steel bars and bricks
+          - pile of sand gravel or cement bags
+          - building supplies stored on open ground
+        alert:
+          enabled: true
+          level: info
+          description: 检测到建材堆放
+
+      enclosure_fence:
+        zh: 围挡围栏
+        prompts:
+          - temporary fence or enclosure around construction area
+          - metal sheet barrier or hoarding around site
+          - safety barrier or fence on roadside
+        alert:
+          enabled: true
+          level: info
+          description: 检测到围挡
+
+      scaffolding:
+        zh: 脚手架
+        prompts:
+          - scaffolding structure around building
+          - steel frame support system on construction site
+          - exterior framework and pipes on building facade
+        alert:
+          enabled: true
+          level: info
+          description: 检测到脚手架
+
+      # --- 环境监测 ---
+      building:
+        zh: 建筑物
+        prompts:
+          - building structure with walls and roof from aerial view
+          - house or residential building
+          - concrete or brick building with rectangular shape
+        alert:
+          enabled: false
+
+      vegetation:
+        zh: 植被
+        prompts:
+          - green trees and forest canopy
+          - grass lawn and shrubs
+          - dense vegetation coverage from aerial view
+        alert:
+          enabled: false
+
+      bare_ground:
+        zh: 裸土
+        prompts:
+          - bare soil without vegetation coverage
+          - excavated earth and exposed brown ground
+          - cleared land with dirt surface
+        alert:
+          enabled: true
+          level: info
+          description: 检测到裸土
+
+      farmland:
+        zh: 农田
+        prompts:
+          - cultivated farmland with regular crop rows
+          - rice paddy or wheat field from aerial view
+          - agricultural plot with green or golden crops
+        alert:
+          enabled: false
+
+      water:
+        zh: 水体
+        prompts:
+          - water surface in river lake or pond
+          - water body from aerial view
+        alert:
+          enabled: false
+
+      road:
+        zh: 道路
+        prompts:
+          - asphalt road or paved surface
+          - concrete pathway sidewalk or street
+          - dirt road or unpaved trail
+        alert:
+          enabled: false
+
+      parking_lot:
+        zh: 停车场
+        prompts:
+          - parking lot with multiple cars in rows
+          - open air parking area with marked spaces
+          - parking ground with vehicles parked
+        alert:
+          enabled: false
+
+      background:
+        zh: 背景
+        is_background: true
+        prompts:
+          - sky and clouds
+          - shadow area on ground
+
+# ==============================================================================
+# 输出配置
+# ==============================================================================
+output:
+  output_dir: outputs/
+  save_masks: true
+  save_diff: true
+  save_overlay: true
+  visualization:
+    enabled: true
+    font_size: 20
+    added_color: [0, 255, 0]
+    removed_color: [0, 0, 255]
