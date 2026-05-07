@@ -729,7 +729,7 @@ docker logs edge_cloud_backend 2>&1 | grep -i mqtt | tail -20
 cp cloud/radio_infer_server.py training/cloud/radio_infer_server.py
 
 # 重启容器内的推理进程
-docker exec edge_cloud_training bash -c "kill \$(pgrep -f radio_infer_server)"
+docker exec edge_cloud_training pkill -f radio_infer_server
 # 然后按 9.4 节的方式二重新启动
 ```
 

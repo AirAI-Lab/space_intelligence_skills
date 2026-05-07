@@ -1,5 +1,5 @@
 # ==============================================================================
-# 变换检测配置文件 v1.2
+# 变换检测配置文件 v1.3
 # ==============================================================================
 #
 # 分层检测策略:
@@ -7,18 +7,22 @@
 #   L2 目标: 检测具体目标 (违建/车辆/垃圾等)
 #   L3 变化: 前后帧对比
 #
+# v1.3 变更:
+#   - 移除 building/road/parking_lot/water/farmland 等宽泛类别
+#     (这些类别与窄类别竞争，导致 bare_ground 等目标无法检测)
+#   - 保留告警相关类别 + vegetation/background
+#
 # 类别参考:
 #   - Construction Detection 数据集 (蓝色雨棚/绿色棚屋/其他违建)
 #   - 城市治理常见场景 (违停/垃圾/占道等)
-#   - 地理环境分类 (农田/森林/水域/山地等)
 #
 # 作者: 空中智能体团队
-# 日期: 2026-04-07
+# 日期: 2026-05-07
 # ==============================================================================
 
 system:
   name: change_detection
-  version: '1.2'
+  version: '1.3'
   device: cuda
   description: 云端变换检测系统 (分层检测)
 
@@ -39,7 +43,7 @@ cloud:
       temperature: 50.0
 
     segmentation:
-      threshold: 0.35
+      threshold: 0.25
       input_size: 896
 
     change_detection:
@@ -87,16 +91,19 @@ cloud:
           - port or logistics area with containers and cranes
 
     # ==================================================================
-    # L2 目标检测 (16 类, 细粒度)
+    # L2 目标检测 (11 类, 仅保留告警相关 + 参考)
     # ==================================================================
     classes:
       # --- 违建检测 ---
       blue_canopy:
         zh: 蓝色雨棚
         prompts:
-          - blue canopy or tarp covering on rooftop
-          - blue colored metal sheet shelter structure on building
-          - blue plastic or fabric awning on roof top
+          - bright blue tarp or canopy covering on building rooftop from aerial view
+          - blue colored metal sheet or plastic shelter structure on roof top
+          - blue waterproof fabric awning stretched over building surface
+        prompts_negative:
+          - blue sky above buildings
+          - blue painted wall or blue colored roof tile
         alert:
           enabled: true
           level: warning
@@ -105,9 +112,12 @@ cloud:
       green_shack:
         zh: 绿色棚屋
         prompts:
-          - green shack or shed structure on rooftop
-          - green colored temporary building or hut
-          - green metal sheet shelter or cabin on roof
+          - green colored temporary shed or shack structure on rooftop
+          - green metal sheet or fiberglass shelter cabin built on building top
+          - bright green portable housing or storage hut on roof
+        prompts_negative:
+          - green trees and vegetation
+          - green grass lawn
         alert:
           enabled: true
           level: warning
@@ -116,10 +126,12 @@ cloud:
       illegal_extension:
         zh: 违章搭建
         prompts:
-          - unauthorized extension on building rooftop
-          - makeshift structure or temporary building addition
-          - illegally constructed room or enclosure on top of building
-          - simple shed built with metal sheets and bricks on roof
+          - unauthorized extension or additional room built on building rooftop
+          - makeshift structure with metal sheets and bricks added on top of building
+          - illegally constructed enclosure or room on roof with different material
+        prompts_negative:
+          - original building structure
+          - balcony or terrace
         alert:
           enabled: true
           level: warning
@@ -129,9 +141,12 @@ cloud:
       vehicle:
         zh: 机动车辆
         prompts:
-          - car or sedan parked on road or ground
-          - truck or van vehicle
-          - SUV or minibus
+          - car sedan or SUV vehicle parked on road or open ground
+          - truck van or minibus with visible rectangular body shape
+          - passenger vehicle with four wheels on street or parking area
+        prompts_negative:
+          - construction excavator or bulldozer
+          - bicycle or motorcycle
         alert:
           enabled: true
           level: info
@@ -140,9 +155,12 @@ cloud:
       construction_vehicle:
         zh: 工程车辆
         prompts:
-          - excavator or bulldozer machine on construction site
-          - crane or concrete mixer truck
-          - heavy construction equipment and machinery
+          - yellow excavator with mechanical arm on construction site
+          - large crane or concrete mixer truck at building site
+          - bulldozer or heavy construction machinery with tracked wheels
+        prompts_negative:
+          - regular passenger car
+          - truck on highway
         alert:
           enabled: true
           level: info
@@ -152,9 +170,12 @@ cloud:
       debris_dump:
         zh: 垃圾堆放
         prompts:
-          - pile of construction waste or debris on ground
-          - scattered trash and garbage dumped illegally
-          - rubbish heap or discarded materials pile
+          - messy pile of mixed construction waste debris and garbage on open ground
+          - scattered trash rubbish and discarded materials dumped illegally on roadside
+          - disorderly heap of broken bricks concrete chunks and plastic waste
+        prompts_negative:
+          - neatly stacked building materials
+          - organized construction supplies
         alert:
           enabled: true
           level: warning
@@ -163,9 +184,12 @@ cloud:
       material_stock:
         zh: 建材堆放
         prompts:
-          - stacked construction materials like steel bars and bricks
-          - pile of sand gravel or cement bags
-          - building supplies stored on open ground
+          - neatly stacked steel bars bricks or construction materials on ground
+          - ordered pile of sand gravel aggregate or cement bags at site
+          - organized building supplies and raw materials stored in construction area
+        prompts_negative:
+          - scattered garbage and trash
+          - debris and demolition waste
         alert:
           enabled: true
           level: info
@@ -174,9 +198,12 @@ cloud:
       enclosure_fence:
         zh: 围挡围栏
         prompts:
-          - temporary fence or enclosure around construction area
-          - metal sheet barrier or hoarding around site
-          - safety barrier or fence on roadside
+          - temporary metal sheet fence or blue hoarding barrier around construction site
+          - safety barrier or enclosure wall separating work zone from public area
+          - vertical fence panels forming perimeter around building site
+        prompts_negative:
+          - permanent brick wall
+          - building facade
         alert:
           enabled: true
           level: info
@@ -185,78 +212,45 @@ cloud:
       scaffolding:
         zh: 脚手架
         prompts:
-          - scaffolding structure around building
-          - steel frame support system on construction site
-          - exterior framework and pipes on building facade
+          - tall scaffolding structure with steel pipes around building exterior
+          - metal frame support system with cross bars on building facade
+          - exterior construction framework and platform on building wall
+        prompts_negative:
+          - building balcony railing
+          - electrical power lines
         alert:
           enabled: true
           level: info
           description: 检测到脚手架
 
-      # --- 环境监测 ---
-      building:
-        zh: 建筑物
-        prompts:
-          - building structure with walls and roof from aerial view
-          - house or residential building
-          - concrete or brick building with rectangular shape
-        alert:
-          enabled: false
-
+      # --- 环境参考 ---
       vegetation:
         zh: 植被
         prompts:
-          - green trees and forest canopy
-          - grass lawn and shrubs
-          - dense vegetation coverage from aerial view
+          - green trees with dense canopy coverage from aerial view
+          - grass lawn or shrubs covering ground surface
+          - dense green vegetation area with natural organic texture
+        prompts_negative:
+          - green colored artificial structure or roof
+          - bare brown soil without plants
         alert:
           enabled: false
 
       bare_ground:
         zh: 裸土
         prompts:
-          - bare soil without vegetation coverage
-          - excavated earth and exposed brown ground
-          - cleared land with dirt surface
+          - large area of exposed bare dry yellow brown soil without any covering
+          - uncovered earth dirt ground with visible rough soil texture no green net
+          - bare dry earth surface with granular dirt texture on construction site
+          - exposed dry compacted soil area showing raw ground without protective mesh
+        prompts_negative:
+          - green grass or vegetation covering ground
+          - concrete or asphalt paved surface
+          - water surface or wet area
         alert:
           enabled: true
           level: info
           description: 检测到裸土
-
-      farmland:
-        zh: 农田
-        prompts:
-          - cultivated farmland with regular crop rows
-          - rice paddy or wheat field from aerial view
-          - agricultural plot with green or golden crops
-        alert:
-          enabled: false
-
-      water:
-        zh: 水体
-        prompts:
-          - water surface in river lake or pond
-          - water body from aerial view
-        alert:
-          enabled: false
-
-      road:
-        zh: 道路
-        prompts:
-          - asphalt road or paved surface
-          - concrete pathway sidewalk or street
-          - dirt road or unpaved trail
-        alert:
-          enabled: false
-
-      parking_lot:
-        zh: 停车场
-        prompts:
-          - parking lot with multiple cars in rows
-          - open air parking area with marked spaces
-          - parking ground with vehicles parked
-        alert:
-          enabled: false
 
       background:
         zh: 背景

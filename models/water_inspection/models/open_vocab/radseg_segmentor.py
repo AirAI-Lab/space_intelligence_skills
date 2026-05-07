@@ -636,9 +636,10 @@ class RADSegWaterSegmentor:
         threshold: Optional[float] = None,
         min_area: Optional[float] = None,
         prompts_config: Optional[Dict] = None,
+        multi_class: bool = False,
     ) -> Dict[str, SegmentResult]:
         """
-        执行水质异常分割
+        执行分割检测
 
         Args:
             image: BGR 图像 [H, W, 3]
@@ -646,6 +647,7 @@ class RADSegWaterSegmentor:
             threshold: 置信度阈值
             min_area: 最小面积比例
             prompts_config: 提示词配置
+            multi_class: 多类模式 — 返回所有超过阈值的类别 (用于变换检测等)
 
         Returns:
             {class_name: SegmentResult}
@@ -668,20 +670,38 @@ class RADSegWaterSegmentor:
         # 计算 patch 相似度 (使用对比式提示匹配)
         heatmaps = self.compute_patch_similarity(image, classes_config, prompts_config)
 
-        # 获取 normal_water 基准得分
+        # 获取正常基准得分
         normal_baseline = 0.0
         for normal_cls in normal_classes:
             if normal_cls in heatmaps:
                 normal_baseline = float(heatmaps[normal_cls].max())
                 break
 
-        # 使用 margin 策略找最佳异常类
-        # margin = anomaly_score - normal_baseline
-        # 只有当异常得分明显高于正常基准时才预测为异常
-        best_class = None
-        best_score = 0.0
-        best_mask = None
-        best_margin = -float('inf')
+        if multi_class:
+            # 多类模式: 返回所有超过阈值的类别
+            return self._segment_multi_class(
+                image, heatmaps, anomaly_classes, classes_config,
+                threshold, min_area, normal_baseline,
+            )
+
+        # 单类模式 (原始逻辑, 水质检测用): 只返回 margin 最大的类别
+        return self._segment_single_class(
+            image, heatmaps, anomaly_classes, classes_config,
+            threshold, min_area, normal_baseline,
+        )
+
+    def _segment_multi_class(
+        self,
+        image: np.ndarray,
+        heatmaps: Dict[str, np.ndarray],
+        anomaly_classes: set,
+        classes_config: Dict[str, dict],
+        threshold: float,
+        min_area: float,
+        normal_baseline: float,
+    ) -> Dict[str, SegmentResult]:
+        """多类模式: 每个类别独立判断，返回所有超过阈值的类别"""
+        results = {}
 
         for cls_name in anomaly_classes:
             if cls_name not in heatmaps:
@@ -702,44 +722,99 @@ class RADSegWaterSegmentor:
             if area < min_area:
                 continue
 
-            # 颜色校验 (仅用于高置信样本的二次验证)
+            # 颜色校验
             color_hint = cfg.get("color_hint")
             if color_hint and isinstance(color_hint, list) and len(color_hint) == 3:
                 color_dist = self._compute_color_distance(image, mask, color_hint)
                 max_score = float(heatmap.max())
-                # 只有在高置信时才严格检查颜色
                 if max_score > self.color_strict_prob and color_dist > self.color_max_dist * 1.5:
                     continue
 
-            # 计算得分和 margin
+            # margin 检查 (宽松: 允许 margin 接近 0)
+            score = float(heatmap[mask].mean())
+            margin = score - normal_baseline
+            if margin < -0.1:
+                continue
+
+            # 后处理掩码
+            mask = self._postprocess_mask(mask)
+            area = mask.sum() / mask.size
+            if area < min_area:
+                continue
+
+            zh_name = cfg.get("zh", cls_name)
+            results[cls_name] = SegmentResult(
+                class_name=cls_name,
+                class_name_cn=zh_name,
+                mask=mask,
+                area_ratio=float(area),
+                score=float(score),
+            )
+
+        return results
+
+    def _segment_single_class(
+        self,
+        image: np.ndarray,
+        heatmaps: Dict[str, np.ndarray],
+        anomaly_classes: set,
+        classes_config: Dict[str, dict],
+        threshold: float,
+        min_area: float,
+        normal_baseline: float,
+    ) -> Dict[str, SegmentResult]:
+        """单类模式 (原始逻辑, 水质检测): 只返回 margin 最大的一个类别"""
+        best_class = None
+        best_score = 0.0
+        best_mask = None
+        best_margin = -float('inf')
+
+        for cls_name in anomaly_classes:
+            if cls_name not in heatmaps:
+                continue
+
+            heatmap = heatmaps[cls_name]
+            cfg = classes_config.get(cls_name, {})
+            cls_threshold = float(cfg.get("min_prob", threshold))
+
+            mask = heatmap > cls_threshold
+            if not mask.any():
+                continue
+
+            area = mask.sum() / mask.size
+            if area < min_area:
+                continue
+
+            color_hint = cfg.get("color_hint")
+            if color_hint and isinstance(color_hint, list) and len(color_hint) == 3:
+                color_dist = self._compute_color_distance(image, mask, color_hint)
+                max_score = float(heatmap.max())
+                if max_score > self.color_strict_prob and color_dist > self.color_max_dist * 1.5:
+                    continue
+
             score = float(heatmap[mask].mean())
             margin = score - normal_baseline
 
-            # 使用 margin 作为排序依据
             if margin > best_margin:
                 best_margin = margin
                 best_score = score
                 best_class = cls_name
                 best_mask = mask
 
-        # 如果最好的异常 margin 仍然为负 (异常得分低于正常基准)，不输出
-        if best_margin < -0.05:  # 允许 0.05 的容差
+        if best_margin < -0.05:
             return {}
 
         if best_class is None or best_mask is None:
             return {}
 
-        # 后处理掩码
         best_mask = self._postprocess_mask(best_mask)
 
         # SAM 边界精细化 (如果启用)
         if self.sam_refiner is not None:
             try:
-                # 获取 SAM 特征 (如果可用)
                 sam_features = None
                 if hasattr(self, '_last_sam_features'):
                     sam_features = self._last_sam_features
-
                 best_mask = self.sam_refiner.refine_mask(
                     coarse_mask=best_mask,
                     sam_features=sam_features,
@@ -749,7 +824,6 @@ class RADSegWaterSegmentor:
                 logger.warning(f"SAM refinement failed: {e}")
 
         area = best_mask.sum() / best_mask.size
-
         if area < min_area:
             return {}
 

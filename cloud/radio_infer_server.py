@@ -125,6 +125,7 @@ class RadioInferServer:
         self._classes_config = None
         self._threshold = 0.3
         self._min_area = 0.01
+        self._multi_class = False
         self._client: Optional[object] = None
         self._mqtt_connected = False
         self._mqtt_last_recv = 0.0       # 上次收到 MQTT 帧的时间
@@ -231,9 +232,15 @@ class RadioInferServer:
 
         logger.info("分割类别: %s", list(self._classes_config.keys()))
 
+        # 读取阈值: 优先 inference → model → segmentation
         infer_config = radio_config.get("inference", {}) or radio_config.get("model", {})
-        self._threshold = float(infer_config.get("threshold", 0.3))
-        self._min_area = float(infer_config.get("min_area", 0.01))
+        seg_config = radio_config.get("segmentation", {})
+        self._threshold = float(infer_config.get("threshold", seg_config.get("threshold", 0.3)))
+        self._min_area = float(infer_config.get("min_area", seg_config.get("min_change_area", 0.01)))
+
+        # 多类模式: change_detection 等场景需要同时检测多个类别
+        system_name = config.get("system", {}).get("name", "")
+        self._multi_class = system_name in ("change_detection",)
 
         from models.open_vocab import RADSegWaterSegmentor
 
@@ -325,6 +332,7 @@ class RadioInferServer:
             image, self._classes_config,
             threshold=self._threshold,
             min_area=self._min_area,
+            multi_class=self._multi_class,
         )
 
         inference_ms = (time.time() - t0) * 1000
@@ -603,6 +611,17 @@ class RadioInferServer:
             "dust_pollution": ("critical", "扬尘污染"),
             "pit_water_accumulation": ("warning", "坑内积水"),
             "material_near_pit": ("warning", "基坑边材料堆放"),
+            # 变换检测 (change_detection)
+            "blue_canopy": ("warning", "蓝色雨棚违建"),
+            "green_shack": ("warning", "绿色棚屋违建"),
+            "illegal_extension": ("warning", "违章搭建"),
+            "vehicle": ("info", "机动车辆"),
+            "construction_vehicle": ("info", "工程车辆"),
+            "debris_dump": ("warning", "垃圾违规堆放"),
+            "material_stock": ("info", "建材堆放"),
+            "enclosure_fence": ("info", "围挡围栏"),
+            "scaffolding": ("info", "脚手架"),
+            "bare_ground": ("info", "裸土"),
         }
 
         alerts = []
@@ -665,13 +684,18 @@ class RadioInferServer:
 
         self._load_model()
 
-        if self._resolved_mode == "mqtt":
-            self._setup_mqtt()
-            self._run_mqtt_loop()
-        elif self._resolved_mode == "stream":
-            self._run_stream_loop()
-        elif self._resolved_mode == "dual":
-            self._run_dual()
+        try:
+            if self._resolved_mode == "mqtt":
+                self._setup_mqtt()
+                self._run_mqtt_loop()
+            elif self._resolved_mode == "stream":
+                self._run_stream_loop()
+            elif self._resolved_mode == "dual":
+                self._run_dual()
+        except KeyboardInterrupt:
+            global _shutdown
+            _shutdown = True
+            logger.info("收到 Ctrl+C, 正在关闭...")
 
         logger.info("已停止, 共上报 %d 帧", self._reported)
 
