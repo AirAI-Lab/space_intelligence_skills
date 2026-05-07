@@ -1,5 +1,6 @@
 package com.edge.cloud.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -10,17 +11,15 @@ import java.util.List;
  * 推理结果上报请求 (边缘端 -> 云端)
  */
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class InferenceResultRequest {
 
-    /**
-     * 设备ID
-     */
     @JsonProperty("device_id")
     private String deviceId;
 
-    /**
-     * 模型ID
-     */
+    @JsonProperty("channel_id")
+    private String channelId;
+
     @JsonProperty("model_id")
     private String modelId;
 

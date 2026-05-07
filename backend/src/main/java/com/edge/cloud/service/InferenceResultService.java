@@ -35,6 +35,7 @@ public class InferenceResultService {
         InferenceResult result = new InferenceResult();
         result.setTime(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now());
         result.setDeviceId(request.getDeviceId());
+        result.setChannelId(request.getChannelId());
         result.setSource("edge");
         result.setModelName(request.getModelId());
         result.setTaskType("detect");
@@ -46,6 +47,7 @@ public class InferenceResultService {
 
         // Build result_json from detections
         Map<String, Object> resultJson = new HashMap<>();
+        resultJson.put("channel_id", request.getChannelId());
         resultJson.put("model_id", request.getModelId());
         resultJson.put("model_version", request.getModelVersion());
         resultJson.put("frame_width", request.getFrameWidth());

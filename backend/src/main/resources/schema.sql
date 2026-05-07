@@ -276,6 +276,7 @@ CREATE TABLE IF NOT EXISTS inference_results (
     id BIGSERIAL,
     time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     device_id VARCHAR(50) NOT NULL,
+    channel_id VARCHAR(50),                -- 多通道标识 (cam1, cam2, ...)
     source VARCHAR(20) NOT NULL,           -- 'edge' | 'cloud'
     model_name VARCHAR(200),
     task_type VARCHAR(50),                 -- 'detect' | 'segment' | 'classify'

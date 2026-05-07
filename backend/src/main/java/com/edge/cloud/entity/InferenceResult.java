@@ -23,6 +23,9 @@ public class InferenceResult {
     @Column(name = "device_id", length = 50, nullable = false)
     private String deviceId;
 
+    @Column(name = "channel_id", length = 50)
+    private String channelId;
+
     @Column(name = "source", length = 20, nullable = false)
     private String source;
 
