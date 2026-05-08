@@ -1,0 +1,20 @@
+[Unit]
+Description=SkyEdge AI Cloud Platform (Docker Compose)
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+WorkingDirectory=/opt/edge_cloud/deployment/docker
+ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml --profile gpu up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml down
+ExecReload=/usr/bin/docker compose -f docker-compose.prod.yml --profile gpu up -d
+
+TimeoutStartSec=300
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target
