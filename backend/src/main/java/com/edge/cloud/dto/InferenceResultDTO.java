@@ -12,6 +12,8 @@ public class InferenceResultDTO {
     private LocalDateTime time;
     @JsonProperty("device_id")
     private String deviceId;
+    @JsonProperty("channel_id")
+    private String channelId;
     private String source;
     @JsonProperty("model_name")
     private String modelName;

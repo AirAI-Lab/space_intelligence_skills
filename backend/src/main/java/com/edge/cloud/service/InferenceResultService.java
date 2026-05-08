@@ -225,6 +225,7 @@ public class InferenceResultService {
         dto.setId(entity.getId());
         dto.setTime(entity.getTime());
         dto.setDeviceId(entity.getDeviceId());
+        dto.setChannelId(entity.getChannelId());
         dto.setSource(entity.getSource());
         dto.setModelName(entity.getModelName());
         dto.setTaskType(entity.getTaskType());
@@ -305,7 +306,7 @@ public class InferenceResultService {
     public byte[] exportResults(String deviceId, String source, String alertLevel,
             LocalDateTime startTime, LocalDateTime endTime, String format) throws Exception {
         Page<InferenceResult> results = queryResults(deviceId, source, alertLevel,
-                startTime, endTime, 1, 10000);
+                false, startTime, endTime, 1, 10000);
         List<InferenceResultDTO> dtos = results.getContent().stream()
                 .map(this::toDTO).toList();
 

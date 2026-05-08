@@ -2,9 +2,11 @@
 
 ## 基础信息
 
-- **Base URL**: `http://localhost:8080/api/v1`
+- **Base URL**: `http://{HOST}:8081/api/v1`
 - **Content-Type**: `application/json`
-- **认证方式**: Bearer Token (即将支持)
+- **认证方式**: Bearer Token（即将支持）
+
+> 端口说明：后端 API 映射在 8081（容器内 8080），前端在 3000，MQTT 在 1883。
 
 ## 通用响应格式
 
@@ -28,164 +30,100 @@
 }
 ```
 
-## 设备管理 API
+---
 
-### 注册设备
+## 推理结果 API
+
+### 查询推理结果
 
 ```http
-POST /api/v1/device/register
-Content-Type: application/json
-
-{
-  "device_id": "EDGE_DEVICE_001",
-  "device_name": "边缘设备1",
-  "device_type": "jetson_orin",
-  "group_id": "group_a",
-  "specs": {
-    "cpu": "ARM Cortex-A78AE",
-    "gpu": "NVIDIA Ampere",
-    "memory": "32GB"
-  }
-}
+GET /api/v1/inference/results?page=1&page_size=20&device_id=jetson_orin_001&source=edge&has_alert=true
 ```
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `page` | int | 否 | 页码，默认 1 |
+| `page_size` | int | 否 | 每页数量，默认 20 |
+| `device_id` | string | 否 | 设备ID过滤 |
+| `source` | string | 否 | 来源：`edge` / `cloud` |
+| `alert_level` | string | 否 | 告警级别：`warning` / `critical` / `info` |
+| `has_alert` | bool | 否 | `true`=仅返回有告警的记录 |
+| `start_time` | datetime | 否 | 开始时间（ISO 格式） |
+| `end_time` | datetime | 否 | 结束时间（ISO 格式） |
 
 **响应**：
 
 ```json
 {
   "code": 200,
-  "message": "设备注册成功",
+  "message": "success",
   "data": {
-    "device_id": "EDGE_DEVICE_001",
-    "access_token": "xxx",
-    "mqtt_broker": "tcp://localhost:1883",
-    "mqtt_topic": "edge/EDGE_DEVICE_001/#"
-  }
-}
-```
-
-### 获取设备列表
-
-```http
-GET /api/v1/device/list?page=1&page_size=20&status=online
-```
-
-**响应**：
-
-```json
-{
-  "code": 200,
-  "data": {
-    "total": 100,
+    "total": 1288,
+    "page": 1,
+    "page_size": 20,
     "items": [
       {
-        "device_id": "EDGE_DEVICE_001",
-        "device_name": "边缘设备1",
-        "status": "online",
-        "last_heartbeat": "2025-01-26T10:00:00Z",
-        "cpu_usage": 45.5,
-        "gpu_usage": 60.2,
-        "memory_usage": 12.5
+        "id": 43748,
+        "time": "2026-05-08T09:15:28",
+        "device_id": "jetson_orin_001",
+        "channel_id": "cam1",
+        "source": "edge",
+        "model_name": "helmet_detect",
+        "task_type": "detect",
+        "frame_id": 4106,
+        "image_url": "/api/v1/files/download?key=inference/xxx.jpg",
+        "result_json": {
+          "channel_id": "cam1",
+          "model_id": "helmet_detect",
+          "model_version": "1.0.0",
+          "frame_width": 2554,
+          "frame_height": 1422,
+          "detections": [
+            {
+              "class_id": 0,
+              "class_name": "person",
+              "confidence": 0.77,
+              "bbox": [925, 211, 122, 191],
+              "is_alert": true
+            },
+            {
+              "class_id": 10,
+              "class_name": "helmet",
+              "confidence": 0.73,
+              "bbox": [795, 560, 18, 17],
+              "is_alert": false
+            }
+          ]
+        },
+        "alert_level": "warning",
+        "alert_message": "person 检出 (置信度: 0.77)",
+        "inference_time_ms": 19.0,
+        "detection_count": 3,
+        "summary_text": "边缘检测: 3个目标"
       }
     ]
   }
 }
 ```
 
-### 获取设备状态
+### 获取推理结果详情
 
 ```http
-GET /api/v1/device/{device_id}/status
+GET /api/v1/inference/results/{id}
 ```
 
-### 下发配置
+### 查询告警列表
 
 ```http
-PUT /api/v1/device/{device_id}/config
-Content-Type: application/json
-
-{
-  "model_config": {
-    "conf_threshold": 0.5,
-    "nms_threshold": 0.45
-  }
-}
+GET /api/v1/inference/alerts?levels=warning,critical&page=1&page_size=20
 ```
 
-## 数据管理 API
-
-### 上传数据
+### 推理统计（最近24小时）
 
 ```http
-POST /api/v1/data/upload
-Content-Type: multipart/form-data
-
-file: <binary>
-path: datasets/my_dataset/images/train
-```
-
-### 创建数据集
-
-```http
-POST /api/v1/data/dataset/create
-Content-Type: application/json
-
-{
-  "dataset_name": "安全帽检测数据集",
-  "dataset_type": "yolo",
-  "data_yaml_path": "/datasets/my_dataset/data.yaml",
-  "class_names": ["person", "helmet"],
-  "nc": 2
-}
-```
-
-### 启动AI标注
-
-```http
-POST /api/v1/data/annotation/ai
-Content-Type: application/json
-
-{
-  "dataset_id": "DS001",
-  "model_id": "yolov8n",
-  "target_device": "EDGE_DEVICE_001",
-  "conf_threshold": 0.25
-}
-```
-
-### 获取标注结果
-
-```http
-GET /api/v1/data/annotation/{task_id}
-```
-
-## 训练管理 API
-
-### 创建训练任务
-
-```http
-POST /api/v1/training/job/create
-Content-Type: application/json
-
-{
-  "job_name": "安全帽检测训练",
-  "dataset_id": "DS001",
-  "model_id": "yolov8n.pt",
-  "config": {
-    "epochs": 100,
-    "batch": 16,
-    "imgsz": 640,
-    "lr0": 0.01,
-    "optimizer": "AdamW",
-    "device": 0
-  }
-}
-```
-
-### 获取训练任务详情
-
-```http
-GET /api/v1/training/job/{job_id}
+GET /api/v1/inference/stats
 ```
 
 **响应**：
@@ -194,149 +132,228 @@ GET /api/v1/training/job/{job_id}
 {
   "code": 200,
   "data": {
-    "job_id": "JOB001",
-    "status": "running",
-    "progress": 45,
-    "metrics": {
-      "loss": 0.234,
-      "mAP50": 0.85,
-      "precision": 0.87,
-      "recall": 0.82
+    "totalResults": 2540,
+    "totalAlerts": 1213,
+    "edgeResults": 2399,
+    "cloudResults": 141,
+    "alertsByLevel": {
+      "warning": 1073,
+      "info": 140
     },
-    "current_epoch": 45,
-    "total_epochs": 100
+    "deviceStats": [
+      {
+        "deviceId": "jetson_orin_001",
+        "count": 2399,
+        "avgInferenceMs": 25.2
+      }
+    ]
   }
 }
 ```
 
-### 停止训练任务
+### 推理趋势（按小时聚合，最近24小时）
 
 ```http
-POST /api/v1/training/job/{job_id}/stop
+GET /api/v1/inference/trend
 ```
 
-### 获取训练日志
+### 导出推理结果
 
 ```http
-GET /api/v1/training/job/{job_id}/logs?lines=100
+GET /api/v1/inference/export?format=csv&start_time=2026-05-08T00:00:00&end_time=2026-05-08T23:59:59
 ```
 
-### 验证模型
+支持 `csv`（含 BOM，兼容 Excel）和 `json` 格式。
+
+### 清空所有推理结果
 
 ```http
-POST /api/v1/training/val
+DELETE /api/v1/inference/results
+```
+
+### 云端推理结果上报
+
+```http
+POST /api/v1/cloud/inference/result
 Content-Type: application/json
 
 {
-  "model_path": "/runs/train/exp/weights/best.pt",
-  "data_yaml": "/datasets/my_dataset/data.yaml",
-  "batch": 16,
-  "imgsz": 640
+  "device_id": "cloud_gpu",
+  "frame_id": 12345,
+  "inference_time_ms": 1200.5,
+  "segments": { ... },
+  "alerts": [ ... ],
+  "image_base64": "..."
 }
 ```
 
-### 导出模型
+### 边缘推理结果上报
 
 ```http
-POST /api/v1/training/export
+POST /api/v1/edge/inference/result
 Content-Type: application/json
 
 {
-  "model_path": "/runs/train/exp/weights/best.pt",
-  "format": "engine",
-  "half": true,
-  "int8": false,
-  "workspace": 4
+  "device_id": "jetson_orin_001",
+  "channel_id": "cam1",
+  "model_id": "helmet_detect",
+  "model_version": "1.0.0",
+  "inference_time_ms": 25,
+  "frame_count": 12345,
+  "frame_width": 2554,
+  "frame_height": 1422,
+  "detections": [
+    {
+      "class_id": 0,
+      "class_name": "person",
+      "confidence": 0.77,
+      "bbox": [925, 211, 122, 191],
+      "is_alert": true
+    }
+  ],
+  "timestamp": "2026-05-08T09:15:28",
+  "image_base64": "..."
 }
 ```
 
-## 模型管理 API
+---
 
-### 上传模型
+## Webhook 管理 API
+
+### 创建 Webhook
 
 ```http
-POST /api/v1/model/upload
+POST /api/v1/webhooks
+Content-Type: application/json
+
+{
+  "name": "告警推送",
+  "url": "http://your-server.com/api/alerts",
+  "secret": "your-secret-key",
+  "events": "alert.warning,alert.critical",
+  "enabled": true
+}
+```
+
+**事件类型**：
+
+| 事件 | 说明 |
+|------|------|
+| `alert.warning` | 警告级告警 |
+| `alert.critical` | 严重级告警 |
+| `alert.info` | 信息级告警 |
+| `alert.*` | 所有告警 |
+| `result.edge` | 边缘推理结果 |
+| `result.cloud` | 云端推理结果 |
+| `*` | 所有事件 |
+
+### 获取 Webhook 列表
+
+```http
+GET /api/v1/webhooks
+```
+
+### 更新 Webhook
+
+```http
+PUT /api/v1/webhooks/{id}
+Content-Type: application/json
+
+{
+  "enabled": false
+}
+```
+
+### 删除 Webhook
+
+```http
+DELETE /api/v1/webhooks/{id}
+```
+
+---
+
+## 文件存储 API
+
+### 下载推理图片
+
+```http
+GET /api/v1/files/download?key=inference/xxx.jpg
+```
+
+### 上传文件
+
+```http
+POST /api/v1/files/upload
 Content-Type: multipart/form-data
 
-model_file: <binary>
-config_file: <binary>
-name: "安全帽检测v2.0"
-type: "yolov8"
-format: "tensorrt"
+file: <binary>
+prefix: inference
 ```
 
-### 获取模型版本列表
+---
+
+## 设备管理 API
+
+### 注册设备
 
 ```http
-GET /api/v1/model/versions?page=1&page_size=20
-```
-
-### 部署模型
-
-```http
-POST /api/v1/model/deploy
-Content-Type: application/json
-
-{
-  "model_id": "M001",
-  "device_ids": ["EDGE_001", "EDGE_002"],
-  "backup": true,
-  "auto_restart": true
-}
-```
-
-### 获取模型指标
-
-```http
-GET /api/v1/model/{model_id}/metrics
-```
-
-## 推理 API
-
-### 启动推理
-
-```http
-POST /api/v1/inference/start
+POST /api/v1/edge/register
 Content-Type: application/json
 
 {
   "device_id": "EDGE_DEVICE_001",
-  "model_id": "M001",
-  "input_uri": "rtsp://camera:554/stream"
+  "device_name": "边缘设备1",
+  "device_type": "jetson_orin",
+  "ip": "192.168.0.107",
+  "cpu_usage": 45.5,
+  "gpu_usage": 60.0,
+  "memory_usage": 12.5
 }
 ```
 
-### 停止推理
+### 设备心跳
 
 ```http
-POST /api/v1/inference/stop
-Content-Type: application/json
-
-{
-  "device_id": "EDGE_DEVICE_001"
-}
-```
-
-### 获取推理状态
-
-```http
-GET /api/v1/inference/status?device_id=EDGE_DEVICE_001
-```
-
-### 预测
-
-```http
-POST /api/v1/inference/predict
+POST /api/v1/edge/heartbeat
 Content-Type: application/json
 
 {
   "device_id": "EDGE_DEVICE_001",
-  "image": "base64_encoded_image",
-  "conf_threshold": 0.5
+  "cpu_usage": 45.5,
+  "gpu_usage": 60.0,
+  "memory_usage": 12.5,
+  "gpu_temperature": 53.0,
+  "current_model_id": "helmet_detect",
+  "current_model_version": "1.0.0",
+  "inference_fps": 25.0,
+  "timestamp": "2026-05-08T09:15:28"
 }
 ```
 
-## OTA管理 API
+**响应**：
+
+```json
+{
+  "status": "SUCCESS",
+  "commands": []
+}
+```
+
+### 获取设备列表
+
+```http
+GET /api/v1/device/list?page=1&page_size=20&status=ONLINE
+```
+
+### 获取设备状态
+
+```http
+GET /api/v1/edge/commands?device_id=EDGE_DEVICE_001
+```
+
+---
+
+## OTA 管理 API
 
 ### 创建升级任务
 
@@ -345,21 +362,12 @@ POST /api/v1/ota/create
 Content-Type: application/json
 
 {
-  "task_name": "Agent升级v1.0.1",
-  "package_id": "PKG001",
-  "target_devices": ["EDGE_001", "EDGE_002"],
-  "strategy": {
-    "concurrent": 5,
-    "auto_rollback": true,
-    "retry": 3
-  }
+  "task_name": "安全帽模型升级v2.0",
+  "model_id": "helmet_detect_v2",
+  "target_version": "2.0.0",
+  "strategy": "rolling",
+  "target_devices": ["jetson_orin_001"]
 }
-```
-
-### 开始升级
-
-```http
-POST /api/v1/ota/{task_id}/start
 ```
 
 ### 获取升级进度
@@ -368,65 +376,77 @@ POST /api/v1/ota/{task_id}/start
 GET /api/v1/ota/{task_id}/progress
 ```
 
-**响应**：
+### 上报 OTA 状态（边缘设备调用）
 
-```json
+```http
+POST /api/v1/edge/ota/status
+Content-Type: application/json
+
 {
-  "code": 200,
-  "data": {
-    "task_id": "OTA001",
-    "status": "running",
-    "total_devices": 10,
-    "completed": 5,
-    "failed": 1,
-    "progress": 50,
-    "devices": [
-      {
-        "device_id": "EDGE_001",
-        "status": "completed",
-        "progress": 100
-      },
-      {
-        "device_id": "EDGE_002",
-        "status": "running",
-        "progress": 60
-      }
-    ]
-  }
+  "task_id": "OTA_001",
+  "device_id": "jetson_orin_001",
+  "status": "DOWNLOADING",
+  "progress": 45
 }
 ```
 
-### 回滚
-
-```http
-POST /api/v1/ota/{task_id}/rollback
-```
+---
 
 ## WebSocket API
 
-### 订阅设备状态
+### 连接地址
 
-```javascript
-const ws = new WebSocket('ws://localhost:8080/ws/device/{device_id}/status');
-
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('CPU:', data.cpu_usage);
-  console.log('GPU:', data.gpu_usage);
-};
+```
+ws://{HOST}:8081/ws
 ```
 
-### 订阅训练进度
+### 订阅主题（STOMP 协议）
+
+| 主题 | 说明 |
+|------|------|
+| `/topic/inference/{device_id}/results` | 指定设备的推理结果 |
+| `/topic/inference/alerts` | 所有设备的告警 |
+
+### JavaScript 示例
 
 ```javascript
-const ws = new WebSocket('ws://localhost:8080/ws/training/{job_id}/progress');
+import SockJS from 'sockjs-client';
+import { Stomp } from '@stomp/stompjs';
 
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('Epoch:', data.current_epoch);
-  console.log('Loss:', data.loss);
-};
+const socket = new SockJS('http://192.168.0.103:8081/ws');
+const stompClient = Stomp.over(socket);
+
+stompClient.connect({}, () => {
+  // 订阅指定设备的推理结果
+  stompClient.subscribe('/topic/inference/jetson_orin_001/results', (msg) => {
+    const result = JSON.parse(msg.body);
+    console.log('推理结果:', result.device_id, result.detection_count);
+  });
+
+  // 订阅所有告警
+  stompClient.subscribe('/topic/inference/alerts', (msg) => {
+    const alert = JSON.parse(msg.body);
+    console.log('告警:', alert.alert_level, alert.alert_message);
+  });
+});
 ```
+
+---
+
+## MQTT API
+
+边缘设备通过 MQTT 上报推理结果，第三方也可订阅相同主题获取实时数据。
+
+**Broker**: `tcp://{HOST}:1883`
+
+| 主题 | 方向 | 说明 |
+|------|------|------|
+| `device/{device_id}/inference/results` | 设备→云端 | 推理结果上报 |
+| `device/{device_id}/ota/command` | 云端→设备 | OTA 升级命令 |
+| `device/{device_id}/ota/status` | 设备→云端 | OTA 状态反馈 |
+| `device/{device_id}/config/update` | 云端→设备 | 配置下发 |
+
+---
 
 ## 错误码
 
@@ -440,65 +460,30 @@ ws.onmessage = (event) => {
 | 409 | 资源冲突 |
 | 500 | 服务器错误 |
 
-## 请求示例
+---
 
-### 使用 curl
+## curl 示例
 
 ```bash
-# 注册设备
-curl -X POST http://localhost:8080/api/v1/device/register \
+# 查询推理结果
+curl "http://192.168.0.103:8081/api/v1/inference/results?page=1&page_size=5"
+
+# 查询告警
+curl "http://192.168.0.103:8081/api/v1/inference/alerts?levels=warning,critical"
+
+# 查询统计
+curl "http://192.168.0.103:8081/api/v1/inference/stats"
+
+# 导出 CSV
+curl -o results.csv "http://192.168.0.103:8081/api/v1/inference/export?format=csv"
+
+# 注册 Webhook
+curl -X POST http://192.168.0.103:8081/api/v1/webhooks \
   -H "Content-Type: application/json" \
-  -d '{
-    "device_id": "EDGE_DEVICE_001",
-    "device_name": "边缘设备1",
-    "device_type": "jetson_orin"
-  }'
+  -d '{"name":"test","url":"http://your-server/webhook","events":"alert.*","enabled":true}'
 
-# 获取设备列表
-curl http://localhost:8080/api/v1/device/list
-
-# 创建训练任务
-curl -X POST http://localhost:8080/api/v1/training/job/create \
+# 边缘推理结果上报
+curl -X POST http://192.168.0.103:8081/api/v1/edge/inference/result \
   -H "Content-Type: application/json" \
-  -d '{
-    "job_name": "训练任务1",
-    "dataset_id": "DS001",
-    "model_id": "yolov8n.pt"
-  }'
-```
-
-### 使用 Python
-
-```python
-import requests
-
-# 注册设备
-response = requests.post(
-    'http://localhost:8080/api/v1/device/register',
-    json={
-        'device_id': 'EDGE_DEVICE_001',
-        'device_name': '边缘设备1',
-        'device_type': 'jetson_orin'
-    }
-)
-print(response.json())
-```
-
-### 使用 JavaScript
-
-```javascript
-// 注册设备
-fetch('http://localhost:8080/api/v1/device/register', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    device_id: 'EDGE_DEVICE_001',
-    device_name: '边缘设备1',
-    device_type: 'jetson_orin'
-  })
-})
-.then(res => res.json())
-.then(data => console.log(data));
+  -d '{"device_id":"test_device","model_id":"helmet_detect","detections":[{"class_id":0,"class_name":"person","confidence":0.95,"bbox":[100,200,50,100],"is_alert":true}]}'
 ```
