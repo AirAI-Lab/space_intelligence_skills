@@ -19,6 +19,9 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
 @Service
@@ -30,8 +33,37 @@ public class InferenceResultService {
     private final WebhookService webhookService;
     private final StorageService storageService;
 
+    // Dedicated thread pool for async inference result processing
+    // to avoid blocking MQTT callback thread on DB writes and image uploads
+    private final ExecutorService inferenceExecutor = Executors.newFixedThreadPool(4, r -> {
+        Thread t = new Thread(r, "inference-result-processor");
+        t.setDaemon(true);
+        return t;
+    });
+    private final AtomicInteger pendingCount = new AtomicInteger(0);
+
+    /**
+     * Async wrapper: submits edge inference result for background processing.
+     * Returns immediately to free the MQTT callback thread.
+     */
+    public void saveEdgeResult(InferenceResultRequest request) {
+        int pending = pendingCount.incrementAndGet();
+        if (pending > 100) {
+            log.warn("Inference result queue backing up: {} pending", pending);
+        }
+        inferenceExecutor.submit(() -> {
+            try {
+                doSaveEdgeResult(request);
+            } catch (Exception e) {
+                log.error("Failed to process edge inference result: {}", e.getMessage(), e);
+            } finally {
+                pendingCount.decrementAndGet();
+            }
+        });
+    }
+
     @Transactional
-    public InferenceResult saveEdgeResult(InferenceResultRequest request) {
+    public InferenceResult doSaveEdgeResult(InferenceResultRequest request) {
         InferenceResult result = new InferenceResult();
         result.setTime(request.getTimestamp() != null ? request.getTimestamp() : LocalDateTime.now());
         result.setDeviceId(request.getDeviceId());
