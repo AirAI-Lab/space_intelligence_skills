@@ -92,10 +92,10 @@ class ScenarioPlugin(InferencePlugin):
             radio_config = self._config.get("deployment", {}).get("cloud", {}).get("radio", {})
 
         raw_classes = radio_config.get("classes", {})
-        # 过滤掉 background 类
+        # 过滤掉 background 类和显式禁用的类
         self._classes_config = {
             k: v for k, v in raw_classes.items()
-            if not v.get("is_background", False)
+            if not v.get("is_background", False) and v.get("enabled", True)
         }
 
         # 读取阈值: 优先 inference → model → segmentation
@@ -109,6 +109,12 @@ class ScenarioPlugin(InferencePlugin):
 
         # 从 classes_config 提取告警规则
         self._alert_rules = self._build_alert_rules()
+
+        # 记录被禁用的类
+        disabled = [k for k, v in raw_classes.items()
+                    if not v.get("is_background", False) and not v.get("enabled", True)]
+        if disabled:
+            logger.info("已禁用的类别: %s", disabled)
 
         logger.info("插件就绪: 类别=%s, 阈值=%.2f, 最小面积=%.3f, 多类模式=%s",
                      list(self._classes_config.keys()), self._threshold,

@@ -110,6 +110,9 @@ class InferenceEngine:
                 "class_name_cn": seg.class_name_cn,
             }
 
+        # 颜色通道差过滤：排除与目标色调不符的误检
+        segments = self._filter_by_color(image, results, segments, classes_config)
+
         # 使用插件生成告警
         alerts = self._plugin.generate_alerts(segments, min_area)
 
@@ -146,6 +149,49 @@ class InferenceEngine:
             payload["image_base64"] = image_b64
 
         return payload
+
+    # ── 颜色过滤 ──
+
+    def _filter_by_color(self, image: np.ndarray, results: dict,
+                         segments: dict, classes_config: dict) -> dict:
+        """
+        基于颜色通道差的误检过滤。
+
+        YAML 配置示例:
+          dust_pollution:
+            color_filter:
+              min_rb_diff: 15   # R 通道均值 - B 通道均值 > 15 (暖色调)
+        """
+        to_remove = []
+        for name, seg in results.items():
+            if name not in segments:
+                continue
+            cfg = classes_config.get(name, {})
+            color_filter = cfg.get("color_filter")
+            if not color_filter:
+                continue
+
+            mask = seg.mask.astype(bool)
+            if not mask.any():
+                continue
+
+            pixels = image[mask].astype(np.float32)
+            mean_b = pixels[:, 0].mean()
+            mean_g = pixels[:, 1].mean()
+            mean_r = pixels[:, 2].mean()
+
+            min_rb = color_filter.get("min_rb_diff", 0)
+            if min_rb and (mean_r - mean_b) < min_rb:
+                logger.info(
+                    "颜色过滤 %s: R-B=%.1f < min_rb_diff=%.1f, 排除",
+                    name, mean_r - mean_b, min_rb,
+                )
+                to_remove.append(name)
+
+        for name in to_remove:
+            del segments[name]
+
+        return segments
 
     # ── 标注绘制 ──
 

@@ -220,13 +220,19 @@ deployment:
           prompts:
             - normal construction site with workers and equipment
             - clean organized construction area with proper covering
+            - flat smooth concrete or cement ground surface at construction site
+            - solid paved road hard floor or gray concrete slab surface
+            - clear open area with visible ground texture and no airborne particles
 
         # --- 裸土未覆盖 ---
         bare_soil_uncovered:
+          enabled: true                      # 设为 false 可禁用此类检测
           zh: 裸土未覆盖
           min_prob: 0.25
           use_color_check: true
           color_hint: [120, 100, 80]       # 黄褐色泥土
+          color_filter:
+            min_rb_diff: 10               # R-B > 10 = 暖色调泥土；水泥地 R-B≈-3 会被过滤
           prompts:
             # 正面: 裸露的黄土/泥土，无覆盖 — 强调干燥泥土纹理
             - large area of exposed bare dry yellow brown soil without any covering
@@ -246,19 +252,27 @@ deployment:
 
         # --- 扬尘 ---
         dust_pollution:
+          enabled: true                      # 设为 false 可禁用此类检测
           zh: 扬尘污染
-          min_prob: 0.20
+          min_prob: 0.30
+          color_filter:
+            min_rb_diff: 15               # R通道-B通道均值 > 15 = 暖色调扬尘；水泥地 R-B≈-3 会被过滤
           prompts:
-            # 强调空气中悬浮的尘雾 — 而非地面
-            - visible dust cloud or haze rising from construction ground into the air
-            - airborne gray white dust particles forming fog over construction area
-            - thick dust pollution haze obscuring visibility at construction site
-            - brown gray dust smog blown from earth moving work area into the sky
+            # v3: 只描述空气中的半透明尘雾 — 绝对不涉及地面
+            - semi transparent brownish dust haze floating in mid air obscuring distant objects
+            - swirling airborne dust cloud above ground with particles visible against sky
+            - thick dusty fog reducing visibility between camera and buildings at site
+            - visible particulate dust plume drifting through atmosphere above earth surface
           prompts_negative:
-            - clear clean air at well managed construction site
-            - water sprinkled wet ground without dust
-            - fog or natural mist not from construction
-            - bare dry soil without any airborne dust
+            # 水泥地/混凝土地面 — 这是最大的误判源，需要强力排除
+            - flat smooth gray concrete or cement ground surface
+            - solid paved road or hard flat floor without any airborne particles
+            - light gray cement floor with uniform texture and solid opaque appearance
+            - concrete slab ground with clear surface texture no haziness or transparency
+            # 其他非扬尘场景
+            - clear clean air at well managed construction site with visible background
+            - water sprinkled wet ground surface without dust
+            - fog or natural morning mist not from construction activity
           alert:
             enabled: true
             level: critical
@@ -266,6 +280,7 @@ deployment:
 
         # --- 坑内积水 ---
         pit_water_accumulation:
+          enabled: true                      # 设为 false 可禁用此类检测
           zh: 坑内积水
           min_prob: 0.20
           use_color_check: true
@@ -288,21 +303,44 @@ deployment:
 
         # --- 基坑边材料堆放 ---
         material_near_pit:
+          enabled: true                      # 基坑边材料堆放需告警；无基坑场景可设为 false
           zh: 基坑边材料堆放
           min_prob: 0.25
           prompts:
-            - construction materials stacked piled near edge of foundation pit or excavation
-            - steel bars bricks or bags of cement placed dangerously close to pit boundary
-            - building supplies loosely stacked beside deep excavation edge
-            - loose construction material storage near open trench or pit without safety barrier
+            # 专注基坑/土方开挖场景 — 材料堆放在坑边斜坡或边缘
+            - steel rebar bundles or brick stacks piled near edge of foundation pit or earth excavation
+            - bags of cement or sand stacked on muddy slope beside deep open pit
+            - construction material heap leaning against dirt wall or soil edge of trench
+            - loose pipes timber planks placed on unstable ground next to excavated pit boundary
           prompts_negative:
-            - organized material storage in designated area far from pit
-            - construction materials properly stored inside warehouse
-            - empty clean area around foundation pit
+            - construction materials neatly organized on flat ground far from any pit
+            - materials stored inside warehouse on paved concrete surface
+            - construction supplies on metal shelves in designated storage yard
+            - empty clean area around foundation pit with no material stacks
           alert:
             enabled: true
             level: warning
             description: "基坑边材料堆放"
+
+        # --- 楼板临边材料堆放（按需开启）---
+        # 适用场景：已封顶或接近封顶的楼层，材料堆放靠近楼板边缘有坠落风险
+        # 不适用场景：正常在建楼层，材料堆放属于正常施工作业
+        material_near_slab_edge:
+          enabled: false                    # 默认关闭，仅特定场景手动开启
+          zh: 楼板临边材料堆放
+          min_prob: 0.30
+          prompts:
+            - loose steel rebars or cement bags piled close to unprotected slab edge or floor boundary
+            - construction materials stacked near open side of building floor with visible drop below
+            - disorganized material heap beside railing free edge of concrete floor slab
+          prompts_negative:
+            - construction materials neatly stored in center area of floor away from edges
+            - materials placed on designated storage area with safety barriers
+            - empty flat concrete floor with no material piles near boundary
+          alert:
+            enabled: true
+            level: warning
+            description: "楼板临边材料堆放"
 
 # ============================================
 # 9. 输出配置
