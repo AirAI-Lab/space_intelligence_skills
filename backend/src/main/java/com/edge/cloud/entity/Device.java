@@ -67,6 +67,19 @@ public class Device {
     @Column(name = "mqtt_topic", length = 200)
     private String mqttTopic;
 
+    // 设备扩展信息
+    @Column(name = "device_category", length = 30)
+    private String deviceCategory;
+
+    @Column(name = "capabilities", length = 200)
+    private String capabilities;
+
+    @Column(name = "protocol", length = 30)
+    private String protocol;
+
+    @Column(name = "labels", columnDefinition = "TEXT")
+    private String labels;
+
     // 硬件信息
     @Column(name = "os_version", length = 50)
     private String osVersion;

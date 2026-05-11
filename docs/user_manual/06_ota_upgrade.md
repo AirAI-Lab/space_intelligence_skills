@@ -315,4 +315,4 @@ cron: "0 3 * * *"
 ## 下一步
 
 - 阅读 [API文档](../api/README.md)
-- 阅读 [架构文档](../architecture.md)
+- 阅读 [系统总览](../design/OVERVIEW.md)

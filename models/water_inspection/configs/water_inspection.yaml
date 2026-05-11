@@ -72,8 +72,8 @@ cloud:
           - black sewage water with low brightness around 122
         alert:
           enabled: true
-          level: warning
-          description: 发现黑水，可能存在严重污染
+          level: critical
+          description: 黑水污染
 
       turbid_water:
         zh: 浑浊水
@@ -86,8 +86,8 @@ cloud:
           - coffee brown murky water with earth color tint
         alert:
           enabled: true
-          level: info
-          description: 发现浑浊水，可能存在泥沙悬浮
+          level: critical
+          description: 褐色水体
 
       red_water:
         zh: 红水
@@ -100,8 +100,8 @@ cloud:
           - rusty red water with R channel clearly dominant
         alert:
           enabled: true
-          level: warning
-          description: 发现红水，可能存在铁锈污染
+          level: critical
+          description: 化学污染
 
       green_water:
         zh: 绿水/藻类
@@ -114,8 +114,8 @@ cloud:
           - emerald green turbid water with G channel clearly above R and B
         alert:
           enabled: true
-          level: info
-          description: 发现绿水/藻类，可能存在富营养化
+          level: warning
+          description: 藻类爆发
 
       milky_foam_water:
         zh: 乳白水/泡沫
@@ -128,8 +128,8 @@ cloud:
           - dense frothy white patches with low saturation high brightness
         alert:
           enabled: true
-          level: info
-          description: 发现乳白水/泡沫，可能存在污染物排放
+          level: warning
+          description: 水体浑浊
 
       dam_seepage:
         zh: 坝体渗水

@@ -2,6 +2,9 @@ package com.edge.cloud.service;
 
 import com.edge.cloud.dto.*;
 import com.edge.cloud.entity.Device;
+import com.edge.cloud.entity.DeviceType;
+import com.edge.cloud.entity.DeviceCapability;
+import com.edge.cloud.repository.DeviceCommandRepository;
 import com.edge.cloud.repository.DeviceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DeviceCommunicationService {
 
     private final DeviceRepository deviceRepository;
+    private final DeviceCommandRepository deviceCommandRepository;
     private final OtaService otaService;
     private final InferenceResultService inferenceResultService;
 
@@ -233,6 +237,13 @@ public class DeviceCommunicationService {
         device.setDiskUsage(request.getDiskUsage());
         device.setCurrentModelId(request.getCurrentModelId());
         device.setCurrentVersion(request.getCurrentModelVersion());
+
+        // 设置扩展字段: 类别、能力、协议 (旧设备自动推断默认值)
+        String dtype = request.getDeviceType();
+        device.setDeviceCategory(DeviceType.inferCategory(dtype));
+        device.setCapabilities(DeviceCapability.defaultForEdge());
+        device.setProtocol("MQTT_REST");
+
         return device;
     }
 

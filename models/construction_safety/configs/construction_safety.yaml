@@ -239,6 +239,10 @@ deployment:
             - grass covered ground with vegetation
             - water surface with reflection or puddle
             - wet muddy ground with standing water or waterlogged area
+          alert:
+            enabled: true
+            level: warning
+            description: "裸土未覆盖"
 
         # --- 扬尘 ---
         dust_pollution:
@@ -255,6 +259,10 @@ deployment:
             - water sprinkled wet ground without dust
             - fog or natural mist not from construction
             - bare dry soil without any airborne dust
+          alert:
+            enabled: true
+            level: critical
+            description: "扬尘污染"
 
         # --- 坑内积水 ---
         pit_water_accumulation:
@@ -273,6 +281,10 @@ deployment:
             - dry bare soil or dirt ground without water reflection
             - water body in natural river channel
             - swimming pool or decorative fountain
+          alert:
+            enabled: true
+            level: warning
+            description: "坑内积水"
 
         # --- 基坑边材料堆放 ---
         material_near_pit:
@@ -287,6 +299,10 @@ deployment:
             - organized material storage in designated area far from pit
             - construction materials properly stored inside warehouse
             - empty clean area around foundation pit
+          alert:
+            enabled: true
+            level: warning
+            description: "基坑边材料堆放"
 
 # ============================================
 # 9. 输出配置

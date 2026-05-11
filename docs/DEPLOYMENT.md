@@ -112,13 +112,40 @@
 
 ```bash
 cd deployment/docker
-docker compose up -d
+
+# 模式 A: 纯推理 — 仅 EMQX + GPU 训练容器（2 容器）
+docker compose --profile gpu up -d
+
+# 模式 B: 推理 + 管理 — 无 GPU 训练（8 容器）
+docker compose --profile standard up -d
+
+# 模式 C: 完整平台 — 管理 + GPU 训练（10 容器）
+docker compose --profile standard --profile gpu up -d
 ```
 
-特点：
-- 源码目录挂载到容器，修改即时生效
-- 后端 `mvn spring-boot:run`，前端 `npm run dev`
-- 首次启动需要下载依赖，约 5-10 分钟
+**部署模式说明**：
+
+| 模式 | 命令 | 容器数 | 适用场景 |
+|------|------|--------|----------|
+| **A: 纯推理** | `--profile gpu` | 2 | 第三方只需 MQTT 推理结果，无需管理界面 |
+| **B: 推理+管理** | `--profile standard` | 8 | 有管理需求但无 GPU 训练 |
+| **C: 完整平台** | `--profile standard --profile gpu` | 10 | 全功能开发/生产部署 |
+
+**各模式下服务状态**：
+
+| 服务 | 模式 A | 模式 B | 模式 C |
+|------|--------|--------|--------|
+| EMQX (消息总线) | ✓ | ✓ | ✓ |
+| Training (GPU 推理) | ✓ | — | ✓ |
+| PostgreSQL | — | ✓ | ✓ |
+| Redis | — | ✓ | ✓ |
+| Backend (Spring Boot) | — | ✓ | ✓ |
+| Frontend (Vue3) | — | ✓ | ✓ |
+| MLflow | — | ✓ | ✓ |
+| SeaweedFS | — | ✓ | ✓ |
+| Portal | — | ✓ | ✓ |
+
+> **模式 A（纯推理）**：EMQX 始终启动作为消息总线。第三方通过 MQTT 订阅 `results/#` 和 `alerts/#` 获取归一化推理结果。云端推理在 training 容器中运行。
 
 **访问地址**：
 
@@ -243,12 +270,19 @@ docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
 git clone https://github.com/your-org/edge_infer_cloud.git
 cd edge_infer_cloud
 
-# 一键部署
+# 方式 A: 一键脚本部署
 cd deployment/docker
 chmod +x deploy.sh
-./deploy.sh              # 生产模式（无GPU）
-./deploy.sh --gpu        # 含 GPU 训练服务
+./deploy.sh              # 生产模式（管理服务，无 GPU）
+./deploy.sh --gpu        # 完整平台（含 GPU 训练/推理）
+
+# 方式 B: docker compose profiles 精细控制
+docker compose --profile gpu up -d                          # 模式 A: 纯推理（2 容器）
+docker compose --profile standard up -d                     # 模式 B: 推理+管理（8 容器）
+docker compose --profile standard --profile gpu up -d       # 模式 C: 完整平台（10 容器）
 ```
+
+> **生产环境推荐**：`deploy.sh --gpu` 或 `docker compose --profile standard --profile gpu up -d`
 
 ### 2.2 管理命令
 
@@ -316,12 +350,17 @@ git clone https://github.com/your-org/edge_infer_cloud.git /opt/edge_cloud
 ### 3.3 在 Linux 上部署并恢复数据
 
 ```bash
-# 部署
+# 部署（选择合适的模式）
 cd /opt/edge_cloud/deployment/docker
 chmod +x deploy.sh
-./deploy.sh
 
-# 恢复数据（如需要）
+# 模式 A: 纯推理（仅 EMQX + GPU 训练，第三方通过 MQTT 获取结果）
+docker compose --profile gpu up -d
+
+# 模式 C: 完整平台（管理 + GPU 推理）
+./deploy.sh --gpu
+
+# 恢复数据（模式 B/C 需要，模式 A 无数据库）
 cat backup.sql | docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud
 ```
 
@@ -387,10 +426,16 @@ EMQX_PASSWORD=admin123456
 - 开发模式：修改代码后自动热重载
 - 生产模式：`./deploy.sh --rebuild`
 
-**Q: 训练服务怎么启动？**
+**Q: 训练/推理服务怎么启动？**
 - 训练服务需要 NVIDIA GPU 和 nvidia-container-toolkit
 - 使用 `./deploy.sh --gpu` 启动，或 `docker compose --profile gpu up -d`
-- 没有 GPU 的服务器不需要启动训练服务
+- 没有 GPU 的服务器不需要启动训练服务，使用 `--profile standard` 即可
+
+**Q: 第三方只需要推理结果，怎么最小化部署？**
+- 仅需 2 个容器：EMQX（消息总线）+ Training（GPU 推理）
+- 命令：`docker compose --profile gpu up -d`
+- 第三方通过 MQTT 订阅 `results/#` 和 `alerts/#` 获取归一化结果
+- 无需数据库、后端、前端
 
 **Q: 新的 Linux 服务器部署流程一样吗？**
 - 完全一样。只需先安装 Docker（`curl -fsSL https://get.docker.com | sh`），然后执行 `./deploy.sh`

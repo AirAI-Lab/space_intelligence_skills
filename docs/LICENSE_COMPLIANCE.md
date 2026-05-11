@@ -146,9 +146,9 @@
 
 ## 📄 相关文档
 
-- [项目架构文档](./architecture.md)
-- [部署指南](./user_manual/01_quick_start.md)
-- [API 文档](../api/README.md)
+- [系统总览](design/OVERVIEW.md)
+- [快速部署](QUICKSTART.md)
+- [API 文档](api/README.md)
 
 ---
 

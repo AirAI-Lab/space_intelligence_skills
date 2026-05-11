@@ -101,6 +101,11 @@ public class MqttService {
             mqttClient.subscribe(inferenceTopic, 1);
             log.info("订阅边缘推理结果主题成功: {}", inferenceTopic);
 
+            // 订阅统一结果 topic (EMQX 规则引擎归一化后的 topic)
+            String unifiedResultsTopic = "results/#";
+            mqttClient.subscribe(unifiedResultsTopic, 0);
+            log.info("订阅统一结果主题成功: {}", unifiedResultsTopic);
+
         } catch (MqttException e) {
             log.error("MQTT 客户端连接失败", e);
         }

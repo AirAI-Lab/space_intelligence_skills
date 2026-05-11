@@ -4,6 +4,46 @@
 
 ---
 
+## v2026.05.11 — 插件化推理 + EMQX 规则引擎 + 设备管理扩展
+
+### 新增
+
+**Task 1: 云端推理插件化重构**
+- **插件基类** (`models/cloud_inference/plugin_base.py`)：`ScenarioPlugin` 从 YAML `cloud.radio.classes.*.alert` 动态读取告警规则，替代硬编码 `alert_map`
+- **推理引擎** (`models/cloud_inference/engine.py`)：从 `radio_infer_server.py` 提取推理核心逻辑，委托给 plugin 生成告警
+- **主服务精简** (`models/cloud_inference/radio_infer_server.py`)：从 ~739 行缩减到 ~546 行，删除硬编码告警和标注逻辑
+- **文件迁移**：`cloud/` → `models/cloud_inference/`，通过 volume 挂载无需手动同步
+- **新场景零代码接入**：只需创建 YAML 配置文件，指定 `--config` 即可运行
+
+**Task 2: EMQX 规则引擎 + Docker Profiles**
+- **4 条 EMQX 规则**：边缘/云端结果归一化 + 告警提取，自动路由到统一 topic 树
+- **统一 topic 树**：`results/{device_id}/{channel_id}/{source}` 和 `alerts/{device_id}/{source}`
+- **规则初始化脚本** (`deployment/emqx/init_rules.sh`)：容器启动自动创建规则，幂等
+- **Docker Compose profiles**：3 种部署模式（纯推理 2 容器 / 推理+管理 8 容器 / 完整平台 10 容器）
+- **后端订阅统一 topic**：`MqttService` 新增 `results/#` 订阅用于监控
+
+**Task 3: 设备管理扩展**
+- **设备类型枚举** (`DeviceType.java`)：JETSON_ORIN / DRONE / ROBOT_DOG / VEHICLE / SENSOR / CAMERA
+- **能力模型** (`DeviceCapability.java`)：VIDEO_INPUT / INFERENCE / CONTROL / OTA_UPDATE 等
+- **标签系统** (`DeviceTag.java` + `DeviceTagController.java`)：设备标签 CRUD + 按标签查询
+- **命令持久化** (`DeviceCommand.java`)：设备下发命令审计记录
+- **新 API 端点**：`GET /devices/by-type`、`GET /devices/by-category`、`GET /devices/{id}/commands`、标签 CRUD
+- **向后兼容**：旧设备心跳自动填充默认值，现有 API 不变
+
+### 改进
+- `construction_safety.yaml` 补充 4 个 cloud radio classes 的 alert 字段
+- `water_inspection.yaml` 告警级别与生产值对齐（black_water → critical 等）
+- `test_plugin.py` 验证 4 个场景的 YAML 告警规则与旧硬编码一致
+
+### 文档
+- `README_DOCKER.md` 更新云端推理命令路径 + 多场景配置说明
+- `INFERENCE_PIPELINE.md` 更新路径 + 移除手动同步说明 + 更新文件结构表
+- `CODE_ANALYSIS_CLOUD.md` 更新为插件化架构描述
+- `THIRD_PARTY_INTEGRATION.md` 增加 EMQX 统一 topic 订阅说明 + 更新示例代码
+- `DEPLOYMENT.md` 增加 Docker Profiles 3 种部署模式说明
+
+---
+
 ## v2026.05.08 — 多通道推理 + 第三方对接 + 生产部署
 
 ### 新增

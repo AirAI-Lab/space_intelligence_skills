@@ -5,6 +5,9 @@ services:
   postgres:
     image: timescale/timescaledb:latest-pg16
     container_name: edge_cloud_postgres
+    profiles:
+      - standard
+      - full
     environment:
       POSTGRES_DB: edge_cloud
       POSTGRES_USER: edge_user
@@ -31,6 +34,9 @@ services:
   redis:
     image: redis:7-alpine
     container_name: edge_cloud_redis
+    profiles:
+      - standard
+      - full
     ports:
       - "6379:6379"
     volumes:
@@ -43,6 +49,9 @@ services:
   portal:
     image: nginx:alpine
     container_name: edge_cloud_portal
+    profiles:
+      - standard
+      - full
     ports:
       - "8889:80"
     volumes:
@@ -52,6 +61,7 @@ services:
     restart: unless-stopped
 
   # EMQX MQTT Broker（Apache 2.0 - 完全免费）
+  # 始终启动，提供消息总线和规则引擎
   emqx:
     image: emqx/emqx:5.5.0
     container_name: edge_cloud_emqx
@@ -60,20 +70,32 @@ services:
       # 设置默认管理员账号密码
       EMQX_DASHBOARD__DEFAULT_USERNAME: admin
       EMQX_DASHBOARD__DEFAULT_PASSWORD: admin123456
+      # 第三方 Webhook URL (可选, 设置后告警自动推送)
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
     ports:
       - "1883:1883"
       - "8083:8083"
       - "18083:18083"
     volumes:
       - emqx_data:/opt/emqx/data
+      - ../emqx/init_rules.sh:/opt/emqx/init_rules.sh:ro
     networks:
       - edge-cloud-network
     restart: unless-stopped
+    # 容器启动后初始化规则引擎
+    command: >
+      bash -c "/opt/emqx/bin/emqx foreground &
+               sleep 15 &&
+               EMQX_HOST=localhost bash /opt/emqx/init_rules.sh &
+               wait"
 
   # MLflow 模型管理（Apache 2.0 - 完全免费）
   mlflow:
     image: ghcr.io/mlflow/mlflow:v2.9.0
     container_name: edge_cloud_mlflow
+    profiles:
+      - standard
+      - full
     ports:
       - "5001:5000"
     environment:
@@ -96,6 +118,9 @@ services:
   seaweedfs:
     image: chrislusf/seaweedfs:latest
     container_name: edge_cloud_seaweedfs
+    profiles:
+      - standard
+      - full
     ports:
       - "8333:8333"  # S3 API
       - "8080:8080"  # 主服务
@@ -119,6 +144,9 @@ services:
   frontend:
     image: node:21-alpine
     container_name: edge_cloud_frontend
+    profiles:
+      - standard
+      - full
     working_dir: /app
     ports:
       - "3000:3000"
@@ -141,6 +169,9 @@ services:
   backend:
     image: maven:3.9-eclipse-temurin-21
     container_name: edge_cloud_backend
+    profiles:
+      - standard
+      - full
     working_dir: /app
     ports:
       - "8081:8080"
@@ -196,12 +227,11 @@ services:
       - edge-cloud-network
     restart: unless-stopped
 
-  # cloud_infer 服务已移除 — 云端推理统一在 Training 容器中运行
-  # 使用方式: docker exec -it edge_cloud_training python3 /app/radio_infer_server.py ...
-    profiles:
-      - gpu
-
   # 训练服务 (PyTorch + YOLO + CUDA) - 需要使用 --profile gpu 启动
+  # 云端推理 (C-RADIOv4) 也在该容器中运行
+  # 使用方式:
+  #   docker exec -it edge_cloud_training python3 /app/radio_infer_server.py --config ...
+  #   或设置环境变量 CONFIG_PATH 后自动启动
   training:
     build:
       context: ../../training
@@ -228,6 +258,8 @@ services:
       - MQTT_PASSWORD=admin123456
       # GPU 配置
       - USE_GPU=true
+      # 云端推理场景配置 (留空则不自动启动推理)
+      - CONFIG_PATH=${CONFIG_PATH:-}
     volumes:
       # 开发模式：挂载源码目录（热重载）
       - ../../training:/app

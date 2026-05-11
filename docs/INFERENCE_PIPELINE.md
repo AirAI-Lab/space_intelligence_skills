@@ -288,7 +288,7 @@ self._classes_config = {
 }
 ```
 
-**位置**：`cloud/radio_infer_server.py:146-150`
+**位置**：`models/cloud_inference/plugin_base.py` — `ScenarioPlugin.load_config()` 自动过滤 `is_background` 类
 
 ### 6.3 Spring Boot 循环依赖处理
 
@@ -531,17 +531,13 @@ export RADIO_CODE_DIR=/app/models/NVlabs_RADIO && \
 export RADIO_CHECKPOINT_PATH=/app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar && \
 export SIGLIP2_DIR=/app/models/siglip2-giant-opt-patch16-384 && \
 export DEVICE=cuda && \
-python3 cloud/radio_infer_server.py > /tmp/cloud_infer.log 2>&1"
+python3 /app/models/cloud_inference/radio_infer_server.py > /tmp/cloud_infer.log 2>&1"
 
 # 查看运行日志
 docker exec edge_cloud_training tail -f /tmp/cloud_infer.log
 ```
 
-**重要提示**：training 容器的 `cloud/` 目录是独立副本（位于 `training/cloud/`），与项目根目录的 `cloud/` 不同步。修改代码后需手动同步：
-
-```bash
-cp cloud/radio_infer_server.py training/cloud/radio_infer_server.py
-```
+> **注意**：`models/cloud_inference/` 已通过 volume 挂载到容器 `/app/models/cloud_inference/`，修改宿主机代码后容器内立即可用，无需手动同步。
 
 ### 9.5 边缘设备配置
 
@@ -667,11 +663,11 @@ self._classes_config = {
 }
 ```
 
-同步代码到 training 容器：
+代码已通过 volume 挂载，无需手动同步：
 
 ```bash
-cp cloud/radio_infer_server.py training/cloud/radio_infer_server.py
-# 然后重启容器内的推理进程
+# models/ 目录已挂载到容器 /app/models/，修改宿主机代码后立即生效
+# 只需重启容器内的推理进程即可
 ```
 
 ### 问题二：MQTT 连接失败 / 边缘结果未入库
@@ -725,9 +721,7 @@ docker logs edge_cloud_backend 2>&1 | grep -i mqtt | tail -20
 **解决方法**：
 
 ```bash
-# 同步修复后的代码
-cp cloud/radio_infer_server.py training/cloud/radio_infer_server.py
-
+# 代码已通过 volume 挂载，无需同步
 # 重启容器内的推理进程
 docker exec edge_cloud_training pkill -f radio_infer_server
 # 然后按 9.4 节的方式二重新启动
@@ -777,9 +771,11 @@ docker exec edge_cloud_training pkill -f radio_infer_server
 
 | 文件路径 | 职责 |
 |----------|------|
-| `cloud/radio_infer_server.py` | 云端推理主服务（MQTT/流式双模式） |
-| `deployment/docker/cloud_infer.Dockerfile` | 云端推理 Docker 镜像 |
-| `deployment/docker/docker-compose.yml` | 容器编排配置 |
+| `models/cloud_inference/radio_infer_server.py` | 云端推理主服务（MQTT/流式双模式，插件化） |
+| `models/cloud_inference/plugin_base.py` | 插件基类 — 从 YAML 动态读取告警规则 |
+| `models/cloud_inference/engine.py` | 推理引擎 — 模型加载、推理、标注绘制 |
+| `deployment/docker/docker-compose.yml` | 容器编排配置（含 profiles 多模式部署） |
+| `deployment/emqx/init_rules.sh` | EMQX 规则引擎初始化脚本 |
 | `models/water_inspection/` | 水利巡检场景代码和配置 |
 | `models/construction_safety/` | 施工安全场景代码和配置 |
 

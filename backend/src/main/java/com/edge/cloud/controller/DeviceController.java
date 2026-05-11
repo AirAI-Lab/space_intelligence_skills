@@ -2,6 +2,8 @@ package com.edge.cloud.controller;
 
 import com.edge.cloud.dto.ApiResponse;
 import com.edge.cloud.entity.Device;
+import com.edge.cloud.entity.DeviceCommand;
+import com.edge.cloud.repository.DeviceCommandRepository;
 import com.edge.cloud.repository.DeviceRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +33,7 @@ import java.util.Optional;
 public class DeviceController {
 
     private final DeviceRepository deviceRepository;
+    private final DeviceCommandRepository deviceCommandRepository;
 
     @GetMapping
     @Operation(summary = "获取设备列表")
@@ -172,5 +175,27 @@ public class DeviceController {
             log.error("获取设备统计失败", e);
             return ResponseEntity.status(500).body(ApiResponse.error("获取失败: " + e.getMessage()));
         }
+    }
+
+    @GetMapping("/by-type")
+    @Operation(summary = "按设备类型查询")
+    public ResponseEntity<ApiResponse<List<Device>>> findByType(
+            @RequestParam("type") String deviceType) {
+        return ResponseEntity.ok(ApiResponse.success(deviceRepository.findByDeviceType(deviceType)));
+    }
+
+    @GetMapping("/by-category")
+    @Operation(summary = "按设备类别查询")
+    public ResponseEntity<ApiResponse<List<Device>>> findByCategory(
+            @RequestParam("category") String category) {
+        return ResponseEntity.ok(ApiResponse.success(deviceRepository.findByDeviceCategory(category)));
+    }
+
+    @GetMapping("/{device_id}/commands")
+    @Operation(summary = "获取设备命令历史")
+    public ResponseEntity<ApiResponse<List<DeviceCommand>>> getCommandHistory(
+            @PathVariable("device_id") String deviceId) {
+        return ResponseEntity.ok(ApiResponse.success(
+                deviceCommandRepository.findByDeviceIdOrderByCreatedAtDesc(deviceId)));
     }
 }

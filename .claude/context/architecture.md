@@ -91,13 +91,15 @@
 | `converter.py` | 模型格式转换 |
 | `config.py` | 配置和 S3 客户端 |
 
-### 云端推理服务 (radio_infer_server.py)
+### 云端推理服务 (插件化架构)
 | 文件 | 职责 |
 |------|------|
-| `cloud/radio_infer_server.py` | C-RADIOv4 零样本语义分割推理 |
+| `models/cloud_inference/radio_infer_server.py` | 推理主服务（MQTT/RTMP 模式管理） |
+| `models/cloud_inference/plugin_base.py` | 插件基类 — YAML 驱动告警规则 |
+| `models/cloud_inference/engine.py` | 推理引擎 — 模型加载、分割、标注 |
 | 模型 | C-RADIOv4-H (1412.4M 参数) + SigLIP2-g 特征提取器 |
 | 输入 | MQTT 订阅边缘设备转发的原始帧 |
-| 输出 | 分割结果 + 告警 → HTTP POST 后端 |
+| 输出 | 分割结果 + YAML 驱动告警 → HTTP POST 后端 + EMQX 统一 topic |
 
 ## 核心数据流
 
@@ -136,7 +138,9 @@ MQTT 推送 → EMQX:1883
         ↓
 MQTT publish → device/{id}/cloud/frame (JPEG Base64)
         ↓
-radio_infer_server.py 订阅 → C-RADIOv4 零样本分割
+radio_infer_server.py 订阅 → InferenceEngine → C-RADIOv4 零样本分割
+        ↓
+ScenarioPlugin.generate_alerts() (YAML 驱动) → EMQX 规则引擎 → results/# + alerts/#
         ↓
 分割结果 + 可视化图像 → HTTP POST backend:8080
         ↓

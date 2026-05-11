@@ -351,6 +351,73 @@ GET /api/v1/device/list?page=1&page_size=20&status=ONLINE
 GET /api/v1/edge/commands?device_id=EDGE_DEVICE_001
 ```
 
+### 按设备类型查询
+
+```http
+GET /api/v1/devices/by-type?type=JETSON_ORIN
+```
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `type` | string | 是 | 设备类型：`JETSON_ORIN` / `JETSON_XAVIER` / `JETSON_NANO` / `EDGE_BOX` / `DRONE` / `ROBOT_DOG` / `VEHICLE` / `SENSOR` / `CAMERA` |
+
+### 按设备类别查询
+
+```http
+GET /api/v1/devices/by-category?category=EDGE_COMPUTE
+```
+
+**参数**：
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `category` | string | 是 | 设备类别：`EDGE_COMPUTE` / `UAV` / `ROBOTIC` / `VEHICLE` / `SENSOR` / `CAMERA` |
+
+### 设备标签管理
+
+```http
+# 添加标签
+POST /api/v1/devices/{deviceId}/tags
+Content-Type: application/json
+
+{"tagKey": "location", "tagValue": "工地A区"}
+
+# 查询设备所有标签
+GET /api/v1/devices/{deviceId}/tags
+
+# 删除标签
+DELETE /api/v1/devices/{deviceId}/tags/{tagKey}
+
+# 按标签查找设备
+GET /api/v1/devices/by-tag?tagKey=location&tagValue=工地A区
+```
+
+### 查询设备命令历史
+
+```http
+GET /api/v1/devices/{deviceId}/commands
+```
+
+**响应**：
+
+```json
+{
+  "code": 200,
+  "data": [
+    {
+      "commandId": "uuid-xxx",
+      "commandType": "OTA_UPDATE",
+      "status": "ACK",
+      "params": {"model_id": "v2"},
+      "createdAt": "2026-05-11T10:00:00",
+      "acknowledgedAt": "2026-05-11T10:00:05"
+    }
+  ]
+}
+```
+
 ---
 
 ## OTA 管理 API
@@ -445,6 +512,19 @@ stompClient.connect({}, () => {
 | `device/{device_id}/ota/command` | 云端→设备 | OTA 升级命令 |
 | `device/{device_id}/ota/status` | 设备→云端 | OTA 状态反馈 |
 | `device/{device_id}/config/update` | 云端→设备 | 配置下发 |
+
+### EMQX 规则引擎统一 Topic（推荐）
+
+第三方通过 EMQX 规则引擎归一化后的统一 topic 订阅推理结果和告警：
+
+| 统一 Topic | 说明 |
+|------------|------|
+| `results/{device_id}/{channel_id}/edge` | 边缘推理结果（归一化） |
+| `results/{device_id}/{channel_id}/cloud` | 云端推理结果（归一化） |
+| `alerts/{device_id}/edge` | 边缘告警 |
+| `alerts/{device_id}/cloud` | 云端告警 |
+
+> 详细对接方式见 [第三方对接指南](../THIRD_PARTY_INTEGRATION.md)
 
 ---
 

@@ -53,4 +53,8 @@ public interface DeviceRepository extends JpaRepository<Device, String> {
      */
     @Query("SELECT d.status, COUNT(d) FROM Device d GROUP BY d.status")
     List<Object[]> countByStatus();
+
+    List<Device> findByDeviceCategory(String deviceCategory);
+
+    List<Device> findByCapabilitiesContaining(String capability);
 }

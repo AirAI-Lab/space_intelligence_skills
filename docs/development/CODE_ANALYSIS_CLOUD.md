@@ -1175,25 +1175,36 @@ mlflow.end_run()
 
 ---
 
-## 五、云端推理服务 (C-RADIOv4)
+## 五、云端推理服务 (C-RADIOv4 — 插件化)
 
 ### 5.1 概述
 
-`cloud/radio_infer_server.py` 是基于 C-RADIOv4 的云端统一推理服务，接收边缘设备转发的原始帧，执行零样本语义分割（如裸土检测、扬尘检测、积水检测等），并将结果上报后端。
+`models/cloud_inference/radio_infer_server.py` 是基于 C-RADIOv4 的云端统一推理服务。采用**插件化架构**，告警规则从 YAML 配置动态读取，新增场景无需修改代码。
+
+**核心文件**：
+
+| 文件 | 职责 |
+|------|------|
+| `radio_infer_server.py` | 服务主入口 — MQTT/RTMP 模式管理 |
+| `plugin_base.py` | 插件基类 — 从 YAML `cloud.radio.classes.*.alert` 动态读取告警规则 |
+| `engine.py` | 推理引擎 — 模型加载、推理、标注绘制、告警生成 |
 
 ### 5.2 架构
 
 ```
 边缘设备 → MQTT(device/+/cloud/frame) → radio_infer_server.py
                                               ↓
-                                         C-RADIOv4-H 零样本分割
-                                         (SigLIP2-g 特征提取器)
+                                         ScenarioPlugin (读取 YAML 告警规则)
                                               ↓
-                                         类别匹配 + 告警生成
+                                         InferenceEngine → C-RADIOv4-H 零样本分割
+                                              ↓
+                                         plugin.generate_alerts() → YAML 驱动告警
                                               ↓
                                     HTTP POST → backend:8080 推理结果上报
                                               ↓
-                                    MQTT(device/{id}/inference/result) 可视化结果
+                                    MQTT(device/{id}/cloud/result) → EMQX 规则引擎
+                                              ↓
+                                    results/{id}/{ch}/cloud + alerts/{id}/cloud (统一 topic)
 ```
 
 ### 5.3 推理流程
@@ -1202,22 +1213,35 @@ mlflow.end_run()
 2. **预处理**：解码 JPEG → resize 到 378×378 → 归一化
 3. **C-RADIOv4 推理**：通过 SigLIP2-g 特征提取器生成图像特征，与预定义的类别文本提示进行相似度匹配
 4. **类别匹配**：支持多种语义分割类别（如 `bare_soil_uncovered`、`dust_pollution` 等），通过配置文件定义
-5. **告警生成**：分割面积超过阈值时生成告警
+5. **告警生成**：**插件化** — 从 YAML 的 `cloud.radio.classes.*.alert` 字段动态读取规则，不再硬编码
 6. **结果上报**：通过 HTTP POST 将推理结果和可视化图像上传到后端
 
 ### 5.4 配置
 
-通过 YAML 配置文件（如 `models/construction_safety/configs/construction_safety.yaml`）定义分割类别和告警规则：
+通过 YAML 配置文件定义分割类别和告警规则，新增场景只需创建 YAML，无需改代码：
 
 ```yaml
-segmentation_classes:
-  - bare_soil_uncovered
-  - dust_pollution
-  - pit_water_accumulation
-  - material_near_pit
-
-alert_threshold: 0.05  # 分割面积占比阈值
+# models/{scenario}/configs/{scenario}.yaml
+cloud:
+  radio:
+    classes:
+      bare_soil_uncovered:
+        zh: "裸土未覆盖"
+        prompts:
+          - exposed bare soil without any covering material
+        alert:
+          enabled: true
+          level: warning
+          description: "裸土未覆盖"
+    inference:
+      threshold: 0.25
+      min_area: 0.003
 ```
+
+**新场景接入流程**：
+1. 创建 `models/{scenario}/configs/{scenario}.yaml`（含 classes + alert 字段）
+2. 启动命令加 `--config` 指定新 YAML
+3. 不需要修改任何 Python 代码
 
 ### 5.5 可视化
 
@@ -1239,9 +1263,21 @@ alert_threshold: 0.05  # 分割面积占比阈值
 ### 5.7 部署
 
 ```bash
-# 在 Docker 容器中启动
+# 在 Docker 容器中启动（前台，支持 Ctrl+C 终止）
+docker exec -it edge_cloud_training python3 /app/models/cloud_inference/radio_infer_server.py \
+  --config /app/models/construction_safety/configs/construction_safety.yaml \
+  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
+  --radio-code /app/models/NVlabs_RADIO \
+  --siglip2 /app/models/siglip2-giant-opt-patch16-384
+
+# 或后台运行
 docker exec -d edge_cloud_training bash -c \
-  "cd /app && python3 radio_infer_server.py >> /app/data/radio_infer.log 2>&1"
+  "python3 /app/models/cloud_inference/radio_infer_server.py \
+  --config /app/models/water_inspection/configs/water_inspection.yaml \
+  --checkpoint /app/models/C-RADIOv4-H/c-radio_v4-h_half.pth.tar \
+  --radio-code /app/models/NVlabs_RADIO \
+  --siglip2 /app/models/siglip2-giant-opt-patch16-384 \
+  >> /tmp/cloud_infer.log 2>&1"
 ```
 
 ---

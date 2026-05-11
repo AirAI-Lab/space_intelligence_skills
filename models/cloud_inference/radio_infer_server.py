@@ -13,16 +13,16 @@ C-RADIOv4 云端统一推理服务
 
 用法:
   # 自动模式（推荐）— 检测 MQTT 和 RTMP 可用性后自动选择
-  python cloud/radio_infer_server.py --config /app/models/construction_safety/configs/construction_safety.yaml
+  python models/cloud_inference/radio_infer_server.py --config /app/models/construction_safety/configs/construction_safety.yaml
 
   # 仅 MQTT 模式（生产环境，边缘转发帧）
-  python cloud/radio_infer_server.py --mode mqtt --config ...
+  python models/cloud_inference/radio_infer_server.py --mode mqtt --config ...
 
   # 仅 RTMP 模式（开发/演示，无边缘设备）
-  python cloud/radio_infer_server.py --mode stream --stream rtmp://192.168.0.103:1935/stream/safety_cam --config ...
+  python models/cloud_inference/radio_infer_server.py --mode stream --stream rtmp://192.168.0.103:1935/stream/safety_cam --config ...
 
   # 双通道模式（MQTT + RTMP 同时运行）
-  python cloud/radio_infer_server.py --mode dual --stream rtmp://... --config ...
+  python models/cloud_inference/radio_infer_server.py --mode dual --stream rtmp://... --config ...
 
 环境变量 (容器内通过 docker-compose 配置):
   MQTT_BROKER_URL       - MQTT broker 地址 (默认 tcp://emqx:1883)
@@ -48,19 +48,22 @@ import argparse
 import urllib.request
 import urllib.error
 import threading
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-# 容器内脚本在 /app/ 下，parent.parent = /，需回退
+_HERE = Path(__file__).resolve().parent
+PROJECT_ROOT = _HERE.parent.parent
+# 容器内: /app/models/cloud_inference/ → parent = /app/models, parent.parent = /app
+# 宿主机: models/cloud_inference/ → parent = models, parent.parent = project_root
 if not (PROJECT_ROOT / "models").exists():
-    PROJECT_ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(PROJECT_ROOT / "models" / "water_inspection"))
+    PROJECT_ROOT = _HERE.parent
+sys.path.insert(0, str(_HERE))
+
+from plugin_base import ScenarioPlugin
+from engine import InferenceEngine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -84,11 +87,6 @@ signal.signal(signal.SIGTERM, _signal_handler)
 
 class RadioInferServer:
     """C-RADIOv4 云端统一推理服务"""
-
-    _COLORS = [
-        (0, 255, 0), (0, 0, 255), (0, 255, 255), (255, 0, 255),
-        (255, 255, 0), (255, 128, 0), (128, 0, 255), (0, 128, 255),
-    ]
 
     def __init__(self, args):
         # ── 运行模式 ──
@@ -114,18 +112,14 @@ class RadioInferServer:
         self.device = args.device or os.getenv("DEVICE", "cuda")
         self.input_size = args.input_size or int(os.getenv("INPUT_SIZE", "896"))
 
-        # ── 推理参数 ──
-        self.alert_min_area = float(os.getenv("ALERT_MIN_AREA", "0.01"))
-
         # ── 后端 API ──
         self.backend_url = args.backend_url or os.getenv("BACKEND_API_URL", "http://backend:8080")
 
+        # ── 插件 + 引擎 ──
+        self._plugin = ScenarioPlugin(self.config_path)
+        self._engine = InferenceEngine(self._plugin)
+
         # ── 内部状态 ──
-        self._segmentor = None
-        self._classes_config = None
-        self._threshold = 0.3
-        self._min_area = 0.01
-        self._multi_class = False
         self._client: Optional[object] = None
         self._mqtt_connected = False
         self._mqtt_last_recv = 0.0       # 上次收到 MQTT 帧的时间
@@ -206,181 +200,34 @@ class RadioInferServer:
     # ══════════════════════════════════════════
 
     def _load_model(self):
+        # 从 YAML 读取 RTMP 降级流地址（命令行 --stream 优先）
         import yaml
-
-        logger.info("加载配置: %s", self.config_path)
         with open(self.config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
-
-        radio_config = config.get("cloud", {}).get("radio", {})
-        if not radio_config.get("classes"):
-            radio_config = config.get("deployment", {}).get("cloud", {}).get("radio", {})
-        self._classes_config = radio_config.get("classes", {})
-
-        # 从 YAML 读取 RTMP 降级流地址（命令行 --stream 优先）
         cloud_section = config.get("deployment", {}).get("cloud", {})
         if not self.stream_url:
             self.stream_url = cloud_section.get("fallback_stream", "")
             if self.stream_url:
                 logger.info("降级流(配置文件): %s", self.stream_url)
 
-        # 过滤掉 background 类
-        self._classes_config = {
-            k: v for k, v in self._classes_config.items()
-            if not v.get("is_background", False)
-        }
-
-        logger.info("分割类别: %s", list(self._classes_config.keys()))
-
-        # 读取阈值: 优先 inference → model → segmentation
-        infer_config = radio_config.get("inference", {}) or radio_config.get("model", {})
-        seg_config = radio_config.get("segmentation", {})
-        self._threshold = float(infer_config.get("threshold", seg_config.get("threshold", 0.3)))
-        self._min_area = float(infer_config.get("min_area", seg_config.get("min_change_area", 0.01)))
-
-        # 多类模式: change_detection 等场景需要同时检测多个类别
-        system_name = config.get("system", {}).get("name", "")
-        self._multi_class = system_name in ("change_detection",)
-
-        from models.open_vocab import RADSegWaterSegmentor
-
-        logger.info("加载 C-RADIOv4 模型...")
-        self._segmentor = RADSegWaterSegmentor(
-            checkpoint_path=self.checkpoint_path,
-            radio_code_dir=self.radio_code_dir,
-            siglip2_dir=self.siglip2_dir,
-            device=self.device,
-            input_size=self.input_size,
-        )
-        logger.info("模型加载完成")
-
-    # ══════════════════════════════════════════
-    #  推理核心 (所有模式共享)
-    # ══════════════════════════════════════════
-
-    _FONT = None
-
-    def _get_font(self, size: int = 20):
-        if self._FONT is not None and self._FONT.size == size:
-            return self._FONT
-        font_paths = [
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-            "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        ]
-        for fp in font_paths:
-            if os.path.exists(fp):
-                try:
-                    # .ttc 文件需指定 index (Noto CJK SC = index 3)
-                    self._FONT = ImageFont.truetype(fp, size, index=3 if fp.endswith(".ttc") else 0)
-                    return self._FONT
-                except Exception:
-                    continue
-        self._FONT = ImageFont.load_default()
-        return self._FONT
-
-    def _draw_annotations(self, image: np.ndarray, results: dict) -> bytes:
-        annotated = image.copy()
-        h, w = annotated.shape[:2]
-
-        # 根据图片尺寸自适应字体大小
-        font_size = max(24, min(w, h) // 25)
-
-        for i, (name, seg) in enumerate(results.items()):
-            if not hasattr(seg, 'mask') or seg.mask is None:
-                continue
-            color = self._COLORS[i % len(self._COLORS)]
-            mask = seg.mask.astype(bool)
-            if mask.any():
-                overlay = annotated.copy()
-                overlay[mask] = color
-                cv2.addWeighted(overlay, 0.4, annotated, 0.6, 0, annotated)
-                ys, xs = np.where(mask)
-                if len(ys) > 0:
-                    cx, cy = int(xs.mean()), int(ys.mean())
-                    label = f"{seg.class_name_cn or name} {seg.area_ratio:.1%}"
-
-                    # PIL 渲染中文文字
-                    font = self._get_font(font_size)
-                    pil_img = Image.fromarray(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB))
-                    draw = ImageDraw.Draw(pil_img)
-                    bbox = draw.textbbox((0, 0), label, font=font)
-                    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-
-                    # 边界约束：确保标签不超出图片范围
-                    pad = 10
-                    tx = max(pad, min(w - tw - pad, cx - tw // 2))
-                    ty = max(pad, min(h - th - pad, cy - th // 2))
-
-                    # 背景矩形（加大 padding）
-                    draw.rectangle([tx - pad, ty - pad, tx + tw + pad, ty + th + pad],
-                                   fill=(color[2], color[1], color[0]))
-                    draw.text((tx, ty), label, fill=(255, 255, 255), font=font)
-                    annotated = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
-
-        if w > 960:
-            scale = 960 / w
-            annotated = cv2.resize(annotated, (960, int(h * scale)))
-        _, buf = cv2.imencode('.jpg', annotated, [cv2.IMWRITE_JPEG_QUALITY, 80])
-        return buf.tobytes()
-
-    def _infer_image(self, image: np.ndarray, device_id: str, frame_id: int, source: str = "cloud"):
-        t0 = time.time()
-
-        results = self._segmentor.segment(
-            image, self._classes_config,
-            threshold=self._threshold,
-            min_area=self._min_area,
-            multi_class=self._multi_class,
+        self._engine.load_model(
+            self.checkpoint_path, self.radio_code_dir,
+            self.siglip2_dir, self.device, self.input_size,
         )
 
-        inference_ms = (time.time() - t0) * 1000
+    # ══════════════════════════════════════════
+    #  推理 + 上报
+    # ══════════════════════════════════════════
 
-        segments = {}
-        for name, seg in results.items():
-            ys, xs = np.where(seg.mask)
-            bbox = (
-                [int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max())]
-                if len(ys) > 0 else [0, 0, 0, 0]
-            )
-            segments[name] = {
-                "area": round(seg.area_ratio, 4),
-                "score": round(seg.score, 4),
-                "bbox": bbox,
-                "class_name_cn": seg.class_name_cn,
-            }
-
-        alerts = self._generate_alerts(segments)
-
+    def _infer_and_report(self, image: np.ndarray, device_id: str, frame_id: int,
+                          channel_id: str = "default", source: str = "cloud"):
+        """执行推理并通过 MQTT + REST 上报结果"""
         self._reported += 1
-        seg_names = list(segments.keys()) or ["无检出"]
-        logger.info(
-            "[%d] %s frame=%d (%s): %s, %d alerts, %.0fms",
-            self._reported, device_id, frame_id, source, seg_names, len(alerts), inference_ms,
+        payload = self._engine.infer_image(
+            image, device_id, frame_id, channel_id, source, self._reported,
         )
-
-        if not alerts and not segments:
+        if payload is None:
             return
-
-        image_b64 = None
-        if segments:
-            try:
-                img_bytes = self._draw_annotations(image, results)
-                image_b64 = base64.b64encode(img_bytes).decode("ascii")
-            except Exception as e:
-                logger.warning("绘制标注失败: %s", e)
-
-        payload = {
-            "device_id": device_id,
-            "frame_id": frame_id,
-            "timestamp": datetime.now().isoformat(),
-            "segments": segments,
-            "alerts": alerts,
-            "inference_time_ms": round(inference_ms, 1),
-        }
-        if image_b64:
-            payload["image_base64"] = image_b64
 
         if self._client and self._mqtt_connected:
             topic = f"device/{device_id}/cloud/result"
@@ -432,6 +279,7 @@ class RadioInferServer:
             payload = json.loads(msg.payload.decode("utf-8"))
             device_id = payload.get("device_id", "unknown")
             frame_id = payload.get("frame_id", 0)
+            channel_id = payload.get("channel_id", "default")
             image_b64 = payload.get("image", "")
 
             image_data = base64.b64decode(image_b64)
@@ -446,7 +294,7 @@ class RadioInferServer:
             if self._fallback_active:
                 logger.info("MQTT 帧恢复，RTMP 降级停止")
                 self._fallback_active = False
-            self._infer_image(image, device_id, frame_id, source="mqtt")
+            self._infer_and_report(image, device_id, frame_id, channel_id, source="mqtt")
         except Exception as e:
             logger.error("处理 MQTT 帧失败: %s", e, exc_info=True)
 
@@ -480,7 +328,7 @@ class RadioInferServer:
                         ret, frame = fallback_cap.read()
                         if ret:
                             self._frame_count += 1
-                            self._infer_image(
+                            self._infer_and_report(
                                 frame, self.stream_device_id,
                                 self._frame_count, source="stream",
                             )
@@ -537,7 +385,10 @@ class RadioInferServer:
                         continue
                     last_infer_time = now
 
-                    self._infer_image(frame, self.stream_device_id, self._frame_count, source="stream")
+                    self._infer_and_report(
+                        frame, self.stream_device_id,
+                        self._frame_count, source="stream",
+                    )
 
             except Exception as e:
                 logger.warning("流异常: %s", e)
@@ -592,50 +443,8 @@ class RadioInferServer:
             logger.debug("进程检查跳过: %s", e)
 
     # ══════════════════════════════════════════
-    #  告警 + 上报
+    #  上报
     # ══════════════════════════════════════════
-
-    def _generate_alerts(self, segments: dict) -> list:
-        alert_map = {
-            # 水利巡检
-            "black_water": ("critical", "黑水污染"),
-            "brown_water": ("critical", "褐色水体"),
-            "yellow_water": ("warning", "黄色水体"),
-            "green_water": ("warning", "藻类爆发"),
-            "red_water": ("critical", "化学污染"),
-            "milky_water": ("warning", "水体浑浊"),
-            "foam_water": ("warning", "水面泡沫"),
-            "dam_seepage": ("critical", "坝体渗水"),
-            # 施工安全
-            "bare_soil_uncovered": ("warning", "裸土未覆盖"),
-            "dust_pollution": ("critical", "扬尘污染"),
-            "pit_water_accumulation": ("warning", "坑内积水"),
-            "material_near_pit": ("warning", "基坑边材料堆放"),
-            # 变换检测 (change_detection)
-            "blue_canopy": ("warning", "蓝色雨棚违建"),
-            "green_shack": ("warning", "绿色棚屋违建"),
-            "illegal_extension": ("warning", "违章搭建"),
-            "vehicle": ("info", "机动车辆"),
-            "construction_vehicle": ("info", "工程车辆"),
-            "debris_dump": ("warning", "垃圾违规堆放"),
-            "material_stock": ("info", "建材堆放"),
-            "enclosure_fence": ("info", "围挡围栏"),
-            "scaffolding": ("info", "脚手架"),
-            "bare_ground": ("info", "裸土"),
-        }
-
-        alerts = []
-        for class_name, info in segments.items():
-            if info["area"] >= self.alert_min_area:
-                level, desc = alert_map.get(class_name, ("warning", class_name))
-                alerts.append({
-                    "class_name": class_name,
-                    "class_name_cn": info.get("class_name_cn", desc),
-                    "level": level,
-                    "message": f"{desc}，面积占比 {info['area']:.1%}",
-                    "area": info["area"],
-                })
-        return alerts
 
     def _report_to_backend(self, payload: dict):
         try:
@@ -672,7 +481,7 @@ class RadioInferServer:
         }
 
         logger.info("=" * 60)
-        logger.info("C-RADIOv4 云端统一推理服务")
+        logger.info("C-RADIOv4 云端统一推理服务 (插件化)")
         logger.info("模式: %s", mode_desc.get(self._resolved_mode, self._resolved_mode))
         if self._resolved_mode in ("stream", "dual") or self.stream_url:
             logger.info("流地址: %s, 间隔: %ds", self.stream_url, self.stream_interval)
@@ -703,7 +512,7 @@ class RadioInferServer:
 def main():
     default_config = str(PROJECT_ROOT / "models" / "construction_safety" / "configs" / "construction_safety.yaml")
 
-    parser = argparse.ArgumentParser(description="C-RADIOv4 云端统一推理服务")
+    parser = argparse.ArgumentParser(description="C-RADIOv4 云端统一推理服务 (插件化)")
 
     # 运行模式
     parser.add_argument("--mode", choices=["auto", "mqtt", "stream", "dual"],

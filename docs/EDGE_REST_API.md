@@ -6,6 +6,11 @@ This document describes the RESTful API for edge-cloud communication in the edge
 
 **Base URL**: `http://your-cloud-server:8081/api/v1/edge`
 
+> **相关文档**：
+> - [完整 API 参考](api/README.md) — 推理结果、Webhook、文件存储等所有 API
+> - [第三方对接指南](THIRD_PARTY_INTEGRATION.md) — MQTT/Webhook/REST 集成方案
+> - [部署指南](DEPLOYMENT.md) — 3 种部署模式（纯推理/管理/完整平台）
+
 ---
 
 ## API Endpoints

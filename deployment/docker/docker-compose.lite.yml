@@ -1,0 +1,46 @@
+# 轻量部署: 仅 EMQX + 云端推理
+# 适用场景: 第三方只需推理结果，不需要管理界面
+#
+# 使用:
+#   docker compose -f docker-compose.lite.yml up -d
+#   或:
+#   docker compose -f docker-compose.yml -f docker-compose.lite.yml --profile gpu up -d
+#
+# 第三方对接:
+#   MQTT 订阅: results/{device_id}/{channel_id}/edge 或 cloud
+#   Webhook:   设置 WEBHOOK_URL 环境变量后自动推送告警
+#   REST API:  不可用 (无后端服务)
+
+version: '3.8'
+
+services:
+  emqx:
+    image: emqx/emqx:5.5.0
+    container_name: edge_cloud_emqx
+    environment:
+      EMQX_NAME: emqx
+      EMQX_DASHBOARD__DEFAULT_USERNAME: admin
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: admin123456
+      WEBHOOK_URL: ${WEBHOOK_URL:-}
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "18083:18083"
+    volumes:
+      - emqx_data:/opt/emqx/data
+      - ../emqx/init_rules.sh:/opt/emqx/init_rules.sh:ro
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
+    command: >
+      bash -c "/opt/emqx/bin/emqx foreground &
+               sleep 15 &&
+               EMQX_HOST=localhost bash /opt/emqx/init_rules.sh &
+               wait"
+
+volumes:
+  emqx_data:
+
+networks:
+  edge-cloud-network:
+    driver: bridge

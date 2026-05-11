@@ -292,10 +292,24 @@ GET http://{HOST}:8081/api/v1/inference/export?format=csv&start_time=2026-05-08T
 
 ### 5.2 订阅主题
 
+**原始主题**（边缘/云端直接发布）：
+
 | 主题 | 说明 |
 |------|------|
-| `device/+/inference/results` | 所有设备的推理结果 |
-| `device/{device_id}/inference/results` | 指定设备的推理结果 |
+| `device/+/inference/results` | 所有设备的边缘推理结果 |
+| `device/{device_id}/inference/results` | 指定设备的边缘推理结果 |
+| `device/+/cloud/result` | 所有设备的云端推理结果 |
+
+**统一主题**（EMQX 规则引擎自动路由，推荐第三方使用）：
+
+| 主题 | 说明 |
+|------|------|
+| `results/{device_id}/{channel_id}/edge` | 归一化后的边缘推理结果 |
+| `results/{device_id}/{channel_id}/cloud` | 归一化后的云端推理结果 |
+| `alerts/{device_id}/edge` | 边缘告警（仅含触发告警的结果） |
+| `alerts/{device_id}/cloud` | 云端告警（仅含触发告警的结果） |
+
+> **推荐**：第三方系统订阅 `results/#` 或 `alerts/#` 即可获取所有设备的归一化结果，无需关注原始 topic 格式。
 
 ### 5.3 消息格式
 
@@ -355,23 +369,28 @@ import json
 
 def on_connect(client, userdata, flags, rc):
     print(f"Connected: rc={rc}")
-    client.subscribe("device/+/inference/results")
+    # 订阅统一 topic（EMQX 规则引擎自动路由）
+    client.subscribe("results/#")   # 所有设备的归一化推理结果
+    client.subscribe("alerts/#")    # 所有设备的告警
 
 def on_message(client, userdata, msg):
     result = json.loads(msg.payload.decode())
     device_id = result.get("device_id", "")
     channel_id = result.get("channel_id", "")
-    detections = result.get("detections", [])
 
-    # 过滤告警
-    alerts = [d for d in detections if d.get("is_alert")]
-    if alerts:
-        for a in alerts:
-            print(f"[ALERT] {device_id}/{channel_id}: "
-                  f"{a['class_name']} conf={a['confidence']:.2f} "
-                  f"bbox={a['bbox']}")
+    if msg.topic.startswith("alerts/"):
+        # 告警消息 — 优先处理
+        print(f"[ALERT] {device_id}/{channel_id}: {result}")
+    else:
+        # 普通推理结果
+        detections = result.get("detections", [])
+        alerts = [d for d in detections if d.get("is_alert")]
+        if alerts:
+            for a in alerts:
+                print(f"[ALERT] {device_id}/{channel_id}: "
+                      f"{a['class_name']} conf={a['confidence']:.2f}")
 
-client = mqtt.Client(client_id="zhifei_subscriber")
+client = mqtt.Client(client_id="third_party_subscriber")
 client.username_pw_set("admin", "admin123456")
 client.on_connect = on_connect
 client.on_message = on_message
