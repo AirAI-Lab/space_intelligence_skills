@@ -10,6 +10,13 @@ export default defineConfig({
       '@': resolve(__dirname, 'src')
     }
   },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        additionalData: `@use "@/styles/mixins.scss" as *;\n`
+      }
+    }
+  },
   server: {
     port: 3000,
     host: '0.0.0.0',

@@ -1,0 +1,231 @@
+// ==================== Element Plus 组件样式覆盖 ====================
+// 参考 Art Design Pro el-ui.scss，提升视觉一致性
+
+// ---- 全局圆角 & 组件高度 ----
+:root {
+  --el-border-radius-base: calc(var(--custom-radius) / 2);
+  --el-border-radius-small: calc(var(--custom-radius) / 3);
+  --el-border-radius-round: calc(var(--el-component-custom-height) / 2);
+}
+
+// ---- el-button ----
+.el-button {
+  height: var(--el-component-custom-height);
+  border-radius: var(--el-border-radius-base);
+  font-weight: 500;
+  transition: all 0.25s;
+}
+
+// ---- el-input ----
+.el-input__wrapper {
+  border-radius: var(--el-border-radius-base);
+}
+
+.el-input .el-input__inner {
+  height: var(--el-component-custom-height);
+}
+
+// ---- el-select ----
+.el-select .el-input__wrapper {
+  height: var(--el-component-custom-height);
+}
+
+.el-select-dropdown {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+
+  .el-select-dropdown__item {
+    height: 34px;
+    line-height: 34px;
+    border-radius: 6px;
+    padding: 0 12px;
+
+    &.is-selected,
+    &.is-hovering {
+      background-color: var(--theme-color-light-9);
+      color: var(--theme-color);
+      font-weight: 500;
+    }
+  }
+}
+
+// ---- el-dialog ----
+.el-dialog {
+  border-radius: calc(var(--custom-radius) + 4px);
+  overflow: hidden;
+
+  .el-dialog__header {
+    padding: 16px 20px;
+    margin-right: 0;
+    border-bottom: 1px solid var(--art-gray-200);
+  }
+
+  .el-dialog__body {
+    padding: 20px;
+  }
+
+  .el-dialog__footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--art-gray-200);
+  }
+}
+
+// Dialog 缩放动画
+.el-overlay-dialog {
+  .dialog-fade-enter-active {
+    animation: dialog-scale-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .dialog-fade-leave-active {
+    animation: dialog-scale-out 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@keyframes dialog-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dialog-scale-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+// ---- el-message ----
+.el-message {
+  border: none;
+  border-radius: var(--custom-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  padding: 12px 16px;
+}
+
+// ---- el-dropdown-menu ----
+.el-dropdown-menu {
+  padding: 6px;
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+  .el-dropdown-menu__item {
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    transition: background 0.2s, color 0.2s;
+
+    &:hover {
+      background-color: var(--theme-color-light-9);
+      color: var(--theme-color);
+    }
+  }
+}
+
+// ---- el-tag ----
+.el-tag {
+  font-weight: 500;
+  height: 26px;
+  border-radius: calc(var(--custom-radius) / 2);
+}
+
+// ---- el-pagination ----
+.el-pagination {
+  .el-pager li,
+  .btn-prev,
+  .btn-next {
+    height: 32px;
+    line-height: 32px;
+    border-radius: 6px;
+    min-width: 32px;
+    font-weight: 500;
+    transition: all 0.2s;
+
+    &.is-active {
+      background-color: var(--theme-color);
+    }
+  }
+}
+
+// ---- el-card ----
+.el-card {
+  border-radius: var(--custom-radius);
+  border: 1px solid var(--art-gray-200);
+  box-shadow: none;
+  transition: box-shadow 0.25s;
+
+  &:hover {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .el-card__header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--art-gray-200);
+  }
+
+  .el-card__body {
+    padding: 20px;
+  }
+}
+
+// ---- el-table ----
+.el-table {
+  --el-table-border-color: var(--art-gray-200);
+  --el-table-header-bg-color: var(--art-gray-100);
+
+  th.el-table__cell {
+    font-weight: 600;
+    color: var(--art-gray-700);
+  }
+
+  .el-table__row:hover > td.el-table__cell {
+    background-color: var(--art-gray-100);
+  }
+}
+
+// ---- el-descriptions ----
+.el-descriptions {
+  .el-descriptions__header {
+    margin-bottom: 16px;
+  }
+
+  .el-descriptions__label {
+    font-weight: 500;
+    color: var(--art-gray-500);
+  }
+}
+
+// ---- el-tabs ----
+.el-tabs {
+  .el-tabs__item {
+    font-weight: 500;
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+}
+
+// ---- el-form ----
+.el-form-item__label {
+  font-weight: 500;
+}
+
+// ---- el-progress ----
+.el-progress-bar__outer {
+  border-radius: 10px;
+}
+
+.el-progress-bar__inner {
+  border-radius: 10px;
+}

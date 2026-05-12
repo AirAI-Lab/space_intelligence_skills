@@ -135,6 +135,10 @@ class InferenceEngine:
             except Exception as e:
                 logger.warning("绘制标注失败: %s", e)
 
+        # 无图片则不上报（与边缘 smart 模式一致，避免无图告警）
+        if not image_b64:
+            return None
+
         payload = {
             "device_id": device_id,
             "frame_id": frame_id,

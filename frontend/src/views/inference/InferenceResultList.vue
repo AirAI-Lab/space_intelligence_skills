@@ -172,7 +172,6 @@ const page = ref(1)
 const pageSize = ref(20)
 const detailVisible = ref(false)
 const currentDetail = ref<any>(null)
-const showAll = ref(false)
 
 const filters = ref({
   device_id: '',

@@ -81,13 +81,13 @@ public class Device {
     private String labels;
 
     // 硬件信息
-    @Column(name = "os_version", length = 50)
+    @Column(name = "os_version", length = 255)
     private String osVersion;
 
     @Column(name = "agent_version", length = 50)
     private String agentVersion;
 
-    @Column(name = "gpu_model", length = 100)
+    @Column(name = "gpu_model", length = 255)
     private String gpuModel;
 
     @Column(name = "gpu_memory_mb")

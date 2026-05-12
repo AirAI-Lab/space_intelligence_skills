@@ -99,7 +99,29 @@ export const deviceApi = {
    * 获取设备统计信息
    */
   getStats: () =>
-    request.get('/devices/stats')
+    request.get('/devices/stats'),
+
+  // ---- 设备管理扩展 ----
+  getByType: (type: string) =>
+    request.get('/devices/by-type', { params: { type } }),
+
+  getByCategory: (category: string) =>
+    request.get('/devices/by-category', { params: { category } }),
+
+  getByTag: (key: string, value?: string) =>
+    request.get('/devices/by-tag', { params: { key, value } }),
+
+  getTags: (deviceId: string) =>
+    request.get(`/devices/${deviceId}/tags`),
+
+  addTag: (deviceId: string, data: { key: string; value: string }) =>
+    request.post(`/devices/${deviceId}/tags`, data),
+
+  deleteTag: (deviceId: string, tagKey: string) =>
+    request.delete(`/devices/${deviceId}/tags/${tagKey}`),
+
+  getCommands: (deviceId: string) =>
+    request.get(`/devices/${deviceId}/commands`)
 }
 
 // ==================== 数据集 API ====================

@@ -4,6 +4,48 @@
 
 ---
 
+## v2026.05.12 — 前端布局重构 + SCSS 视觉升级 + RADIO 提示词优化
+
+### 新增
+
+**前端布局重构**
+- **Layout 组件体系**（`frontend/src/layout/`）：从 App.vue 提取独立布局组件
+  - `Sidebar.vue`：侧边栏导航，支持折叠
+  - `Header.vue`：顶部导航栏，面包屑 + 用户菜单
+  - `TagsView.vue`：标签页导航，支持多页签切换和关闭
+  - `Breadcrumb.vue`：面包屑路径
+  - `layout/index.vue`：布局容器，组合 Sidebar + Header + TagsView
+- **路由嵌套重构**（`router/index.ts`）：所有页面路由嵌套在 Layout 子路由下，支持 TagsView 多页签
+- **Pinia Store**（`stores/app.ts`）：全局应用状态管理
+- **NProgress 路由进度条**：路由切换时顶部进度条动画
+
+**前端 SCSS 视觉升级**
+- **CSS 变量系统**（`styles/variables.scss`）：主题色、灰色梯度、圆角、间距统一变量
+- **Element Plus 组件覆盖**（`styles/element-overrides.scss`）：统一组件高度/圆角、dialog 缩放动画、message 无边框、table hover 等
+- **全局基础样式**（`styles/global.scss`）：自定义滚动条、卡片工具类、badge 呼吸动画
+- **SCSS Mixins**（`styles/mixins.scss`）：文本省略、居中定位、毛玻璃效果
+- **Vite SCSS 全局注入**：所有组件自动可用 mixins，无需手动 import
+- **新增依赖**：sass、@vueuse/core、nprogress、@types/nprogress
+
+**后端改进**
+- **全局异常处理**（`GlobalExceptionHandler.java`）：捕获 JSON 反序列化等框架错误，避免 500 空响应
+- **心跳字段更新**（`DeviceCommunicationService.java`）：心跳上报同步更新设备静态信息（deviceName、deviceType、IP、gpuModel、osVersion 等），旧设备自动填充默认值
+- **MQTT 自动重连**（`MqttService.java`）：`MqttCallback` → `MqttCallbackExtended`，利用 Paho 内置自动重连，移除 `@Scheduled` 手动重连
+- **Device 实体字段长度**：`osVersion` 50→255、`gpuModel` 100→255，适配长版本字符串
+
+**RADIO 云端推理**
+- **裸土检测提示词优化**（`construction_safety.yaml`）：修复楼顶误检为裸土的问题
+  - 正面提示词强调 "ground level"（地面）和 "soil granules"（土壤颗粒）
+  - 反面提示词新增 4 条楼顶/建筑表面描述，降低对比分数
+
+### 变更
+- `App.vue` 从 ~200 行精简至 ~3 行，布局逻辑全部迁移到 Layout 组件
+- `DeviceList.vue` 新增设备类型筛选、紧凑布局
+- `DeviceDetail.vue` 新增设备类别、通信协议、能力标签、推理 FPS 展示
+- `api/index.ts` 新增设备扩展 API（byType、byCategory、byTag、tags CRUD、commands）
+
+---
+
 ## v2026.05.11 — 插件化推理 + EMQX 规则引擎 + 设备管理扩展
 
 ### 新增

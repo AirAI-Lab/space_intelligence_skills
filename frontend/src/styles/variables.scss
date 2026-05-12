@@ -1,0 +1,39 @@
+:root {
+  // 主题色（保持 Element Plus 默认 primary #409eff）
+  --theme-color: #409eff;
+  --theme-color-light-3: #79bbff;
+  --theme-color-light-5: #a0cfff;
+  --theme-color-light-7: #c6e2ff;
+  --theme-color-light-8: #d9ecff;
+  --theme-color-light-9: #ecf5ff;
+
+  // 功能色（参考 Art Design Pro）
+  --color-success: #13deb9;
+  --color-warning: #ffae1f;
+  --color-danger: #ff4d4f;
+  --color-error: #fa896b;
+
+  // 灰色梯度
+  --art-gray-100: #f5f7fa;
+  --art-gray-200: #e8ecf1;
+  --art-gray-300: #dcdfe6;
+  --art-gray-400: #c0c4cc;
+  --art-gray-500: #909399;
+  --art-gray-600: #606266;
+  --art-gray-700: #303133;
+
+  // 圆角
+  --custom-radius: 8px;
+
+  // 统一组件高度
+  --el-component-custom-height: 36px;
+
+  // 布局
+  --sidebar-bg: #304156;
+  --sidebar-logo-bg: #2b2f3a;
+  --sidebar-text: #bfcbd9;
+  --sidebar-active-text: #409eff;
+  --header-height: 50px;
+  --tags-view-height: 34px;
+  --main-bg: #f0f2f5;
+}

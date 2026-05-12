@@ -1,0 +1,23 @@
+@mixin ellipsis($rowCount: 1) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @if $rowCount == 1 {
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $rowCount;
+    -webkit-box-orient: vertical;
+  }
+}
+
+@mixin absoluteCenter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+@mixin backdropBlur {
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+}

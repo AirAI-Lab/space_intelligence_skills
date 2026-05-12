@@ -141,7 +141,7 @@
           v-for="(img, index) in dataset.previewImages"
           :key="index"
           :src="img.url"
-          :preview-src-list="dataset.previewImages.map(i => i.url)"
+          :preview-src-list="dataset.previewImages.map((i: any) => i.url)"
           :initial-index="index"
           fit="cover"
           style="width: 150px; height: 150px; margin: 10px; border-radius: 4px"
@@ -198,6 +198,7 @@ import { ArrowLeft, Edit, Delete, VideoPlay } from '@element-plus/icons-vue'
 const router = useRouter()
 const route = useRoute()
 
+// @ts-expect-error TODO: will be used when API calls are implemented
 const datasetId = route.params.id as string
 
 // 数据

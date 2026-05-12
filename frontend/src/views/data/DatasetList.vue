@@ -188,7 +188,7 @@ const router = useRouter()
 
 // 数据
 const loading = ref(false)
-const datasets = ref([])
+const datasets = ref<any[]>([])
 const searchText = ref('')
 const statusFilter = ref('')
 const currentPage = ref(1)

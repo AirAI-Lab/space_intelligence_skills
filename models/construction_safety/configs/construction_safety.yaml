@@ -234,17 +234,22 @@ deployment:
           color_filter:
             min_rb_diff: 10               # R-B > 10 = 暖色调泥土；水泥地 R-B≈-3 会被过滤
           prompts:
-            # 正面: 裸露的黄土/泥土，无覆盖 — 强调干燥泥土纹理
-            - large area of exposed bare dry yellow brown soil without any covering
-            - uncovered earth dirt ground with visible rough soil texture no green net
-            - bare dry earth surface with granular dirt texture on construction site
-            - exposed dry compacted soil area showing raw ground without protective mesh
+            # v2: 强调地面天然土壤、泥土颗粒纹理 — 区别于人工建筑表面
+            - large area of exposed bare dry yellow brown earth soil at ground level without any covering
+            - uncovered earth dirt ground with visible rough granular soil texture no green dust net
+            - bare dry earth surface with visible soil granules and natural ground texture on construction site
+            - exposed compacted soil area showing raw earth ground without protective mesh at ground level
           prompts_negative:
             - soil covered with green dust control net or tarpaulin
             - paved road or concrete surface
             - grass covered ground with vegetation
             - water surface with reflection or puddle
             - wet muddy ground with standing water or waterlogged area
+            # 建筑表面 — 排除楼顶/楼层平面误检
+            - flat concrete rooftop surface of building under construction at elevated height
+            - smooth grey cement floor slab on building roof without soil texture
+            - building roof or elevated floor surface with uniform man made concrete
+            - flat construction surface without visible soil granules earth particles or ground texture
           alert:
             enabled: true
             level: warning

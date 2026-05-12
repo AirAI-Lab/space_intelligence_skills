@@ -257,8 +257,28 @@ public class DeviceCommunicationService {
         device.setGpuUsage(request.getGpuUsage());
         device.setMemoryUsage(request.getMemoryUsage());
         device.setDiskUsage(request.getDiskUsage());
-        device.setCurrentModelId(request.getCurrentModelId());
-        device.setCurrentVersion(request.getCurrentModelVersion());
+        device.setTemperature(request.getTemperature());
+
+        // 心跳中携带的静态信息也更新（边缘端可能动态变化）
+        if (request.getDeviceName() != null) device.setDeviceName(request.getDeviceName());
+        if (request.getDeviceType() != null) device.setDeviceType(request.getDeviceType());
+        if (request.getIp() != null) device.setIp(request.getIp());
+        if (request.getGpuModel() != null) device.setGpuModel(request.getGpuModel());
+        if (request.getOsVersion() != null) device.setOsVersion(request.getOsVersion());
+        if (request.getCurrentModelId() != null) device.setCurrentModelId(request.getCurrentModelId());
+        if (request.getCurrentModelVersion() != null) device.setCurrentVersion(request.getCurrentModelVersion());
+        if (request.getInferenceFps() != null) device.setInferenceFps(request.getInferenceFps());
+
+        // 推断默认值（旧设备可能为空）
+        if (device.getDeviceCategory() == null) {
+            device.setDeviceCategory(DeviceType.inferCategory(device.getDeviceType()));
+        }
+        if (device.getCapabilities() == null || device.getCapabilities().isEmpty()) {
+            device.setCapabilities(DeviceCapability.defaultForEdge());
+        }
+        if (device.getProtocol() == null || device.getProtocol().isEmpty()) {
+            device.setProtocol("MQTT_REST");
+        }
     }
 
     /**

@@ -3,7 +3,7 @@ package com.edge.cloud.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
@@ -11,7 +11,6 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MqttDefaultFilePersistence;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
@@ -73,10 +72,17 @@ public class MqttService {
             // 设置遗嘱消息
             options.setWill("edge_cloud_backend/status", "offline".getBytes(), 1, false);
 
-            mqttClient.setCallback(new MqttCallback() {
+            mqttClient.setCallback(new MqttCallbackExtended() {
+                @Override
+                public void connectComplete(boolean reconnect, String serverURI) {
+                    if (reconnect) {
+                        log.info("MQTT 自动重连成功: serverURI={}", serverURI);
+                    }
+                }
+
                 @Override
                 public void connectionLost(Throwable cause) {
-                    log.warn("MQTT 连接丢失: {}", cause.getMessage());
+                    log.warn("MQTT 连接丢失，Paho 将自动重连: {}", cause.getMessage());
                 }
 
                 @Override
@@ -345,81 +351,5 @@ public class MqttService {
         String topic = "device/+/+" + topicSuffix;
         // MQTT 广播使用通配符，实际发送时需要针对每个设备
         log.info("广播消息: topicSuffix={}", topicSuffix);
-    }
-
-    /**
-     * 定时检查MQTT连接状态（每30秒）
-     */
-    @Scheduled(fixedRate = 30000)
-    public void checkMqttConnection() {
-        try {
-            if (mqttClient == null || !mqttClient.isConnected()) {
-                log.warn("MQTT连接已断开，尝试重新连接...");
-                reconnect();
-            }
-        } catch (Exception e) {
-            log.error("检查MQTT连接状态失败", e);
-        }
-    }
-
-    /**
-     * 手动重新连接MQTT
-     */
-    private synchronized void reconnect() {
-        try {
-            if (mqttClient != null && mqttClient.isConnected()) {
-                return;
-            }
-
-            log.info("开始重新连接MQTT...");
-            if (mqttClient != null) {
-                try {
-                    mqttClient.disconnect();
-                } catch (Exception e) {
-                    // 忽略断开错误
-                }
-            }
-
-            String persistenceDir = System.getProperty("java.io.tmpdir") + File.separator + "mqtt" + File.separator + clientId;
-            MqttDefaultFilePersistence persistence = new MqttDefaultFilePersistence(persistenceDir);
-            mqttClient = new MqttClient(brokerUrl, clientId, persistence);
-
-            MqttConnectOptions options = new MqttConnectOptions();
-            options.setAutomaticReconnect(true);
-            options.setCleanSession(false);
-            options.setUserName(username);
-            options.setPassword(password.toCharArray());
-            options.setConnectionTimeout(30);
-            options.setKeepAliveInterval(120);
-            options.setWill("edge_cloud_backend/status", "offline".getBytes(), 1, false);
-
-            mqttClient.setCallback(new MqttCallback() {
-                @Override
-                public void connectionLost(Throwable cause) {
-                    log.warn("MQTT 连接丢失: {}", cause.getMessage());
-                }
-
-                @Override
-                public void messageArrived(String topic, MqttMessage message) throws Exception {
-                    handleDeviceMessage(topic, message);
-                }
-
-                @Override
-                public void deliveryComplete(IMqttDeliveryToken token) {
-                    log.debug("MQTT 消息发送完成");
-                }
-            });
-
-            mqttClient.connect(options);
-            log.info("MQTT 重连成功");
-
-            subscribeToDeviceStatusTopics();
-
-            String inferenceTopic = "device/+/inference/results";
-            mqttClient.subscribe(inferenceTopic, 1);
-            log.info("重连后重新订阅边缘推理结果主题: {}", inferenceTopic);
-        } catch (MqttException e) {
-            log.error("MQTT 重连失败", e);
-        }
     }
 }
