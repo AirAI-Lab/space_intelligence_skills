@@ -145,14 +145,14 @@ docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi
 ```powershell
 # Windows
 cd D:\github
-git clone https://github.com/SnakeJenny/edge_infer_cloud.git
+git clone https://github.com/AirAI-Lab/edge_infer_cloud.git
 cd edge_infer_cloud
 ```
 
 ```bash
 # Linux
 cd /opt
-sudo git clone https://github.com/SnakeJenny/edge_infer_cloud.git
+sudo git clone https://github.com/AirAI-Lab/edge_infer_cloud.git
 sudo chown -R $USER:$USER edge_infer_cloud
 cd edge_infer_cloud
 ```
@@ -295,6 +295,20 @@ curl http://localhost:5003/health
 | 后端 API | http://localhost:8081 | - | REST API |
 | API 文档 | http://localhost:8081/swagger-ui.html | - | Swagger UI |
 | EMQX 控制台 | http://localhost:18083 | admin / admin123456 | MQTT 管理 |
+
+### 7.4 API 认证（生产模式）
+
+生产模式下 REST API 需要认证。API Key 在 `.env` 文件中配置：
+
+```bash
+# 带认证的 API 请求
+curl -H "X-API-Key: your-api-key" http://localhost/api/v1/devices
+
+# 不带 API Key 将返回 401
+curl http://localhost/api/v1/devices  # → 401 Unauthorized
+```
+
+首次部署使用 `./deploy.sh --init` 会自动生成随机 API Key。
 | MLflow | http://localhost:5001 | - | 模型实验管理 |
 | SeaweedFS | http://localhost:8888 | - | 文件存储管理 |
 
@@ -424,11 +438,12 @@ npm config set registry https://registry.npmmirror.com
 ## 10. 生产环境建议
 
 1. **修改所有默认密码**：数据库、Redis、EMQX、SeaweedFS
-2. **配置 HTTPS**：通过 Nginx 反向代理 + SSL 证书
-3. **资源限制**：在 `docker-compose.yml` 中通过 `deploy.resources` 限制 CPU/内存
-4. **定期备份**：PostgreSQL 数据 + SeaweedFS 文件 + MLflow 模型
-5. **日志管理**：配置日志轮转，避免磁盘写满
-6. **监控告警**：利用后端 `/actuator/health` 端点配置健康检查
+2. **配置 API Key 认证**：`.env` 中设置强 API Key，第三方调用携带 `X-API-Key` header
+3. **配置 HTTPS**：通过 Nginx 反向代理 + SSL 证书
+4. **资源限制**：在 `docker-compose.yml` 中通过 `deploy.resources` 限制 CPU/内存
+5. **定期备份**：`./deploy.sh --backup` 备份 PostgreSQL 数据
+6. **日志管理**：配置日志轮转，避免磁盘写满
+7. **监控告警**：利用后端 `/actuator/health` 端点配置健康检查
 
 ---
 

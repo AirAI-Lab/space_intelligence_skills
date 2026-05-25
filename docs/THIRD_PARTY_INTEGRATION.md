@@ -32,15 +32,38 @@ SkyEdge AI 平台采用 **边缘-云协同** 架构：
 
 ### 服务地址
 
+**生产模式**（统一入口，推荐）：
+
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| REST API | `http://{HOST}/api/v1/` | 后端 API |
+| 前端平台 | `http://{HOST}/` | Web 管理界面 |
+| API 文档 | `http://{HOST}/swagger-ui.html` | Swagger UI |
+| MQTT WebSocket | `ws://{HOST}/mqtt/ws` | MQTT over WS |
+| MQTT Broker | `tcp://{HOST}:1883` | EMQX 原生 MQTT |
+
+**开发模式**（独立端口）：
+
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | REST API | `8081` | 后端 API 服务 |
 | 前端平台 | `3000` | Web 管理界面 |
 | MQTT Broker | `1883` | EMQX 消息服务 |
 | RTMP 推流 | `1935` | 流媒体服务 |
-| 文件存储 | `8333` | S3 兼容文件服务 |
 
 以下所有示例使用 `{HOST}` 表示平台服务器 IP 地址。
+
+### 认证
+
+生产模式下，所有 REST API 请求需要携带 `X-API-Key` header：
+
+```bash
+curl -H "X-API-Key: your-api-key" http://{HOST}/api/v1/devices
+```
+
+API Key 在部署时通过 `.env` 文件的 `API_KEY` 字段配置。Swagger UI 可直接浏览（无需认证），但 Try it out 请求需要填写 API Key。
+
+> 开发模式下默认不启用 API Key 认证。
 
 ---
 
@@ -66,8 +89,9 @@ SkyEdge AI 平台采用 **边缘-云协同** 架构：
 在平台管理界面（Webhook 配置页）或通过 API 注册：
 
 ```http
-POST http://{HOST}:8081/api/v1/webhooks
+POST http://{HOST}/api/v1/webhooks
 Content-Type: application/json
+X-API-Key: your-api-key
 
 {
   "name": "智飞系统告警接收",
@@ -169,7 +193,8 @@ def verify_webhook(request):
 ### 4.1 查询推理结果
 
 ```http
-GET http://{HOST}:8081/api/v1/inference/results?page=1&page_size=20&device_id=jetson_orin_001&source=edge&has_alert=true
+GET http://{HOST}/api/v1/inference/results?page=1&page_size=20&device_id=jetson_orin_001&source=edge&has_alert=true
+X-API-Key: your-api-key
 ```
 
 **参数说明**：
@@ -221,19 +246,19 @@ GET http://{HOST}:8081/api/v1/inference/results?page=1&page_size=20&device_id=je
 ### 4.2 查询单条结果详情
 
 ```http
-GET http://{HOST}:8081/api/v1/inference/results/{id}
+GET http://{HOST}/api/v1/inference/results/{id}
 ```
 
 ### 4.3 查询告警列表
 
 ```http
-GET http://{HOST}:8081/api/v1/inference/alerts?levels=warning,critical&page=1&page_size=20
+GET http://{HOST}/api/v1/inference/alerts?levels=warning,critical&page=1&page_size=20
 ```
 
 ### 4.4 统计数据（最近24小时）
 
 ```http
-GET http://{HOST}:8081/api/v1/inference/stats
+GET http://{HOST}/api/v1/inference/stats
 ```
 
 **响应示例**：
@@ -264,13 +289,13 @@ GET http://{HOST}:8081/api/v1/inference/stats
 ### 4.5 推理趋势（按小时聚合）
 
 ```http
-GET http://{HOST}:8081/api/v1/inference/trend
+GET http://{HOST}/api/v1/inference/trend
 ```
 
 ### 4.6 导出数据
 
 ```http
-GET http://{HOST}:8081/api/v1/inference/export?format=csv&start_time=2026-05-08T00:00:00&end_time=2026-05-08T23:59:59
+GET http://{HOST}/api/v1/inference/export?format=csv&start_time=2026-05-08T00:00:00&end_time=2026-05-08T23:59:59
 ```
 
 支持 `csv` 和 `json` 两种格式。CSV 包含 BOM 头，兼容 Excel 直接打开。
@@ -517,7 +542,7 @@ ffplay -fflags nobuffer rtmp://192.168.0.107:1935/stream/cam1_output
 完整 URL：
 
 ```
-http://{HOST}:8081/api/v1/files/download?key=inference/70162973-xxx.jpg
+http://{HOST}/api/v1/files/download?key=inference/70162973-xxx.jpg
 ```
 
 ### 8.2 直接访问文件存储
@@ -552,7 +577,8 @@ app = Flask(__name__)
 
 # ========== 配置 ==========
 PLATFORM_HOST = "192.168.0.103"     # SkyEdge 平台地址
-PLATFORM_PORT = 8081                # API 端口
+PLATFORM_PORT = ""                  # 生产模式留空（Nginx 80 端口），开发模式设为 8081
+API_KEY = "your-api-key"            # .env 中配置的 API_KEY
 MQTT_HOST = PLATFORM_HOST           # MQTT Broker 地址
 MQTT_PORT = 1883
 MQTT_USER = "admin"
@@ -581,7 +607,8 @@ def receive_webhook():
     detections = data.get("result_json", {}).get("detections", [])
     image_url = data.get("image_url", "")
 
-    # 3. 过滤告警目标
+    # 3. 构建完整图片 URL
+    base = f"http://{PLATFORM_HOST}:{PLATFORM_PORT}" if PLATFORM_PORT else f"http://{PLATFORM_HOST}"
     alert_targets = [d for d in detections if d.get("is_alert")]
 
     print(f"[Webhook] {event_type} | {device_id}/{channel_id} "
@@ -605,7 +632,7 @@ def receive_webhook():
             }
             for t in alert_targets
         ],
-        "image_url": f"http://{PLATFORM_HOST}:{PLATFORM_PORT}{image_url}" if image_url else None,
+        "image_url": f"{base}{image_url}" if image_url else None,
         "video_url": f"rtmp://192.168.0.107:1935/stream/{channel_id}_output"
     }
 
@@ -633,17 +660,23 @@ def query_recent_alerts(device_id=None, hours=1):
     if device_id:
         params["device_id"] = device_id
 
+    base = f"http://{PLATFORM_HOST}:{PLATFORM_PORT}" if PLATFORM_PORT else f"http://{PLATFORM_HOST}"
+    headers = {"X-API-Key": API_KEY}
     resp = requests.get(
-        f"http://{PLATFORM_HOST}:{PLATFORM_PORT}/api/v1/inference/results",
-        params=params
+        f"{base}/api/v1/inference/results",
+        params=params,
+        headers=headers
     )
     return resp.json()
 
 
 def get_inference_stats():
     """获取推理统计数据"""
+    base = f"http://{PLATFORM_HOST}:{PLATFORM_PORT}" if PLATFORM_PORT else f"http://{PLATFORM_HOST}"
+    headers = {"X-API-Key": API_KEY}
     resp = requests.get(
-        f"http://{PLATFORM_HOST}:{PLATFORM_PORT}/api/v1/inference/stats"
+        f"{base}/api/v1/inference/stats",
+        headers=headers
     )
     return resp.json()
 
@@ -705,9 +738,11 @@ python zhifei_integration.py
 
 ### A. 网络要求
 
+**生产模式**（Nginx 统一入口）：
+
 | 方向 | 端口 | 协议 | 用途 |
 |------|------|------|------|
-| 第三方 → 平台 | 8081 | HTTP | REST API 查询 |
+| 第三方 → 平台 | 80 | HTTP | REST API / 前端 / Swagger |
 | 第三方 → 平台 | 1883 | MQTT | 消息订阅 |
 | 平台 → 第三方 | 自定义 | HTTP | Webhook 推送 |
 | 第三方 → 边缘 | 1935 | RTMP | 视频流播放 |

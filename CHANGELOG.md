@@ -4,6 +4,46 @@
 
 ---
 
+## v2026.05.25 — 生产部署镜像化 + API 认证 + 第三方对接文档
+
+### 新增
+
+**API 认证（Spring Security + API Key）**
+- `spring-boot-starter-security` 依赖
+- `SecurityConfig.java`：无状态安全配置，公开端点（health、swagger、ws、云端推理上报），其他 API 需认证
+- `ApiKeyFilter.java` + `ApiKeyAuthentication.java`：`X-API-Key` header 校验
+- `OpenApiConfig.java`：Swagger UI 增加 API Key 安全定义
+- `application.yml` 新增 `edge.api.key` 配置项，支持环境变量 `API_KEY`
+
+**镜像构建与推送**
+- `deployment/docker/build-push.sh`：一键构建 backend/frontend 镜像并推送到私有仓库
+
+**第三方对接文档**
+- `docs/integration-guide.md`：快速参考指南（REST API、Webhook、MQTT、WebSocket），含部署模式对照表
+
+**部署脚本增强**
+- `deploy.sh --init`：首次部署（生成 .env + 随机 API Key、初始化 SeaweedFS、等待数据库就绪）
+- `deploy.sh --backup`：PostgreSQL 数据备份（gzip 压缩）
+- `deploy.sh --restore`：数据恢复
+- 端口占用和磁盘空间检查
+
+### 变更
+
+**配置文件更新**
+- `.env.example`：更新为 SeaweedFS（替代 MinIO/InfluxDB）、新增 API_KEY、CLOUD_API_URL、REGISTRY
+- `.env`：同步更新，移除过时的 InfluxDB/MinIO 引用
+- `docker-compose.prod.yml`：backend 新增 `API_KEY` 环境变量
+
+**文档同步更新**
+- `THIRD_PARTY_INTEGRATION.md`：添加 API Key 认证说明、更新端口为生产模式（80 端口统一入口）、Python 示例适配
+- `QUICKSTART.md`：新增生产模式部署命令和访问地址（开发/生产双表格）
+- `DEPLOYMENT.md`：新增 `--init`/`--backup`/`--restore` 命令说明、API Key 配置
+- `README_DOCKER.md`：新增 7.4 API 认证章节、生产环境建议增加 API Key
+- `docs/README.md`：索引新增 integration-guide.md
+- 所有文档中 `SnakeJenny`/`your-org` 仓库地址修正为 `AirAI-Lab`
+
+---
+
 ## v2026.05.12 — 前端布局重构 + SCSS 视觉升级 + RADIO 提示词优化
 
 ### 新增

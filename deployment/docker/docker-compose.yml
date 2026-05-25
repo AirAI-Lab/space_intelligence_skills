@@ -219,9 +219,9 @@ services:
       - /bin/bash
       - -c
       - |
-        apt-get update -qq && apt-get install -y -qq tzdata &&
-        ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime &&
-        echo 'Asia/Shanghai' > /etc/timezone &&
+        apt-get update -qq && apt-get install -y -qq tzdata || true
+        ln -snf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime || true
+        echo 'Asia/Shanghai' > /etc/timezone || true
         mvn spring-boot:run
     networks:
       - edge-cloud-network

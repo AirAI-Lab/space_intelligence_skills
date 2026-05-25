@@ -151,6 +151,7 @@ services:
       - S3_SECRET_KEY=admin123456
       - S3_BUCKET=edge-cloud-files
       - S3_PATH_STYLE_ACCESS=true
+      - API_KEY=${API_KEY:-edge-cloud-default-key}
     depends_on:
       postgres:
         condition: service_healthy

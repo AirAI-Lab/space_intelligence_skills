@@ -7,6 +7,7 @@
 | [QUICKSTART.md](QUICKSTART.md) | 5 分钟快速部署指南（3 种部署模式） |
 | [DEPLOYMENT.md](DEPLOYMENT.md) | 完整部署指南（开发/生产/Linux 迁移） |
 | [THIRD_PARTY_INTEGRATION.md](THIRD_PARTY_INTEGRATION.md) | 第三方平台对接指南（MQTT/Webhook/REST） |
+| [integration-guide.md](integration-guide.md) | 第三方对接快速参考（REST/Webhook/MQTT/WebSocket） |
 
 ## API 参考
 
