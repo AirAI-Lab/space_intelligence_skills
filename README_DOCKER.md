@@ -202,11 +202,29 @@ vim .env
 
 如需使用云端推理和训练服务，需要下载以下模型文件并放入对应目录：
 
-| 目录 | 内容 | 说明 |
-|------|------|------|
-| `models/C-RADIOv4-H/` | `c-radio_v4-h_half.pth.tar` | C-RADIOv4 分割模型权重 |
-| `models/siglip2-giant-opt-patch16-384/` | SigLIP2 文本编码器 | 开放词汇分割的文本编码器 |
-| `models/NVlabs_RADIO/` | RADIO 官方代码 | C-RADIOv4 依赖的底层代码 |
+| 目录 | 内容 | 大小 | 下载地址 |
+|------|------|------|----------|
+| `models/C-RADIOv4-H/` | `c-radio_v4-h_half.pth.tar` | 1.68 GB | [HuggingFace nvidia/C-RADIOv4-H](https://huggingface.co/nvidia/C-RADIOv4-H) |
+| `models/siglip2-giant-opt-patch16-384/` | SigLIP2 文本编码器 | 7.5 GB | [HuggingFace google/siglip2-giant-opt-patch16-384](https://huggingface.co/google/siglip2-giant-opt-patch16-384) |
+| `models/NVlabs_RADIO/` | RADIO 官方代码 | ~50 MB | [GitHub NVlabs/RADIO](https://github.com/NVlabs/RADIO) |
+
+**下载命令**：
+
+```bash
+# 1. C-RADIOv4-H 权重（半精度，1.68 GB）
+pip install huggingface_hub
+huggingface-cli download nvidia/C-RADIOv4-H \
+    --local-dir models/C-RADIOv4-H
+# 国内镜像: HF_ENDPOINT=https://hf-mirror.com huggingface-cli download nvidia/C-RADIOv4-H --local-dir models/C-RADIOv4-H
+
+# 2. SigLIP2 文本模型（7.5 GB）
+huggingface-cli download google/siglip2-giant-opt-patch16-384 \
+    --local-dir models/siglip2-giant-opt-patch16-384
+# 国内镜像: HF_ENDPOINT=https://hf-mirror.com huggingface-cli download google/siglip2-giant-opt-patch16-384 --local-dir models/siglip2-giant-opt-patch16-384
+
+# 3. RADIO 官方代码
+git clone https://github.com/NVlabs/RADIO.git models/NVlabs_RADIO
+```
 
 ---
 

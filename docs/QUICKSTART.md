@@ -112,6 +112,27 @@ docker compose up -d --build
 
 ## 云端推理（模式 A/B/C 均可使用）
 
+### 前置：下载模型权重
+
+云端推理依赖三个大模型文件（总计约 10 GB），首次使用需手动下载：
+
+```bash
+pip install huggingface_hub
+
+# C-RADIOv4-H (1.68 GB) — https://huggingface.co/nvidia/C-RADIOv4-H
+huggingface-cli download nvidia/C-RADIOv4-H --local-dir models/C-RADIOv4-H
+
+# SigLIP2 (7.5 GB) — https://huggingface.co/google/siglip2-giant-opt-patch16-384
+huggingface-cli download google/siglip2-giant-opt-patch16-384 --local-dir models/siglip2-giant-opt-patch16-384
+
+# RADIO 代码 — https://github.com/NVlabs/RADIO
+git clone https://github.com/NVlabs/RADIO.git models/NVlabs_RADIO
+```
+
+> 国内网络：在命令前加 `HF_ENDPOINT=https://hf-mirror.com` 使用镜像站
+
+### 启动推理
+
 GPU 容器启动后，运行云端推理：
 
 ```bash
