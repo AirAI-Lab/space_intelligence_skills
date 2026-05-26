@@ -1,8 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-const API_KEY = import.meta.env.VITE_API_KEY || 'edge-cloud-default-key'
-
 const request = axios.create({
   baseURL: '/api/v1',
   timeout: 60000  // 普通请求 60 秒超时
@@ -15,14 +13,6 @@ const uploadRequest = axios.create({
 })
 
 // uploadRequest 响应拦截器
-uploadRequest.interceptors.request.use(
-  (config) => {
-    config.headers['X-API-Key'] = API_KEY
-    return config
-  },
-  (error) => Promise.reject(error)
-)
-
 uploadRequest.interceptors.response.use(
   (response) => {
     const res = response.data
@@ -40,7 +30,6 @@ uploadRequest.interceptors.response.use(
 )
 request.interceptors.request.use(
   (config) => {
-    config.headers['X-API-Key'] = API_KEY
     return config
   },
   (error) => {

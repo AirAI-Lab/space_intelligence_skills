@@ -4,6 +4,28 @@
 
 ---
 
+## v2026.05.26 — 移除 API Key 认证 + 云端无图过滤 + 裸土提示词修正
+
+### 变更
+
+**移除 API Key 认证**
+- 删除 `spring-boot-starter-security` 依赖、`SecurityConfig`、`ApiKeyFilter`、`ApiKeyAuthentication`
+- `OpenApiConfig` 移除 API Key 安全定义
+- `application.yml` 移除 `edge.api.key` 配置项
+- 前端 `api/index.ts` 移除 `X-API-Key` header
+- **原因**：SPA 前端的 API Key 写在客户端 JS 中，任何人 F12 即可获取，不提供真正的安全价值。生产环境应依赖网络层防护（Nginx + HTTPS + 内网隔离）
+
+**云端 RADIO 无图过滤**
+- `engine.py`：图片生成失败或无 segments 时不上报（`if not image_b64: return None`），与边缘 smart 模式一致，避免无图告警
+
+**RADIO 裸土检测提示词修正**
+- `construction_safety.yaml`：正面提示词增加 "ground level" 和 "soil granules" 限定，反面提示词新增 4 条楼顶/建筑表面描述
+
+**RADIO 模型下载文档**
+- 新增 C-RADIOv4-H、SigLIP2、RADIO 模型下载地址和命令
+
+---
+
 ## v2026.05.25 — 生产部署镜像化 + API 认证 + 第三方对接文档
 
 ### 新增

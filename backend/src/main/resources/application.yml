@@ -38,8 +38,3 @@ spring:
 # 外部访问URL配置（用于设备下载文件）
 backend:
   external-url: ${BACKEND_EXTERNAL_URL:http://localhost:8081}
-
-# API Key 认证
-edge:
-  api:
-    key: ${API_KEY:edge-cloud-default-key}
