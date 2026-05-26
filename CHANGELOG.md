@@ -4,7 +4,16 @@
 
 ---
 
-## v2026.05.26 — 移除 API Key 认证 + 云端无图过滤 + 裸土提示词修正
+## v2026.05.26 — WSL2 开发环境 + 移除 API Key + 云端无图过滤
+
+### 新增
+
+**WSL2 跨平台 Docker 部署**
+- WSL2 Ubuntu 内安装 docker-ce + nvidia-container-toolkit，GPU 直通验证通过
+- `docker-compose.yml` 外部资源路径参数化（`EDGE_INFER_PATH` / `EXTERNAL_DATA_PATH`），兼容 Windows / WSL2 / Linux
+- 新增 `.env.wsl2`：WSL2 特有路径覆盖
+- `deploy.sh` 新增平台自动检测（`detect_platform`），WSL2 环境自动加载 `.env.wsl2`
+- 模型权重通过符号链接共享（WSL2 原生文件系统 + `/mnt/d/` 访问 Windows 磁盘）
 
 ### 变更
 

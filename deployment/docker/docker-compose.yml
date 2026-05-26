@@ -275,9 +275,9 @@ services:
       - ../../models:/app/models
       # 预训练模型缓存
       - ../../models/pretrained_models:/root/.cache
-      # === 外部资源 ===
-      - D:/github/edge_infer:/app/edge_infer:ro
-      - E:/data:/app/external_data:ro
+      # === 外部资源（路径通过 .env 配置，兼容 Windows/WSL2/Linux）===
+      - ${EDGE_INFER_PATH:-/dev/null}:/app/edge_infer:ro
+      - ${EXTERNAL_DATA_PATH:-/dev/null}:/app/external_data:ro
     ports:
       - "5002:5002"
     deploy:

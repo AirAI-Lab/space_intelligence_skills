@@ -24,6 +24,21 @@ DEV_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
 ENV_FILE="${SCRIPT_DIR}/.env"
 BACKUP_DIR="${SCRIPT_DIR}/backups"
 
+# 平台检测：自动识别 Linux / WSL2 并加载对应 .env 覆盖
+detect_platform() {
+    if grep -qi microsoft /proc/version 2>/dev/null; then
+        echo "wsl2"
+    elif [[ "$(uname -s)" == "Linux" ]]; then
+        echo "linux"
+    else
+        echo "unknown"
+    fi
+}
+PLATFORM=$(detect_platform)
+if [[ "$PLATFORM" == "wsl2" && -f "${SCRIPT_DIR}/.env.wsl2" ]]; then
+    set -a; source "${SCRIPT_DIR}/.env.wsl2"; set +a
+fi
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
