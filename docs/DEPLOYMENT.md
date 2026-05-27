@@ -43,21 +43,21 @@
 | 资源限制 | 无 | 每个服务配额 |
 | 配置文件 | `docker-compose.yml` | `docker-compose.prod.yml` |
 
-### Docker Desktop (Windows) vs Linux 服务器
+### Windows + WSL2 vs Linux 服务器
 
-| 对比 | Docker Desktop (Windows) | Linux 原生 Docker |
-|------|--------------------------|-------------------|
-| Docker 安装 | Docker Desktop 一键安装 | `curl get.docker.com \| sh` |
-| 容器运行位置 | WSL2 虚拟机内核 | 直接在宿主机内核 |
-| 磁盘 I/O | 慢 ~30%（跨虚拟磁盘） | 原生性能 |
-| GPU 支持 | 仅 WSL2 GPU 直通，配置复杂 | nvidia-container-toolkit 原生支持 |
+| 对比 | Windows + WSL2 | Linux 服务器 |
+|------|----------------|-------------|
+| Docker 安装 | WSL2 Ubuntu 内安装 docker-ce | `curl get.docker.com \| sh` |
+| 容器运行位置 | WSL2 内核（接近原生） | 直接在宿主机内核 |
+| 磁盘 I/O | WSL2 原生文件系统接近原生；/mnt/ 跨文件系统慢 ~30% | 原生性能 |
+| GPU 支持 | nvidia-container-toolkit 直通 | nvidia-container-toolkit 原生支持 |
 | 适用场景 | 开发调试 | 正式部署 |
 | 部署命令 | **完全相同** | **完全相同** |
 
 **推荐路径**：
 ```
-当前阶段 → Docker Desktop 开发模式（写代码、调代码）
-         → Docker Desktop 生产模式（验证构建产物是否正确）
+开发阶段 → Windows + WSL2 开发模式（写代码、调代码）
+         → Windows + WSL2 生产模式（验证构建产物是否正确）
 部署上线 → Linux 服务器生产模式（./deploy.sh 一键部署）
 ```
 
@@ -98,54 +98,189 @@
 
 ---
 
-## 方式一：Windows Docker Desktop 部署
+## 方式一：Windows + WSL2 部署
 
-### 1.1 开发模式（当前使用）
+Windows 开发机通过 WSL2 Ubuntu 内安装 docker-ce 运行容器化服务。
 
-适用于开发阶段，代码修改实时生效。
+### 1.1 环境准备
 
-**前置条件**：
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) 已安装并运行
-- WSL2 后端已启用（Docker Desktop 默认使用 WSL2）
+**1) 配置 WSL2 资源**
 
-**启动**：
+在 Windows 用户目录创建 `%USERPROFILE%\.wslconfig`：
 
-```bash
-cd deployment/docker
-
-# 模式 A: 纯推理 — 仅 EMQX + GPU 训练容器（2 容器）
-docker compose --profile gpu up -d
-
-# 模式 B: 推理 + 管理 — 无 GPU 训练（8 容器）
-docker compose --profile standard up -d
-
-# 模式 C: 完整平台 — 管理 + GPU 训练（10 容器）
-docker compose --profile standard --profile gpu up -d
+```ini
+[wsl2]
+memory=24GB
+processors=8
+swap=8GB
+localhostForwarding=true
+[experimental]
+autoMemoryReclaim=gradual
 ```
 
-**部署模式说明**：
+> 修改后需 `wsl --shutdown` 重启 WSL2。
 
-| 模式 | 命令 | 容器数 | 适用场景 |
-|------|------|--------|----------|
-| **A: 纯推理** | `--profile gpu` | 2 | 第三方只需 MQTT 推理结果，无需管理界面 |
-| **B: 推理+管理** | `--profile standard` | 8 | 有管理需求但无 GPU 训练 |
-| **C: 完整平台** | `--profile standard --profile gpu` | 10 | 全功能开发/生产部署 |
+**2) 安装 docker-ce**
 
-**各模式下服务状态**：
+```bash
+wsl --start Ubuntu
+# WSL2 内执行：
+sudo apt-get update && sudo apt-get install -y ca-certificates curl gnupg
 
-| 服务 | 模式 A | 模式 B | 模式 C |
-|------|--------|--------|--------|
-| EMQX (消息总线) | ✓ | ✓ | ✓ |
-| Training (GPU 推理) | ✓ | — | ✓ |
-| PostgreSQL | — | ✓ | ✓ |
-| Redis | — | ✓ | ✓ |
-| Backend (Spring Boot) | — | ✓ | ✓ |
-| Frontend (Vue3) | — | ✓ | ✓ |
-| MLflow | — | ✓ | ✓ |
+# 添加 Docker GPG key 和仓库
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 安装
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 将当前用户加入 docker 组
+sudo usermod -aG docker $USER
+newgrp docker
+
+# 启动 Docker（WSL2 内非 systemd）
+sudo service docker start
+
+# 验证
+docker --version
+docker compose version
+```
+
+> **从 Docker Desktop 迁移？** 如果之前安装过 Docker Desktop，需清除其残留代理配置：
+> ```bash
+> sudo rm -rf /etc/systemd/system/docker.service.d
+> echo '{}' > ~/.docker/config.json
+> sudo service docker restart
+> ```
+> 否则 Docker 会尝试连接 Docker Desktop 的代理端口导致镜像拉取失败。
+
+**3) 安装 NVIDIA Container Toolkit（GPU 直通）**
+
+```bash
+# 添加 NVIDIA 仓库
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
+    sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# 安装并配置
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
+sudo service docker restart
+
+# 验证 GPU 直通
+docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi
+```
+
+### 1.2 克隆项目并配置
+
+**推荐在 WSL2 原生文件系统克隆**（I/O 性能远优于 `/mnt/d/`）：
+
+```bash
+cd ~
+git clone https://github.com/AirAI-Lab/edge_infer_cloud.git
+cd edge_infer_cloud
+```
+
+**模型权重通过符号链接共享**（避免重复下载 ~10GB）：
+
+```bash
+# 假设模型已在 Windows 的 D:\github\edge_infer_cloud\models\ 下
+ln -s /mnt/d/github/edge_infer_cloud/models/C-RADIOv4-H ~/edge_infer_cloud/models/C-RADIOv4-H
+ln -s /mnt/d/github/edge_infer_cloud/models/siglip2-giant-opt-patch16-384 ~/edge_infer_cloud/models/siglip2-giant-opt-patch16-384
+ln -s /mnt/d/github/edge_infer_cloud/models/NVlabs_RADIO ~/edge_infer_cloud/models/NVlabs_RADIO
+```
+
+> **注意**：符号链接指向 `/mnt/d/`（Windows 磁盘），读取速度比 WSL2 原生文件系统慢约 30%，但对于模型加载（一次性读取）影响不大。
+
+### 1.3 环境变量配置
+
+`deploy.sh` 会自动检测 WSL2 并加载 `.env.wsl2`。确认 `deployment/docker/.env.wsl2` 内容正确：
+
+```ini
+# WSL2 外部资源路径（通过 /mnt/ 访问 Windows 磁盘）
+EDGE_INFER_PATH=/mnt/d/github/edge_infer
+EXTERNAL_DATA_PATH=/mnt/e/data
+
+# WSL2 与 Windows 共享 IP（修改为本机局域网 IP）
+CLOUD_API_URL=http://192.168.0.103:8081
+```
+
+### 1.4 一键启动（推荐）
+
+项目提供了 Windows 一键启动脚本，自动完成：启动 Docker → 启动容器 → 等待就绪 → 配置端口转发。
+
+```powershell
+# PowerShell 管理员（右键以管理员身份运行）
+cd D:\github\edge_infer_cloud\deployment\docker
+.\start-wsl2.ps1
+```
+
+**首次部署**还需要初始化数据库：
+
+```bash
+# 在 WSL2 内执行（仅首次）
+wsl -d Ubuntu
+cd ~/edge_infer_cloud/deployment/docker
+docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud \
+    < ../../backend/src/main/resources/schema.sql
+```
+
+> **重要**：首次部署或 `docker compose down -v` 后必须执行建表步骤，否则前端页面会报 500 错误。
+
+**其他命令**：
+
+```powershell
+.\start-wsl2.ps1 -Status      # 查看服务状态和端口转发
+.\start-wsl2.ps1 -Stop        # 停止所有服务
+.\start-wsl2.ps1 -Rebuild     # 重新构建 training 镜像
+.\start-wsl2.ps1 -ResetProxy  # 重置端口转发（WSL2 重启后 IP 变化时使用）
+```
+
+### 1.4.1 手动启动（不使用脚本）
+
+```bash
+# 在 WSL2 内执行
+wsl -d Ubuntu
+sudo service docker start
+cd ~/edge_infer_cloud/deployment/docker
+
+# 首次构建 training 镜像（需要下载 CUDA 基础镜像 ~5GB + PyTorch，约 30 分钟）
+HTTP_PROXY=http://172.28.192.1:29290 HTTPS_PROXY=http://172.28.192.1:29290 \
+    docker compose --profile gpu build training
+
+# 启动所有服务（10 容器）
+docker compose --profile standard --profile gpu up -d
+
+# 初始化数据库（首次部署必须执行）
+sleep 15
+docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud \
+    < ../../backend/src/main/resources/schema.sql
+```
+
+配置端口转发（管理员 PowerShell，使局域网 IP 可达）：
+
+```powershell
+# 获取 WSL2 IP
+$wslIp = (wsl -d Ubuntu -- bash -c "hostname -I | awk '{print `$1}'").Trim()
+
+# 添加端口转发
+$ports = @(8081, 3000, 1883, 18083, 1935, 8089, 8333, 8888, 5001, 5002, 5432, 6379, 8889)
+foreach ($port in $ports) {
+    netsh interface portproxy add v4tov4 listenport=$port listenaddress=0.0.0.0 connectport=$port connectaddress=$wslIp
+}
+```
+
+> **注意**：WSL2 重启后 IP 可能变化，需要重新执行端口转发，或使用 `.\start-wsl2.ps1` 自动处理。
 | SeaweedFS | — | ✓ | ✓ |
 | Portal | — | ✓ | ✓ |
 
-> **模式 A（纯推理）**：EMQX 始终启动作为消息总线。第三方通过 MQTT 订阅 `results/#` 和 `alerts/#` 获取归一化推理结果。云端推理在 training 容器中运行。
+> **模式 A（纯推理）**：EMQX 始终启动作为消息总线。第三方通过 MQTT 订阅 `results/#` 和 `alerts/#` 获取归一化推理结果。
 
 **访问地址**：
 
@@ -156,36 +291,22 @@ docker compose --profile standard --profile gpu up -d
 | EMQX 面板 | http://localhost:18083 |
 | 文件存储 | http://localhost:8333 |
 
-**日常开发**：
+**验证**：
 
 ```bash
-# 查看服务状态
-docker compose ps
-
-# 查看后端日志
-docker compose logs -f backend
-
-# 重启某个服务
-docker compose restart backend
-
-# 停止所有服务
-docker compose down
-
-# 停止并清除数据（慎用）
-docker compose down -v
+curl http://localhost:8081/actuator/health
+wsl -d Ubuntu -- docker exec edge_cloud_training nvidia-smi
 ```
 
-### 1.2 生产模式（验证构建产物）
+### 1.5 生产模式（验证构建产物）
 
-在 Windows Docker Desktop 上也可以运行生产模式，用于验证构建是否正确。
-
-**从开发模式切换到生产模式**：
+用于在开发机上验证构建是否正确。
 
 ```bash
-cd deployment/docker
+cd ~/edge_infer_cloud/deployment/docker
 
 # 1. 先停掉开发模式
-docker compose down
+docker compose --profile standard --profile gpu down
 
 # 2. 构建并启动生产模式
 docker compose -f docker-compose.prod.yml up -d --build
@@ -194,28 +315,78 @@ docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml ps
 ```
 
-**或者使用部署脚本**（Git Bash 中执行）：
-
-```bash
-chmod +x deploy.sh
-./deploy.sh --stop       # 停开发模式
-./deploy.sh              # 启动生产模式
-```
-
-**切换回开发模式**：
-
-```bash
-docker compose -f docker-compose.prod.yml down   # 停生产模式
-docker compose up -d                              # 启开发模式
-```
-
-> 注意：两种模式不能同时运行（端口冲突），必须先停一个再启另一个。
-
 **生产模式验证完成后**，输出应该是：
 ```
 http://localhost/           → 前端管理界面（统一入口）
 http://localhost/api/v1/    → REST API
 http://localhost/emqx/      → EMQX 管理面板
+```
+
+### 1.5 网络注意事项
+
+**本机访问**：通过 `localhost` 直接访问，WSL2 的 `localhostForwarding=true` 自动转发。
+
+**局域网访问**（Jetson 等外部设备）：WSL2 Docker 端口不直接暴露到 Windows 局域网 IP，需要 `netsh portproxy` 转发。`start-wsl2.ps1` 脚本会自动配置。
+
+**首次部署需要配置 Windows 防火墙**（管理员 PowerShell，仅首次）：
+
+```powershell
+# 放行容器端口
+New-NetFirewallRule -DisplayName "Edge Cloud Platform" -Direction Inbound -Protocol TCP `
+    -LocalPort 8081,3000,1883,18083,1935,8089,8333,8888,5001,5002,5432,6379,8889 `
+    -Action Allow -Profile Any
+
+# 放行 WSL2 Hyper-V 流量
+Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow
+```
+
+**代理配置**：
+
+WSL2 内 Docker 引擎不继承宿主机的代理设置。如果需要代理：
+
+```bash
+# Docker daemon 代理（systemd 方式）
+sudo mkdir -p /etc/systemd/system/docker.service.d
+sudo tee /etc/systemd/system/docker.service.d/proxy.conf <<EOF
+[Service]
+Environment="HTTP_PROXY=http://172.28.192.1:29290"
+Environment="HTTPS_PROXY=http://172.28.192.1:29290"
+EOF
+
+# 或 WSL2 非 systemd 方式：在启动前设置
+export HTTP_PROXY=http://172.28.192.1:29290
+export HTTPS_PROXY=http://172.28.192.1:29290
+sudo service docker start
+```
+
+> `172.28.192.1` 是 WSL2 默认网关（宿主机 IP），可通过 `cat /etc/resolv.conf | grep nameserver` 查看实际值。
+
+**npm 国内镜像**：
+
+前端容器 `npm install` 默认使用 npmmirror 镜像（已内置在 docker-compose.yml）。
+
+### 1.7 WSL2 日常操作
+
+```bash
+# 每次进入 WSL2 需要启动 Docker
+sudo service docker start
+
+# 查看服务状态
+cd ~/edge_infer_cloud/deployment/docker
+docker compose ps
+
+# 查看日志
+docker compose logs -f backend
+docker compose logs -f training
+
+# 重启某个服务
+docker compose restart backend
+
+# 停止所有服务
+docker compose --profile standard --profile gpu down
+
+# 停止并清除数据卷（慎用）
+docker compose --profile standard --profile gpu down -v
 ```
 
 ---
@@ -279,12 +450,23 @@ chmod +x deploy.sh
 # 方式 B: docker compose profiles 精细控制
 docker compose --profile gpu up -d                          # 模式 A: 纯推理（2 容器）
 docker compose --profile standard up -d                     # 模式 B: 推理+管理（8 容器）
-docker compose --profile standard --profile gpu up -d       # 模式 C: 完整平台（10 容器）
+docker compose --profile standard --profile gpu up -d       # 模式 C: 完整平台（9 容器）
 ```
 
 > **生产环境推荐**：先执行 `./deploy.sh --init`（首次），后续用 `./deploy.sh --gpu`
 
 > **首次部署** `--init` 会自动生成 `.env`（含随机 API Key）、初始化 SeaweedFS bucket、等待数据库就绪。
+
+**步骤四：初始化数据库（首次部署必须）**
+
+```bash
+# 等待 PostgreSQL 就绪后执行建表
+sleep 15
+docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud \
+    < ../../backend/src/main/resources/schema.sql
+```
+
+> **重要**：首次部署或 `docker compose down -v` 后必须执行此步骤，否则前端页面报 500 错误。后续重启不需要重复执行。
 
 ### 2.2 管理命令
 
@@ -323,49 +505,21 @@ journalctl -u edge-cloud -f         # 查看日志
 
 ---
 
-## 方式三：从 Windows 迁移到 Linux
+## 从 Windows 迁移到 Linux 服务器
 
-如果当前在 Windows Docker Desktop 上运行，迁移到 Linux 服务器的步骤：
-
-### 3.1 导出数据
+开发阶段在 Windows + WSL2（方式一）完成后，部署到 Linux 生产服务器（方式二）时的数据迁移步骤：
 
 ```bash
-# 在 Windows 上执行：导出数据库
+# 1. 在 WSL2 内导出数据库
 docker exec edge_cloud_postgres pg_dump -U edge_user edge_cloud > backup.sql
 
-# 导出 Webhook 配置等（可选）
-docker exec edge_cloud_postgres pg_dump -U edge_user edge_cloud --table=webhook_configs --table=alert_rules > config_backup.sql
-```
-
-### 3.2 传输代码到 Linux
-
-```bash
-# 方式一：rsync（推荐，增量同步）
-rsync -avz --exclude='.git' --exclude='node_modules' --exclude='.venv' \
-    ./edge_infer_cloud/ user@linux-server:/opt/edge_cloud/
-
-# 方式二：scp
-scp -r edge_infer_cloud user@linux-server:/opt/
-
-# 方式三：git clone（推荐）
+# 2. 传输代码（推荐 git clone，最简洁）
 ssh user@linux-server
 git clone https://github.com/AirAI-Lab/edge_infer_cloud.git /opt/edge_cloud
-```
 
-### 3.3 在 Linux 上部署并恢复数据
-
-```bash
-# 部署（选择合适的模式）
+# 3. 在 Linux 上按方式二部署后恢复数据
 cd /opt/edge_cloud/deployment/docker
-chmod +x deploy.sh
-
-# 模式 A: 纯推理（仅 EMQX + GPU 训练，第三方通过 MQTT 获取结果）
-docker compose --profile gpu up -d
-
-# 模式 C: 完整平台（管理 + GPU 推理）
-./deploy.sh --gpu
-
-# 恢复数据（模式 B/C 需要，模式 A 无数据库）
+./deploy.sh --init
 cat backup.sql | docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud
 ```
 
@@ -423,15 +577,15 @@ API_KEY=edge-cloud-api-key-change-me
 
 ## 常见问题
 
+**Q: 如何选择 Windows + WSL2 还是 Linux 服务器？**
+- 开发调试用 Windows + WSL2（代码在本地，热重载方便）
+- 正式部署用 Linux 服务器（性能最优，systemd 开机自启）
+- 两者的 Docker 命令完全相同
+
 **Q: 如何选择开发模式还是生产模式？**
 - 开发调试用 `docker-compose.yml`（开发模式）
 - 正式部署用 `docker-compose.prod.yml`（生产模式）
 - 两者不能同时运行（端口冲突），必须先停一个再启另一个
-
-**Q: 在 Windows Docker Desktop 上能运行生产模式吗？**
-- 可以。生产模式只是换了镜像和配置，Docker Engine 是一样的
-- 用于验证构建产物是否正确，但 I/O 性能仍受 WSL2 虚拟化影响
-- 正式部署建议迁移到 Linux 服务器
 
 **Q: 如何更新代码后重新部署？**
 - 开发模式：修改代码后自动热重载
@@ -450,7 +604,7 @@ API_KEY=edge-cloud-api-key-change-me
 
 **Q: 新的 Linux 服务器部署流程一样吗？**
 - 完全一样。只需先安装 Docker（`curl -fsSL https://get.docker.com | sh`），然后执行 `./deploy.sh`
-- Docker 的核心优势就是跨平台一致性：Windows、Ubuntu、CentOS 部署命令完全相同
+- Docker 的核心优势就是跨平台一致性：Windows WSL2 和 Linux 服务器部署命令完全相同
 - 有 GPU 的服务器额外安装 nvidia-container-toolkit 即可
 
 **Q: 数据会丢失吗？**

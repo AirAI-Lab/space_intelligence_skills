@@ -129,7 +129,7 @@ services:
       - seaweedfs_data:/data
     environment:
       - GOCACHE=/tmp
-    command: server -dir=/data -s3 -volume.max=100
+    command: server -dir=/data -s3 -volume.max=7
     networks:
       - edge-cloud-network
     restart: unless-stopped
@@ -139,6 +139,17 @@ services:
       timeout: 10s
       retries: 5
       start_period: 90s
+
+  # RTMP 流媒体服务器（视频推流/拉流）
+  rtmp:
+    image: alfg/nginx-rtmp:latest
+    container_name: edge_cloud_rtmp
+    ports:
+      - "1935:1935"
+      - "8089:80"
+    networks:
+      - edge-cloud-network
+    restart: unless-stopped
 
   # 前端服务 (Vue3 + TypeScript) - 开发模式
   frontend:
@@ -158,7 +169,7 @@ services:
       # 开发模式：挂载源码目录（热重载）
       - ../../frontend:/app
       - /app/node_modules
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 3000"
+    command: sh -c "npm config set registry https://registry.npmmirror.com && npm install && npm run dev -- --host 0.0.0.0 --port 3000"
     depends_on:
       - backend
     networks:
@@ -190,8 +201,8 @@ services:
       - TIMESTRIDE_URI=jdbc:postgresql://postgres:5432/edge_cloud_timeseries
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - TRAINING_SERVICE_URL=http://edge_cloud_training:5002
-      # SeaweedFS S3存储配置（Apache 2.0，商业化友好）
-      - FILE_STORAGE_TYPE=s3
+      # 文件存储配置：local（默认，推荐单机部署）或 s3（生产/多机部署）
+      - FILE_STORAGE_TYPE=${FILE_STORAGE_TYPE:-local}
       - S3_ENDPOINT=http://seaweedfs:8333
       - S3_ACCESS_KEY=admin
       - S3_SECRET_KEY=admin123456
@@ -272,12 +283,13 @@ services:
       # 文件存储
       - file_storage_data:/app/data/files:ro
       # === 项目 models 目录整体挂载 (权重 + 代码 + 配置) ===
-      - ../../models:/app/models
+      # WSL2 需设置 MODELS_PATH 指向 Windows 路径（Docker 无法跟随符号链接跨 /mnt/）
+      - ${MODELS_PATH:-../../models}:/app/models
       # 预训练模型缓存
       - ../../models/pretrained_models:/root/.cache
       # === 外部资源（路径通过 .env 配置，兼容 Windows/WSL2/Linux）===
-      - ${EDGE_INFER_PATH:-/dev/null}:/app/edge_infer:ro
-      - ${EXTERNAL_DATA_PATH:-/dev/null}:/app/external_data:ro
+      - ${EDGE_INFER_PATH:-/var/empty}:/app/edge_infer:ro
+      - ${EXTERNAL_DATA_PATH:-/var/empty}:/app/external_data:ro
     ports:
       - "5002:5002"
     deploy:
