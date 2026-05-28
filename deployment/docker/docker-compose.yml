@@ -129,7 +129,7 @@ services:
       - seaweedfs_data:/data
     environment:
       - GOCACHE=/tmp
-    command: server -dir=/data -s3 -volume.max=7
+    command: server -dir=/data -s3 -volume.max=100
     networks:
       - edge-cloud-network
     restart: unless-stopped
@@ -201,8 +201,8 @@ services:
       - TIMESTRIDE_URI=jdbc:postgresql://postgres:5432/edge_cloud_timeseries
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - TRAINING_SERVICE_URL=http://edge_cloud_training:5002
-      # 文件存储配置：local（默认，推荐单机部署）或 s3（生产/多机部署）
-      - FILE_STORAGE_TYPE=${FILE_STORAGE_TYPE:-local}
+      # 文件存储配置：s3（默认，SeaweedFS）或 local（单机无依赖）
+      - FILE_STORAGE_TYPE=${FILE_STORAGE_TYPE:-s3}
       - S3_ENDPOINT=http://seaweedfs:8333
       - S3_ACCESS_KEY=admin
       - S3_SECRET_KEY=admin123456

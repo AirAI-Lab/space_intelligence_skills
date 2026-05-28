@@ -790,18 +790,17 @@ curl -X POST http://localhost:8081/api/v1/devices \
 
 | 模式 | 配置值 | 适用场景 |
 |------|--------|----------|
-| 本地文件系统（默认，推荐） | `local` | 单机部署，简单可靠，无外部依赖 |
-| S3 对象存储 | `s3` | 多机/生产部署，支持 SeaweedFS / MinIO / AWS S3 |
+| S3 对象存储（默认） | `s3` | 推荐，支持 SeaweedFS / MinIO / AWS S3，可扩展 |
+| 本地文件系统 | `local` | 单机部署，简单可靠，无外部依赖 |
 
-Docker Compose 默认使用本地文件存储（`local`）。切换为 S3 模式需设置：
+Docker Compose 默认使用 S3 存储（`s3`）。切换为本地模式需设置：
 
 ```bash
 # .env 或环境变量
-FILE_STORAGE_TYPE=s3
+FILE_STORAGE_TYPE=local
 ```
 
-> **WSL2 注意**：SeaweedFS 在 WSL2 docker-ce 下存在稳定性问题，建议使用 `local` 模式。
-> Linux 原生环境两者均可，生产环境推荐 S3 模式配合 SeaweedFS 或 MinIO。
+> **WSL2 注意**：确保 `volume.max` 配置合理（默认 100）。如果 volume 不足会导致 S3 写入 500 错误。
 
 ### 16.2 文件管理 API
 
