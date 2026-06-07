@@ -8,7 +8,7 @@ Wants=network-online.target
 Type=oneshot
 RemainAfterExit=yes
 
-WorkingDirectory=/opt/edge_cloud/deployment/docker
+WorkingDirectory=__DEPLOY_DIR__
 ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml --profile gpu up -d
 ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml down
 ExecReload=/usr/bin/docker compose -f docker-compose.prod.yml --profile gpu up -d

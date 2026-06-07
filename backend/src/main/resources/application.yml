@@ -21,7 +21,7 @@ spring:
     datasource:
       url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/edge_cloud}
       username: ${SPRING_DATASOURCE_USERNAME:edge_user}
-      password: ${SPRING_DATASOURCE_PASSWORD:edge_pass}
+      password: ${SPRING_DATASOURCE_PASSWORD:admin123456}
     jpa:
       hibernate:
         ddl-auto: update

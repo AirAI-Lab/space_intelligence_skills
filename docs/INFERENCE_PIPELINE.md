@@ -774,7 +774,7 @@ docker exec edge_cloud_training pkill -f radio_infer_server
 | `models/cloud_inference/radio_infer_server.py` | 云端推理主服务（MQTT/流式双模式，插件化） |
 | `models/cloud_inference/plugin_base.py` | 插件基类 — 从 YAML 动态读取告警规则 |
 | `models/cloud_inference/engine.py` | 推理引擎 — 模型加载、推理、标注绘制 |
-| `deployment/docker/docker-compose.yml` | 容器编排配置（含 profiles 多模式部署） |
+| `deployment/docker/docker-compose.dev.yml` | 容器编排配置（含 profiles 多模式部署） |
 | `deployment/emqx/init_rules.sh` | EMQX 规则引擎初始化脚本 |
 | `models/water_inspection/` | 水利巡检场景代码和配置 |
 | `models/construction_safety/` | 施工安全场景代码和配置 |

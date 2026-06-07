@@ -4,6 +4,49 @@
 
 ---
 
+## v2026.06.07 — SeaweedFS 修复 + 部署统一 + 移除 edge_infer 挂载
+
+### 修复
+
+**SeaweedFS S3 写入 500 错误**
+- 根因：`volume.max=7` 导致 volume 槽位耗尽（Free:0），master 无法分配新 volume
+- 修复：`volume.max` 恢复为 100，Free:93，S3 上传正常
+- `FILE_STORAGE_TYPE` 默认值恢复为 `s3`
+
+**start.ps1 WSL2 路径错误**
+- 根因：未加载 `.env.wsl2`，Windows 路径 `D:/...` 传入 WSL2 docker-ce 导致 `invalid volume specification`
+- 修复：自动检测 `.env.wsl2` 并传 `--env-file` 给 docker compose
+- 修复 portproxy IP 解析被 WSL 代理警告干扰的问题
+
+### 变更
+
+**部署脚本统一**
+- `deploy.sh` 重写：自动检测 IP/GPU、一次性全量部署、`init_db()` 自动建表（14 张实体表补丁）
+- `start.ps1` 替代 `start-wsl2.ps1` + `init.ps1` + `dev-restart.bat/sh`
+- 删除旧脚本：`build-push.sh`、`dev-restart.bat/sh`、`docker-compose.lite.yml`、`init.ps1`、`start-wsl2.ps1`、`BOOTSTRAP.md`
+
+**配置统一**
+- `PG_PASSWORD` 全部统一为 `admin123456`（`.env.example`、`docker-compose.yml`、`docker-compose.dev.yml`、`docker-compose.prod.yml`、`application.yml`）
+- `docker-compose.prod.yml`：RTMP 镜像替换、去掉 training CPU/内存上限、去掉 `version` 字段
+- `systemd/edge-cloud.service`：WorkingDirectory 改为 `__DEPLOY_DIR__` 模板
+
+**移除 edge_infer 挂载**
+- `docker-compose.dev.yml` 移除 `EDGE_INFER_PATH` 挂载，云边平台不需要挂载边缘侧仓库
+- `.env` 和 `.env.wsl2` 同步移除 `EDGE_INFER_PATH` 变量
+
+**依赖更新**
+- `training/requirements.txt`：新增 `timm`、`transformers`、`einops`、`paho-mqtt`、`safetensors`
+
+**新增文件**
+- `deployment/docker/keepalive.ps1`：WSL2 keepalive 辅助脚本
+- `deployment/docker/training-entrypoint.sh`：训练容器入口脚本
+
+### 文档
+- `README_DOCKER.md`：生产/开发彻底分离、S3 恢复为默认存储、部署统一为 `deploy.sh` 一条命令
+- `docs/DEPLOYMENT.md`：WSL2 部署章节更新、Docker Desktop 代理清理说明
+
+---
+
 ## v2026.05.26 — WSL2 开发环境 + 移除 API Key + 云端无图过滤
 
 ### 新增

@@ -3,15 +3,12 @@
 # SkyEdge AI Cloud Platform 部署脚本
 # ============================================
 # 在 Linux 服务器上执行:
-#   chmod +x deploy.sh
-#   ./deploy.sh              # 生产模式部署
+#   ./deploy.sh              # 生产部署（自动检测 GPU）
 #   ./deploy.sh --dev        # 开发模式部署
 #   ./deploy.sh --stop       # 停止所有服务
 #   ./deploy.sh --status     # 查看服务状态
 #   ./deploy.sh --logs       # 查看后端日志
 #   ./deploy.sh --rebuild    # 重新构建镜像并部署
-#   ./deploy.sh --gpu        # 含训练服务(GPU)
-#   ./deploy.sh --init       # 首次部署初始化
 #   ./deploy.sh --backup     # 备份数据库
 #   ./deploy.sh --restore    # 恢复数据库
 # ============================================
@@ -23,21 +20,6 @@ COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.prod.yml"
 DEV_COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yml"
 ENV_FILE="${SCRIPT_DIR}/.env"
 BACKUP_DIR="${SCRIPT_DIR}/backups"
-
-# 平台检测：自动识别 Linux / WSL2 并加载对应 .env 覆盖
-detect_platform() {
-    if grep -qi microsoft /proc/version 2>/dev/null; then
-        echo "wsl2"
-    elif [[ "$(uname -s)" == "Linux" ]]; then
-        echo "linux"
-    else
-        echo "unknown"
-    fi
-}
-PLATFORM=$(detect_platform)
-if [[ "$PLATFORM" == "wsl2" && -f "${SCRIPT_DIR}/.env.wsl2" ]]; then
-    set -a; source "${SCRIPT_DIR}/.env.wsl2"; set +a
-fi
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -72,7 +54,7 @@ check_gpu() {
 }
 
 check_ports() {
-    local ports=(80 1883 5432 6379 8333)
+    local ports=(80 1883 5432 6379 8333 1935)
     local occupied=""
     for port in "${ports[@]}"; do
         if ss -tlnp 2>/dev/null | grep -q ":${port} " || \
@@ -95,9 +77,125 @@ check_disk() {
     fi
 }
 
+init_db() {
+    # 检查 devices 表是否存在，不存在则执行建表
+    local table_exists
+    table_exists=$(docker compose -f "${COMPOSE_FILE}" exec -T postgres \
+        psql -U edge_user -d edge_cloud -tAc "SELECT EXISTS (SELECT FROM pg_tables WHERE tablename = 'devices')" 2>/dev/null || echo "false")
+
+    if [ "${table_exists}" = "t" ] || [ "${table_exists}" = "true" ]; then
+        info "数据库表已存在，跳过建表"
+        return
+    fi
+
+    local schema_dir="${SCRIPT_DIR}/../../backend/src/main/resources"
+    local schema_file="${schema_dir}/schema.sql"
+    if [ ! -f "${schema_file}" ]; then
+        warn "未找到 schema.sql: ${schema_file}，请手动建表"
+        return
+    fi
+
+    step "首次部署，初始化数据库表..."
+
+    # 1) 基础建表
+    docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud < "${schema_file}"
+
+    # 2) 执行 migration 脚本
+    local migration_dir="${schema_dir}/db/migration"
+    if [ -d "${migration_dir}" ]; then
+        for f in "${migration_dir}"/V*.sql; do
+            [ -f "$f" ] || continue
+            info "  执行 migration: $(basename "$f")"
+            docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud < "$f" 2>/dev/null
+        done
+    fi
+
+    # 3) 补全后端实体新增但 schema.sql 未覆盖的字段
+    docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud <<'EOSQL'
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS base_model VARCHAR(200);
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS dataset_name VARCHAR(200);
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS dataset_path VARCHAR(500);
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS dataset_source VARCHAR(50);
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS dataset_url VARCHAR(500);
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS enable_smart_optimization BOOLEAN DEFAULT FALSE;
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS final_map50 DOUBLE PRECISION;
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS resume BOOLEAN DEFAULT FALSE;
+ALTER TABLE training_jobs ADD COLUMN IF NOT EXISTS resume_job_id VARCHAR(50);
+ALTER TABLE ota_tasks ADD COLUMN IF NOT EXISTS progress DOUBLE PRECISION DEFAULT 0;
+ALTER TABLE models ADD COLUMN IF NOT EXISTS map50 DOUBLE PRECISION;
+ALTER TABLE datasets ADD COLUMN IF NOT EXISTS dataset_source VARCHAR(50);
+
+-- 补全 schema.sql 缺失的表（后端实体 @Table 定义但 schema.sql 未包含）
+CREATE TABLE IF NOT EXISTS model_deployment (
+    deployment_id VARCHAR(50) PRIMARY KEY,
+    model_id VARCHAR(50),
+    model_name VARCHAR(200),
+    device_id VARCHAR(50),
+    device_name VARCHAR(200),
+    previous_model_id VARCHAR(50),
+    previous_model_name VARCHAR(200),
+    deployment_type VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'PENDING',
+    deployed_by VARCHAR(100),
+    deployed_at TIMESTAMP,
+    completed_at TIMESTAMP,
+    rollback_at TIMESTAMP,
+    error_message TEXT,
+    inference_fps DOUBLE PRECISION,
+    gpu_utilization DOUBLE PRECISION,
+    memory_usage_mb DOUBLE PRECISION,
+    ota_task_id VARCHAR(50),
+    is_ab_test BOOLEAN DEFAULT FALSE,
+    ab_test_group VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_model_deployment_model_id ON model_deployment(model_id);
+CREATE INDEX IF NOT EXISTS idx_model_deployment_device_id ON model_deployment(device_id);
+
+CREATE TABLE IF NOT EXISTS device_commands (
+    id BIGSERIAL PRIMARY KEY,
+    command_id VARCHAR(50) NOT NULL UNIQUE,
+    device_id VARCHAR(50) NOT NULL,
+    command_type VARCHAR(50) NOT NULL,
+    task_id VARCHAR(50),
+    params TEXT,
+    status VARCHAR(50) DEFAULT 'PENDING',
+    expire_at TIMESTAMP,
+    sent_at TIMESTAMP,
+    acknowledged_at TIMESTAMP,
+    result TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_device_commands_device_id ON device_commands(device_id);
+
+CREATE TABLE IF NOT EXISTS device_tags (
+    id BIGSERIAL PRIMARY KEY,
+    device_id VARCHAR(50) NOT NULL,
+    tag_key VARCHAR(100) NOT NULL,
+    tag_value VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(device_id, tag_key)
+);
+CREATE INDEX IF NOT EXISTS idx_device_tags_device_id ON device_tags(device_id);
+EOSQL
+
+    info "数据库表初始化完成"
+
+    # 重启后端让 JPA 同步实体
+    docker restart edge_cloud_backend 2>/dev/null || true
+    info "正在重启后端服务..."
+    sleep 15
+}
+
 build_images() {
     step "构建生产镜像..."
-    docker compose -f "${COMPOSE_FILE}" build backend frontend
+    local build_targets="backend frontend"
+    if check_gpu; then
+        build_targets="${build_targets} training"
+    fi
+    docker compose -f "${COMPOSE_FILE}" build ${build_targets}
     info "镜像构建完成"
 }
 
@@ -106,121 +204,69 @@ init_env() {
         warn "未找到 .env 文件，从模板生成..."
         cp "${SCRIPT_DIR}/.env.example" "${ENV_FILE}"
 
-        # 生成随机 API Key
-        local api_key
-        api_key=$(openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | xxd -p | head -c 32)
-        if [ -n "$api_key" ]; then
-            sed -i "s/API_KEY=.*/API_KEY=${api_key}/" "${ENV_FILE}"
-            info "已生成 API Key: ${api_key}"
+        # 自动检测云端 IP
+        local cloud_ip
+        cloud_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+        if [ -n "$cloud_ip" ]; then
+            sed -i "s|CLOUD_API_URL=.*|CLOUD_API_URL=http://${cloud_ip}|" "${ENV_FILE}"
+            info "已自动设置 CLOUD_API_URL=http://${cloud_ip}"
+        else
+            warn "无法自动获取 IP，请手动设置 CLOUD_API_URL"
         fi
 
-        # 生成随机 EMQX 密码
-        local emqx_pass
-        emqx_pass=$(openssl rand -base64 12 2>/dev/null || echo "emqx_$(date +%s)")
-        sed -i "s/EMQX_PASSWORD=.*/EMQX_PASSWORD=${emqx_pass}/" "${ENV_FILE}"
-
         info "已生成 .env 文件: ${ENV_FILE}"
-        info "请检查并修改 CLOUD_API_URL 为实际 IP"
+        info "默认账号密码均为 admin / admin123456，如需自定义请编辑 .env"
     else
         info "已存在 .env 文件: ${ENV_FILE}"
     fi
 }
 
-init_deploy() {
-    check_docker
-    check_disk
-
-    step "===== 首次部署初始化 ====="
-
-    init_env
-
-    step "检查环境..."
-    check_ports
-
-    step "启动基础设施（数据库、缓存、MQTT）..."
-    docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
-        up -d postgres redis emqx seaweedfs
-
-    step "等待数据库就绪..."
-    local retries=30
-    while [ $retries -gt 0 ]; do
-        if docker compose -f "${COMPOSE_FILE}" exec -T postgres \
-            pg_isready -U edge_user -d edge_cloud &>/dev/null; then
-            break
-        fi
-        retries=$((retries - 1))
-        sleep 2
-    done
-    if [ $retries -eq 0 ]; then
-        error "数据库启动超时"
-    fi
-    info "数据库就绪"
-
-    # 等待 SeaweedFS 就绪
-    step "等待 SeaweedFS 就绪..."
-    sleep 10
-
-    # 初始化 S3 bucket
-    step "初始化文件存储..."
-    docker compose -f "${COMPOSE_FILE}" exec -T seaweedfs \
-        weed shell -master=localhost:9333 -filer=localhost:8888 <<'EOF'
-lock
-volume.create -replication=000
-exit
-EOF
-    info "文件存储就绪"
-
-    step "启动业务服务..."
-    docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
-        up -d backend frontend nginx mlflow
-
-    step "等待服务就绪..."
-    sleep 15
-
-    show_status
-
-    echo ""
-    info "===== 初始化完成 ====="
-    info "前端管理界面: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')/"
-    info "REST API:     http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')/api/v1/"
-    info "API 文档:     http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')/swagger-ui.html"
-    info "EMQX 管理:    http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')/emqx/"
-    echo ""
-    info "API Key 已写入 ${ENV_FILE}，第三方对接请携带 X-API-Key header"
-}
-
 deploy_prod() {
     check_docker
+    check_disk
 
     step "===== SkyEdge AI Cloud Platform 生产部署 ====="
 
     init_env
 
+    # 检查环境
+    check_ports
+
     # 构建镜像
     build_images
 
-    # 启动服务
-    step "启动服务..."
+    # 自动检测 GPU，决定是否启用 training 服务
     local profiles=""
-    if [ "${GPU_MODE:-false}" = "true" ]; then
-        check_gpu && profiles="--profile gpu"
+    if check_gpu; then
+        profiles="--profile gpu"
+        info "将启用 GPU 训练/推理服务"
     fi
 
-    docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
-        up -d ${profiles}
+    # 启动所有服务
+    step "启动服务..."
+    docker compose ${profiles} -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" \
+        up -d
 
     # 等待健康检查
     step "等待服务就绪..."
     sleep 10
 
+    # 首次部署自动建表
+    init_db
+
     # 显示状态
     show_status
 
+    local ip
+    ip=$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')
     echo ""
-    info "部署完成！"
-    info "前端管理界面: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')/"
-    info "REST API:     http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')/api/v1/"
-    info "EMQX 管理:    http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo 'localhost')/emqx/"
+    info "===== 部署完成 ====="
+    info "前端管理界面: http://${ip}/"
+    info "REST API:     http://${ip}/api/v1/"
+    info "API 文档:     http://${ip}/swagger-ui.html"
+    info "EMQX 管理:    http://${ip}/emqx/"
+    echo ""
+    info "API Key 在 ${ENV_FILE} 中配置，第三方对接请携带 X-API-Key header"
 }
 
 deploy_dev() {
@@ -322,12 +368,6 @@ case "${1:-}" in
     --rebuild)
         rebuild
         ;;
-    --gpu)
-        GPU_MODE=true deploy_prod
-        ;;
-    --init)
-        init_deploy
-        ;;
     --backup)
         backup_db
         ;;
@@ -337,14 +377,12 @@ case "${1:-}" in
     --help|-h)
         echo "用法: $0 [选项]"
         echo ""
-        echo "  (无参数)    生产模式部署"
-        echo "  --init      首次部署初始化（生成 .env、初始化存储）"
+        echo "  (无参数)    生产部署（自动检测 GPU，一次性启动全部服务）"
         echo "  --dev       开发模式（挂载源码，热重载）"
         echo "  --stop      停止所有服务"
         echo "  --status    查看服务状态"
         echo "  --logs      查看日志（默认后端）"
         echo "  --rebuild   重新构建镜像并部署"
-        echo "  --gpu       含 GPU 训练服务"
         echo "  --backup    备份数据库"
         echo "  --restore   恢复数据库（需指定文件）"
         ;;

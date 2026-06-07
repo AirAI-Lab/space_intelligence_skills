@@ -14,8 +14,6 @@
 #
 # ============================================
 
-version: '3.8'
-
 services:
   # ---------- 基础设施 ----------
 
@@ -25,7 +23,7 @@ services:
     environment:
       POSTGRES_DB: edge_cloud
       POSTGRES_USER: edge_user
-      POSTGRES_PASSWORD: ${PG_PASSWORD:-edge_pass}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:-admin123456}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -118,7 +116,7 @@ services:
       - "5000"
 
   rtmp:
-    image: tiyunchuangxing/rtmp-server:latest
+    image: alfg/nginx-rtmp:latest
     container_name: rtmp-server
     ports:
       - "1935:1935"
@@ -139,7 +137,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker,prod
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/edge_cloud
       - SPRING_DATASOURCE_USERNAME=edge_user
-      - SPRING_DATASOURCE_PASSWORD=${PG_PASSWORD:-edge_pass}
+      - SPRING_DATASOURCE_PASSWORD=${PG_PASSWORD:-admin123456}
       - SPRING_REDIS_HOST=redis
       - SPRING_REDIS_PORT=6379
       - SPRING_MQTT_BROKER_URL=tcp://emqx:1883
@@ -151,7 +149,7 @@ services:
       - S3_SECRET_KEY=admin123456
       - S3_BUCKET=edge-cloud-files
       - S3_PATH_STYLE_ACCESS=true
-      - API_KEY=${API_KEY:-edge-cloud-default-key}
+      - API_KEY=${API_KEY:-admin123456}
     depends_on:
       postgres:
         condition: service_healthy
@@ -252,9 +250,6 @@ services:
       - gpu
     deploy:
       resources:
-        limits:
-          cpus: '6'
-          memory: 16G
         reservations:
           memory: 8G
 

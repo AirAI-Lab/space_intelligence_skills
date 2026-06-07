@@ -445,7 +445,7 @@ def extract_parallel(zip_path, target_path, workers=4):
 ### 4.4 Docker 卷性能优化
 
 ```yaml
-# docker-compose.yml 添加优化选项
+# docker-compose.dev.yml 添加优化选项
 services:
   backend:
     volumes:

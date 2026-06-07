@@ -41,7 +41,7 @@
 | 端口暴露 | 3000/8081/1883/8333/... | 仅 80/443/1935 |
 | Nginx | 无 | 统一反向代理 |
 | 资源限制 | 无 | 每个服务配额 |
-| 配置文件 | `docker-compose.yml` | `docker-compose.prod.yml` |
+| 配置文件 | `docker-compose.dev.yml` | `docker-compose.prod.yml` |
 
 ### Windows + WSL2 vs Linux 服务器
 
@@ -198,6 +198,23 @@ ln -s /mnt/d/github/edge_infer_cloud/models/NVlabs_RADIO ~/edge_infer_cloud/mode
 
 > **注意**：符号链接指向 `/mnt/d/`（Windows 磁盘），读取速度比 WSL2 原生文件系统慢约 30%，但对于模型加载（一次性读取）影响不大。
 
+**训练数据集必须放在 WSL2 原生文件系统（ext4）上**。如果数据集通过 9p (drvfs) 从 Windows 磁盘挂载到 Docker 容器内，训练速度会降低 2-3 倍（每 epoch 从 ~4 分钟变成 ~10 分钟）。这是因为 9p 协议的 IO 性能远低于 ext4。
+
+```bash
+# 错误：数据在 9p 挂载路径上（通过 Docker bind mount 从 Windows 磁盘引用）
+# df -T 显示 "9p" 类型 → 训练慢
+
+# 正确：将数据复制到 WSL2 ext4 文件系统
+cp -a /mnt/d/github/edge_infer_cloud/data/datasets/VisDrone2019 \
+      ~/edge_infer_cloud/data/datasets/VisDrone2019
+
+# 验证：确认数据在 ext4 上
+df -T ~/edge_infer_cloud/data/datasets/VisDrone2019/
+# 应显示 /dev/sdX  ext4
+```
+
+> 如果之前数据集目录被 9p 挂载覆盖，需要先 `sudo umount` 卸载后再复制。
+
 ### 1.3 环境变量配置
 
 `deploy.sh` 会自动检测 WSL2 并加载 `.env.wsl2`。确认 `deployment/docker/.env.wsl2` 内容正确：
@@ -218,7 +235,7 @@ CLOUD_API_URL=http://192.168.0.103:8081
 ```powershell
 # PowerShell 管理员（右键以管理员身份运行）
 cd D:\github\edge_infer_cloud\deployment\docker
-.\start-wsl2.ps1
+.\start.ps1
 ```
 
 **首次部署**还需要初始化数据库：
@@ -236,10 +253,10 @@ docker exec -i edge_cloud_postgres psql -U edge_user -d edge_cloud \
 **其他命令**：
 
 ```powershell
-.\start-wsl2.ps1 -Status      # 查看服务状态和端口转发
-.\start-wsl2.ps1 -Stop        # 停止所有服务
-.\start-wsl2.ps1 -Rebuild     # 重新构建 training 镜像
-.\start-wsl2.ps1 -ResetProxy  # 重置端口转发（WSL2 重启后 IP 变化时使用）
+.\start.ps1 -Status      # 查看服务状态和端口转发
+.\start.ps1 -Stop        # 停止所有服务
+.\start.ps1 -Rebuild     # 重新构建 training 镜像
+.\start.ps1 -ResetProxy  # 重置端口转发（WSL2 重启后 IP 变化时使用）
 ```
 
 ### 1.4.1 手动启动（不使用脚本）
@@ -255,7 +272,7 @@ HTTP_PROXY=http://172.28.192.1:29290 HTTPS_PROXY=http://172.28.192.1:29290 \
     docker compose --profile gpu build training
 
 # 启动所有服务（10 容器）
-docker compose --profile standard --profile gpu up -d
+docker compose --profile full --profile gpu up -d
 
 # 初始化数据库（首次部署必须执行）
 sleep 15
@@ -276,7 +293,7 @@ foreach ($port in $ports) {
 }
 ```
 
-> **注意**：WSL2 重启后 IP 可能变化，需要重新执行端口转发，或使用 `.\start-wsl2.ps1` 自动处理。
+> **注意**：WSL2 重启后 IP 可能变化，需要重新执行端口转发，或使用 `.\start.ps1` 自动处理。
 | SeaweedFS | — | ✓ | ✓ |
 | Portal | — | ✓ | ✓ |
 
@@ -306,7 +323,7 @@ wsl -d Ubuntu -- docker exec edge_cloud_training nvidia-smi
 cd ~/edge_infer_cloud/deployment/docker
 
 # 1. 先停掉开发模式
-docker compose --profile standard --profile gpu down
+docker compose --profile full --profile gpu down
 
 # 2. 构建并启动生产模式
 docker compose -f docker-compose.prod.yml up -d --build
@@ -326,7 +343,7 @@ http://localhost/emqx/      → EMQX 管理面板
 
 **本机访问**：通过 `localhost` 直接访问，WSL2 的 `localhostForwarding=true` 自动转发。
 
-**局域网访问**（Jetson 等外部设备）：WSL2 Docker 端口不直接暴露到 Windows 局域网 IP，需要 `netsh portproxy` 转发。`start-wsl2.ps1` 脚本会自动配置。
+**局域网访问**（Jetson 等外部设备）：WSL2 Docker 端口不直接暴露到 Windows 局域网 IP，需要 `netsh portproxy` 转发。`start.ps1` 脚本会自动配置。
 
 **首次部署需要配置 Windows 防火墙**（管理员 PowerShell，仅首次）：
 
@@ -363,7 +380,7 @@ sudo service docker start
 
 **npm 国内镜像**：
 
-前端容器 `npm install` 默认使用 npmmirror 镜像（已内置在 docker-compose.yml）。
+前端容器 `npm install` 默认使用 npmmirror 镜像（已内置在 docker-compose.dev.yml）。
 
 ### 1.7 WSL2 日常操作
 
@@ -383,10 +400,10 @@ docker compose logs -f training
 docker compose restart backend
 
 # 停止所有服务
-docker compose --profile standard --profile gpu down
+docker compose --profile full --profile gpu down
 
 # 停止并清除数据卷（慎用）
-docker compose --profile standard --profile gpu down -v
+docker compose --profile full --profile gpu down -v
 ```
 
 ---
@@ -449,8 +466,8 @@ chmod +x deploy.sh
 
 # 方式 B: docker compose profiles 精细控制
 docker compose --profile gpu up -d                          # 模式 A: 纯推理（2 容器）
-docker compose --profile standard up -d                     # 模式 B: 推理+管理（8 容器）
-docker compose --profile standard --profile gpu up -d       # 模式 C: 完整平台（9 容器）
+docker compose --profile full up -d                         # 模式 B: 推理+管理（8 容器）
+docker compose --profile full --profile gpu up -d           # 模式 C: 完整平台（9 容器）
 ```
 
 > **生产环境推荐**：先执行 `./deploy.sh --init`（首次），后续用 `./deploy.sh --gpu`
@@ -583,7 +600,7 @@ API_KEY=edge-cloud-api-key-change-me
 - 两者的 Docker 命令完全相同
 
 **Q: 如何选择开发模式还是生产模式？**
-- 开发调试用 `docker-compose.yml`（开发模式）
+- 开发调试用 `docker-compose.dev.yml`（开发模式）
 - 正式部署用 `docker-compose.prod.yml`（生产模式）
 - 两者不能同时运行（端口冲突），必须先停一个再启另一个
 
@@ -594,7 +611,7 @@ API_KEY=edge-cloud-api-key-change-me
 **Q: 训练/推理服务怎么启动？**
 - 训练服务需要 NVIDIA GPU 和 nvidia-container-toolkit
 - 使用 `./deploy.sh --gpu` 启动，或 `docker compose --profile gpu up -d`
-- 没有 GPU 的服务器不需要启动训练服务，使用 `--profile standard` 即可
+- 没有 GPU 的服务器不需要启动训练服务，使用 `--profile full` 即可
 
 **Q: 第三方只需要推理结果，怎么最小化部署？**
 - 仅需 2 个容器：EMQX（消息总线）+ Training（GPU 推理）

@@ -335,7 +335,6 @@ def main():
     debug = os.environ.get('TRAINING_SERVICE_DEBUG', 'false').lower() == 'true'
 
     logger.info(f"启动训练服务: port={port}, debug={debug}")
-
     app.run(host='0.0.0.0', port=port, debug=debug)
 
 

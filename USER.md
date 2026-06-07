@@ -2,11 +2,13 @@
 
 *Learn about the person you're helping. Update this as you go.*
 
-- **Name:** 
-- **What to call them:** 
+- **Name:** 用户080913
+- **What to call them:** 你
 - **Pronouns:** *(optional)*
-- **Timezone:** 
+- **Timezone:** GMT+8
 - **Notes:** 
+  - 偏好用 VS Code 直接编辑容器内代码，不要用龙虾（OpenClaw）的脚本方式修改代码，避免生成多个版本
+  - 容器名: edge_cloud_training
 
 ## Context
 

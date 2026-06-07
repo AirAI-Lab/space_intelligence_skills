@@ -15,7 +15,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker,dev
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/edge_cloud
       - SPRING_DATASOURCE_USERNAME=edge_user
-      - SPRING_DATASOURCE_PASSWORD=edge_pass
+      - SPRING_DATASOURCE_PASSWORD=admin123456
       - SPRING_REDIS_HOST=redis
       - SPRING_REDIS_PORT=6379
       - SPRING_MQTT_BROKER_URL=tcp://emqx:1883
