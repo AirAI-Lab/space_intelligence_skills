@@ -15,7 +15,7 @@ edge_infer_cloud 由以下服务组成：
 | nginx | Nginx Alpine | **80 / 443** | — | 统一反向代理（仅生产模式） |
 | postgres | TimescaleDB + PostgreSQL 16 | 内部 5432 | 5432 | 时序+关系数据库 |
 | redis | Redis 7 Alpine | 内部 6379 | 6379 | 缓存层 |
-| emqx | EMQX 5.5 | `/emqx/` `/mqtt/ws` | 1883/8083/18083 | MQTT 消息代理 |
+| emqx | EMQX 5.5 | `1883`(MQTT直连) `/mqtt/ws`(WS代理) | 1883/8083/18083 | MQTT 消息代理 |
 | mlflow | MLflow 2.9 | `/mlflow/` | 5001 | 模型管理 |
 | seaweedfs | SeaweedFS | `/s3/` | 8333/8080/8888 | S3 兼容对象存储 |
 | backend | Maven + Eclipse Temurin 21 | `/api/` `/ws` | 8081 | Spring Boot 后端 |
@@ -23,7 +23,7 @@ edge_infer_cloud 由以下服务组成：
 | rtmp | nginx-rtmp | 1935 | 1935 | RTMP 流媒体服务器 |
 | training | CUDA 12.8 + PyTorch | 内部 5002 | 5002 | 训练服务 + 云端推理（需GPU） |
 
-- **生产模式**：使用 `docker-compose.prod.yml`，所有服务通过 Nginx 反向代理统一对外（80 端口），内部端口不暴露
+- **生产模式**：使用 `docker-compose.prod.yml`，服务通过 Nginx 反向代理统一对外（80 端口），**EMQX 1883 端口额外对外暴露**（边缘设备原生 MQTT 客户端需要直连）
 - **开发模式**：使用 `docker-compose.yml`，各服务端口直接对外暴露，支持源码热重载
 - `training` 需要 NVIDIA GPU，通过 `--profile gpu` 启动。云端推理在 Training 容器中运行，无需独立容器
 
@@ -247,6 +247,66 @@ git clone https://github.com/NVlabs/RADIO.git models/NVlabs_RADIO
 
 ---
 
+## 5.5 统一 IP 配置（重要）
+
+> **边缘设备需要通过 IP 直连云端的 MQTT (1883) 和 API (80) 端口，必须正确配置 IP 地址。**
+
+项目使用 `.env.ip` 作为**单一 IP 配置源**，通过 `configure_ip.sh` 脚本一键同步到所有配置文件。
+
+### 工作流
+
+```
+编辑 .env.ip  →  运行 configure_ip.sh 同步  →  运行 deploy.sh 部署
+```
+
+### IP 配置文件 (`.env.ip`)
+
+```bash
+# 云端服务器 IP（本机，运行 Docker 服务的 GPU 服务器）
+CLOUD_IP=192.168.1.123
+
+# 边缘设备 IP（Jetson / 边缘推理设备）
+EDGE_IP=192.168.0.1
+```
+
+### 使用方式
+
+```bash
+# 方式一：命令行直接指定（推荐）
+bash scripts/configure_ip.sh --cloud 192.168.1.123 --edge 192.168.0.1
+
+# 方式二：自动检测本机 IP 作为云端 IP
+bash scripts/configure_ip.sh --auto --edge 192.168.0.1
+
+# 方式三：交互式输入
+bash scripts/configure_ip.sh
+
+# 查看当前配置
+bash scripts/configure_ip.sh --show
+```
+
+### 同步范围
+
+脚本会自动将 `.env.ip` 中的 IP 同步到以下文件：
+
+| 文件 | 配置项 | 说明 |
+|------|--------|------|
+| `deployment/docker/.env` | `CLOUD_API_URL` | 后端外部访问地址 |
+| `deployment/docker/docker-compose.yml` | `S3_EXTERNAL_ENDPOINT` | Training 容器的外部 S3 访问（开发模式） |
+| `models/*/configs/*.yaml` | `fallback_stream` | 云端推理 RTMP 降级流地址 |
+| `backend/.../OtaService.java` | `S3_EXTERNAL_ENDPOINT` 默认值 | OTA 模型下载 URL（给边缘设备用） |
+
+### 为什么有些配置用 IP 而不是 localhost？
+
+- `S3_EXTERNAL_ENDPOINT`：这个 URL 是给**边缘设备下载模型文件**用的。边缘设备通过网络访问云端，`localhost` 对边缘设备来说是它自己，必须用云端外部 IP。
+- `backend.external-url`：同理，边缘设备回调云端 API 的地址，不能用 `localhost`。
+- `fallback_stream`：云端推理脚本从 RTMP 拉流的地址，必须用云端 IP。
+
+> **开发模式** (`docker-compose.yml`) 各服务端口直接对外暴露，部分配置需硬编码外部 IP。
+> **生产模式** (`docker-compose.prod.yml`) 通过 Nginx 统一代理，内部服务用 Docker 网络名互访（如 `http://seaweedfs:8333`），无需硬编码 IP。
+
+---
+
 ## 6. 生产环境部署（Linux + GPU 服务器）
 
 > 使用 `docker-compose.prod.yml`，所有服务通过 Nginx 反向代理统一对外（80 端口），支持资源限制、健康检查、日志轮转、systemd 开机自启。
@@ -254,13 +314,16 @@ git clone https://github.com/NVlabs/RADIO.git models/NVlabs_RADIO
 ### 6.1 一键部署
 
 ```bash
-cd deployment/docker
+# 第一步：配置 IP 地址（首次部署或 IP 变更时执行）
+bash scripts/configure_ip.sh --cloud 192.168.1.123 --edge 192.168.0.1
 
-# 一条命令完成全部部署（自动生成 .env、检测 IP 和 GPU、构建镜像、启动所有服务）
+# 第二步：部署（自动生成 .env、检测 GPU、构建镜像、启动所有服务）
+cd deployment/docker
 ./deploy.sh
 ```
 
 > 脚本会自动检测 GPU：有 GPU 则启动 training 服务，无 GPU 则跳过。
+> 如果只改了 `.env.ip` 中的 IP 而没有其他改动，可以直接 `docker compose -f docker-compose.prod.yml up -d` 而无需重建镜像。
 
 ### 6.2 管理命令
 
@@ -291,7 +354,7 @@ docker exec edge_cloud_training curl -s http://localhost:5002/health  # training
 NAME                    STATUS          PORTS
 edge_cloud_postgres     Up (healthy)
 edge_cloud_redis        Up
-edge_cloud_emqx         Up
+edge_cloud_emqx         Up              0.0.0.0:1883->1883/tcp
 edge_cloud_seaweedfs    Up (healthy)
 edge_cloud_mlflow       Up (healthy)
 edge_cloud_backend      Up
@@ -315,6 +378,11 @@ edge_cloud_training     Up (healthy)    # --profile gpu 时显示
 | EMQX 管理面板 | `http://<IP>/emqx/` |
 | 文件存储 S3 | `http://<IP>/s3/` |
 | MQTT WebSocket | `ws://<IP>/mqtt/ws` |
+| **MQTT TCP（边缘直连）** | `tcp://<IP>:1883` |
+| **RTMP 推流** | `rtmp://<IP>:1935` |
+
+> **生产模式端口架构**：Nginx 代理所有 HTTP/WebSocket（80 端口），EMQX MQTT TCP 单独暴露 1883 端口（边缘 C++ 客户端原生 MQTT 需要直连），RTMP 单独暴露 1935 端口。
+> 其他内部服务（PostgreSQL 5432、Redis 6379、MLflow 5000、SeaweedFS 8333、Backend 8080、Training 5002）均不对外暴露，仅 Docker 内部网络互访。
 
 ### 6.5 API 认证
 

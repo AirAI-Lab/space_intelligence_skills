@@ -185,7 +185,7 @@ deployment:
   cloud:
     enabled: true                # 启用云端 RADIO 零样本检测
     storage: true
-    fallback_stream: "rtmp://192.168.0.103:1935/stream/safety_cam"  # MQTT 断开时的原始视频流降级地址
+    fallback_stream: "rtmp://192.168.1.123:1935/stream/safety_cam"  # MQTT 断开时的原始视频流降级地址
     radio:
       model:
         version: c-radio_v4-h

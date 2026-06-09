@@ -4,6 +4,34 @@
 
 ---
 
+## v2026.06.09 — IP 统一配置 + Schema 补全 + 端口修正
+
+### 新增
+
+**IP 统一配置体系**
+- `.env.ip`：云端→192.168.1.123，边缘→192.168.0.1，字段名统一 EDGE_IP
+- `scripts/configure_ip.sh`：一键同步 IP 到所有配置文件（独立于 deploy.sh）
+- `README_DOCKER.md` §5.5：IP 配置章节，端口架构说明
+
+**QA 文档**
+- `QA.md`：部署经验 & 常见问题总结
+
+### 变更
+
+**数据库 Schema 补全**
+- `schema.sql`：devices 建表补全 device_category/capabilities/protocol/labels + 硬件信息列
+- `deploy.sh`：init_db 补全 devices 表 4 列 ALTER 语句
+
+**端口与网络修正**
+- `docker-compose.prod.yml`：EMQX 加 ports: 1883（边缘设备 MQTT 直连），Backend 加 ports: 8081
+- `docker-compose.yml`：S3_EXTERNAL_ENDPOINT 改为环境变量引用
+
+**配置更新**
+- `OtaService.java`：默认 IP→192.168.1.123
+- `construction_safety.yaml`：fallback_stream IP→192.168.1.123
+
+---
+
 ## v2026.06.07 — SeaweedFS 修复 + 部署统一 + 移除 edge_infer 挂载
 
 ### 修复

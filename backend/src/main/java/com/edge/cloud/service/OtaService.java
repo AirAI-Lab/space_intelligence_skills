@@ -50,7 +50,7 @@ public class OtaService {
     @Value("${S3_ENDPOINT:http://localhost:8333}")
     private String s3Endpoint;
 
-    @Value("${S3_EXTERNAL_ENDPOINT:http://192.168.0.103:8333}")
+    @Value("${S3_EXTERNAL_ENDPOINT:http://192.168.1.123:8333}")
     private String s3ExternalEndpoint;
 
     @Value("${backend.external-url:http://localhost:8081}")

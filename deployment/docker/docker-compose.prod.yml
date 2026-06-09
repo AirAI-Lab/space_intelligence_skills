@@ -67,9 +67,10 @@ services:
     networks:
       - edge-cloud
     restart: unless-stopped
-    # 1883 不对外暴露，通过 nginx 代理 WS
+    ports:
+      - "1883:1883"    # MQTT TCP — 边缘设备原生 MQTT 客户端需要直连
     expose:
-      - "1883"
+      - "8083"         # MQTT WebSocket（通过 nginx /mqtt/ws 代理）
 
   seaweedfs:
     image: chrislusf/seaweedfs:latest
@@ -164,7 +165,8 @@ services:
     networks:
       - edge-cloud
     restart: unless-stopped
-    # 不对外暴露端口，通过 nginx 代理
+    ports:
+      - "8081:8080"   # 后端 API — 边缘设备注册/心跳/推理结果上报需要直连
     expose:
       - "8080"
     deploy:
