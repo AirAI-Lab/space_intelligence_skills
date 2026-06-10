@@ -125,7 +125,6 @@ writing/
 memory/
 
 # Training cache & local copies
-training/pip_cache/
 training/cloud/
 
 # Model data directories (large files)
