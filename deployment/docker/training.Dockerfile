@@ -16,7 +16,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PIP_DEFAULT_TIMEOUT=600 \
     PIP_RETRIES=10 \
     TORCH_CUDA_ARCH_LIST="12.0" \
-    CUDA_VISIBLE_DEVICES=0 \
     CUDA_HOME=/usr/local/cuda \
     FORCE_CUDA="1" \
     CUDA_VERSION="12.8" \

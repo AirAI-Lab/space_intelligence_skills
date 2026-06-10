@@ -21,8 +21,10 @@ pillow>=10.0.0
 # 配置文件解析
 pyyaml>=6.0
 
-# MLflow
-mlflow>=2.9.0
+# MLflow — 已禁用。ultralytics 会自动注册 mlflow callback，
+# 在无 MLflow server 的环境中会导致训练崩溃 (NameResolutionError)。
+# 如需启用，请取消下行注释并在 docker-compose.yml 中配置 MLFLOW_TRACKING_URI。
+# mlflow>=2.9.0
 
 # TensorRT (可选，在训练容器中安装)
 # nvidia-tensorrt>=8.6.0

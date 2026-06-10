@@ -4,6 +4,24 @@
 
 ---
 
+## v2026.06.10 — GPU 多卡放开 + MLflow 禁用
+
+### 变更
+
+**GPU 多卡支持**
+- 移除所有 `CUDA_VISIBLE_DEVICES=0` 硬编码（docker-compose.yml/dev/prod、Dockerfile、.env.example）
+- 默认自动使用宿主机全部 GPU，训练脚本通过 `--device` 参数选择具体卡
+- 移除 training 容器 CPU/内存 limits，让容器自动使用宿主机全部资源
+
+**MLflow 禁用**
+- `models/requirements.txt` 和 `training/requirements.txt` 注释掉 mlflow 依赖
+- 原因：ultralytics 自动注册 mlflow callback，无 MLflow server 时导致训练崩溃（NameResolutionError）
+
+**docker-compose.yml 清理**
+- 注释掉 edge_infer/external_data Windows 开发机路径挂载
+
+---
+
 ## v2026.06.09 — IP 统一配置 + Schema 补全 + 端口修正
 
 ### 新增

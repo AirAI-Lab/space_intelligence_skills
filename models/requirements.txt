@@ -40,7 +40,9 @@ tqdm>=4.65.0
 pycocotools>=2.0.6
 
 # ---------- MLflow 模型管理（训练场景） ----------
-mlflow>=2.9.0
+# MLflow — 已禁用。ultralytics 自动注册 mlflow callback，无 MLflow server 时导致训练崩溃
+# 如需启用，请确保 MLFLOW_TRACKING_URI 已配置
+# mlflow>=2.9.0
 
 # ---------- ONNX 导出（边缘部署场景） ----------
 onnx>=1.15.0

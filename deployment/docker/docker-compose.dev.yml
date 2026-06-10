@@ -57,7 +57,7 @@ services:
     runtime: nvidia
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - CUDA_VISIBLE_DEVICES=0
+      # CUDA_VISIBLE_DEVICES: 不设置 — 自动使用全部 GPU，训练脚本 --device 选择
       - PYTHONUNBUFFERED=1
       - MLFLOW_TRACKING_URI=http://mlflow:5000
       - TRAINING_SERVICE_PORT=5002
