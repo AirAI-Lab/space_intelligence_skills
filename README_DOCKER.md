@@ -3,6 +3,10 @@
 本文档说明如何从零开始，在一台新机器上通过 Docker 快速部署 **edge_infer_cloud 云边协同管理平台**。
 
 > 目标读者：新加入团队的成员，需在一台全新 PC（Windows/Linux）上完成环境搭建并跑通所有服务。
+> 
+> 文档入口：项目文档总览见 [QUICKSTART.md](QUICKSTART.md)。本文档只负责当前仓库 Docker 部署流程。
+>
+> 当前部署说明：现有 Docker Compose 仍包含 `nginx-rtmp` 和 `mlflow`。最新产品建设方案规划使用 ZLMediaKit 替换/增强流媒体能力，并将 MLflow 调整为可选实验追踪组件；在相关代码和 compose 改造完成前，本手册按当前可运行部署说明。
 
 ---
 
@@ -16,16 +20,17 @@ edge_infer_cloud 由以下服务组成：
 | postgres | TimescaleDB + PostgreSQL 16 | 内部 5432 | 5432 | 时序+关系数据库 |
 | redis | Redis 7 Alpine | 内部 6379 | 6379 | 缓存层 |
 | emqx | EMQX 5.5 | `1883`(MQTT直连) `/mqtt/ws`(WS代理) | 1883/8083/18083 | MQTT 消息代理 |
-| mlflow | MLflow 2.9 | `/mlflow/` | 5001 | 模型管理 |
+| mlflow | MLflow 2.9 | `/mlflow/` | 5001 | 当前部署中的实验追踪/模型管理服务，后续规划为可选组件 |
 | seaweedfs | SeaweedFS | `/s3/` | 8333/8080/8888 | S3 兼容对象存储 |
 | backend | Maven + Eclipse Temurin 21 | `/api/` `/ws` | 8081 | Spring Boot 后端 |
 | frontend | Vue3 + Nginx Alpine | `/` | 3000 | 前端管理界面 |
-| rtmp | nginx-rtmp | 1935 | 1935 | RTMP 流媒体服务器 |
+| rtmp | nginx-rtmp | 1935 | 1935 | 当前演示链路使用的 RTMP 流媒体服务，后续规划接入 ZLMediaKit |
 | training | CUDA 12.8 + PyTorch | 内部 5002 | 5002 | 训练服务 + 云端推理（需GPU） |
 
 - **生产模式**：使用 `docker-compose.prod.yml`，服务通过 Nginx 反向代理统一对外（80 端口），**EMQX 1883 端口额外对外暴露**（边缘设备原生 MQTT 客户端需要直连）
 - **开发模式**：使用 `docker-compose.yml`，各服务端口直接对外暴露，支持源码热重载
 - `training` 需要 NVIDIA GPU，通过 `--profile gpu` 启动。云端推理在 Training 容器中运行，无需独立容器
+- **边缘推理**：当前云端平台负责接收边缘推理结果和展示；边缘侧推理框架为独立 C++ 项目 `edge_infer`，不在本仓库 Docker Compose 中启动
 
 ---
 

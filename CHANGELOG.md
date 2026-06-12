@@ -4,6 +4,55 @@
 
 ---
 
+## v2026.06.12 — 文档体系收敛 + 开发计划
+
+### 新增
+
+**对外交付文档入口**
+- 新增根目录 `QUICKSTART.md`，作为客户、产品、开发、运维的统一文档入口。
+- 新增 `docs/README.md` 正式文档目录，按角色指向市场、产品、技术文档。
+
+**市场/运营文档**
+- 新增 `docs/business/MARKET_OVERVIEW.md`。
+- 新增 `docs/business/SCENARIO_SOLUTIONS.md`。
+- 新增 `docs/business/COMPETITIVE_ADVANTAGES.md`。
+
+**产品/UI 文档**
+- 新增 `docs/product/PRODUCT_REQUIREMENTS.md`。
+- 新增 `docs/product/USER_MANUAL.md`。
+- 新增 `docs/product/UI_UX_DESIGN_GUIDE.md`。
+
+**技术/开发/运维文档**
+- 新增 `docs/technical/ARCHITECTURE.md`。
+- 新增 `docs/technical/API_AND_INTEGRATION.md`。
+- 新增 `docs/technical/TRAINING_AND_MODEL_GUIDE.md`。
+- 新增 `docs/technical/DEVELOPMENT_PLAN.md`。
+- 新增 `docs/technical/OPERATIONS_AND_TROUBLESHOOTING.md`。
+
+### 变更
+
+**文档结构收敛**
+- 根目录 Markdown 按对外客户/交付版标准收敛，仅保留 `CHANGELOG.md`、`QUICKSTART.md`、`README_DOCKER.md`。
+- `docs/` 正式文档收敛为 `business`、`product`、`technical` 三类。
+- 旧文档迁移到本机归档目录 `docs/archive/2026-06-doc-cleanup/`，并通过 `.gitignore` 排除，不上传远端仓库。
+
+**平台规划同步**
+- 正式文档统一平台定位为“云边协同空间智能平台”。
+- 明确技术边界：ZLMediaKit 负责流媒体核心，`edge_infer` 负责 C++ 边缘推理，Spring Boot 负责平台业务，Python 负责云端训练/推理/大模型能力。
+- 补充空间态势、二维地图、未来三维地图和数字孪生大屏规划。
+- 补充模型工厂开发方向：数据飞轮、辅助标注、零代码训练、一键导出、行业预设。
+
+**Docker 部署手册**
+- `README_DOCKER.md` 明确当前 Docker Compose 仍使用 `nginx-rtmp` 和 `mlflow`，后续规划接入 ZLMediaKit，并将 MLflow 调整为可选实验追踪组件。
+- 明确 `edge_infer` 是独立 C++ 边缘推理框架，不在本仓库 Docker Compose 中启动。
+
+### 说明
+
+- 本次不提交本机归档目录内容。
+- 本次不提交 `.tools/`、`output/`、`training/change_detection/`、`training/data/`、`training/yolov8n.onnx` 等本地生成或实验文件。
+
+---
+
 ## v2026.06.10 — GPU 多卡放开 + MLflow 禁用
 
 ### 变更
