@@ -1,0 +1,4 @@
+sync/inbox/
+sync/test-*/
+sync/targets.local.json
+*.log

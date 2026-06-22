@@ -1,0 +1,4 @@
+interface:
+  display_name: "Software Project Delivery"
+  short_description: "Turn ideas into verified, releasable software projects"
+  default_prompt: "Use $deliver-software-project to turn this idea into a user-centered, implemented, verified, and releasable software increment."
